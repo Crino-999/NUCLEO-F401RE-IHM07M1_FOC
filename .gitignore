@@ -36,3 +36,6 @@ NUCLEO-F401RE/Release/
 *.log
 *.bak
 NUCLEO-F401RE/NUCLEO-F401RE.ioc.bak
+
+# ---------- 本地敏感词表（含个人敏感词，禁止提交） ----------
+.git_sensitive_words.txt
