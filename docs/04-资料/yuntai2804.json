@@ -1,0 +1,22 @@
+{
+    "BEmfConstant": 3.3129119873046875,
+    "compatibility": [
+        "FOC",
+        "sixStep"
+    ],
+    "description": "7pole-2502rpm-2apk",
+    "friction": 0.33,
+    "hardwareFamily": "MOTOR",
+    "id": "yuntai2804",
+    "inertia": 0.64,
+    "label": "yuntai2804",
+    "ls": 0.8,
+    "magneticStructure": {
+        "type": "SM-PMSM"
+    },
+    "maxRatedSpeed": 2502,
+    "nominalCurrent": 2,
+    "nominalDCVoltage": 12.245086669921875,
+    "polePairs": 7,
+    "rs": 3.1943023204803467
+}

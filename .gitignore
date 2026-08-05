@@ -1,0 +1,38 @@
+# =============================================
+#  STM32 NUCLEO-F401RE 项目
+#  排除编译产物、构建目录与临时文件
+# =============================================
+
+# ---------- Keil MDK-ARM（uVision）编译产物 ----------
+# 编译输出目录：*.o *.d *.crf *.axf *.hex *.map *.lnp *.dep 等
+NUCLEO-F401RE/MDK-ARM/NUCLEO-F401RE/
+# 用户本地个性化配置（含本机绝对路径，不应提交）
+NUCLEO-F401RE/MDK-ARM/*.uvoptx
+NUCLEO-F401RE/MDK-ARM/*.uvguix.*
+
+# ---------- CMSIS-Toolbox / CMake 构建产物 ----------
+NUCLEO-F401RE/build/
+NUCLEO-F401RE/cmake-build-*/
+NUCLEO-F401RE/Debug/
+NUCLEO-F401RE/Release/
+
+# ---------- 通用编译产物（任意目录层级） ----------
+*.o
+*.d
+*.crf
+*.axf
+*.hex
+*.bin
+*.elf
+*.map
+*.lst
+*.lnp
+*.dep
+*.sct
+*.build_log.htm
+*.htm
+
+# ---------- 工具链生成日志与备份（可能含本机路径与用户名，不应提交） ----------
+*.log
+*.bak
+NUCLEO-F401RE/NUCLEO-F401RE.ioc.bak
