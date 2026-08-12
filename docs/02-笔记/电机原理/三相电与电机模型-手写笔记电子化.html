@@ -2127,6 +2127,178 @@
       <div class="fig-caption">图 19：三相电压源型逆变器电路拓扑——直流电源 Udc 经限流电阻接入三个桥臂（U/V/W 相），每个桥臂由上管和下管两个 MOSFET 组成（共 6 个开关管），每个 MOSFET 反并联续流二极管为感性电流提供续流通路。三相输出端连接星形（Y）连接的三相电感负载（1mH×3），代表电机三相绕组</div>
     </div>
 
+    <div class="fig-wrap">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 920 460" width="920" height="460">
+        <!-- 正负极直流母线 -->
+        <line x1="25" y1="55" x2="600" y2="55" stroke="#000" stroke-width="2"/>
+        <line x1="25" y1="400" x2="600" y2="400" stroke="#000" stroke-width="2"/>
+
+        <!-- 直流电压源 Udc (电池符号) -->
+        <line x1="10" y1="210" x2="65" y2="210" stroke="#000" stroke-width="4"/>
+        <line x1="18" y1="250" x2="57" y2="250" stroke="#000" stroke-width="4"/>
+        <line x1="37" y1="55" x2="37" y2="210" stroke="#000" stroke-width="2"/>
+        <line x1="37" y1="250" x2="37" y2="400" stroke="#000" stroke-width="2"/>
+        <text x="85" y="235" font-family="Arial, Helvetica, sans-serif" font-size="30" fill="#000">U<tspan font-size="20" baseline-shift="sub">dc</tspan></text>
+
+        <!-- A 相 (x=170) 上桥臂 IGBT -->
+        <circle cx="170" cy="55" r="4" fill="#000"/>
+        <line x1="170" y1="55" x2="170" y2="100" stroke="#000" stroke-width="2"/>
+        <rect x="140" y="100" width="60" height="80" fill="none" stroke="#000" stroke-width="2"/>
+        <line x1="170" y1="100" x2="170" y2="180" stroke="#000" stroke-width="2"/>
+        <line x1="154" y1="120" x2="154" y2="160" stroke="#000" stroke-width="2"/>
+        <line x1="161" y1="120" x2="161" y2="160" stroke="#000" stroke-width="2"/>
+        <line x1="102" y1="140" x2="154" y2="140" stroke="#000" stroke-width="1.8"/>
+        <line x1="170" y1="180" x2="170" y2="190" stroke="#000" stroke-width="2"/>
+        <polygon points="170,208 158,190 182,190" fill="#000"/>
+        <line x1="170" y1="208" x2="170" y2="220" stroke="#000" stroke-width="2"/>
+        <circle cx="170" cy="220" r="5" fill="#000"/>
+        <text x="158" y="244" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="#000">A</text>
+
+        <!-- A相上桥臂续流二极管 -->
+        <line x1="217" y1="118" x2="217" y2="158" stroke="#000" stroke-width="2"/>
+        <polygon points="205,158 229,158 217,134" fill="#000"/>
+        <line x1="170" y1="77" x2="217" y2="77" stroke="#000" stroke-width="1.5"/>
+        <line x1="217" y1="77" x2="217" y2="118" stroke="#000" stroke-width="1.5"/>
+        <line x1="170" y1="196" x2="205" y2="196" stroke="#000" stroke-width="1.5"/>
+        <line x1="205" y1="158" x2="205" y2="196" stroke="#000" stroke-width="1.5"/>
+
+        <!-- A相下桥臂 IGBT -->
+        <line x1="170" y1="220" x2="170" y2="255" stroke="#000" stroke-width="2"/>
+        <rect x="140" y="255" width="60" height="80" fill="none" stroke="#000" stroke-width="2"/>
+        <line x1="170" y1="255" x2="170" y2="335" stroke="#000" stroke-width="2"/>
+        <line x1="154" y1="275" x2="154" y2="315" stroke="#000" stroke-width="2"/>
+        <line x1="161" y1="275" x2="161" y2="315" stroke="#000" stroke-width="2"/>
+        <line x1="102" y1="295" x2="154" y2="295" stroke="#000" stroke-width="1.8"/>
+        <line x1="170" y1="335" x2="170" y2="345" stroke="#000" stroke-width="2"/>
+        <polygon points="170,363 158,345 182,345" fill="#000"/>
+        <line x1="170" y1="363" x2="170" y2="400" stroke="#000" stroke-width="2"/>
+        <circle cx="170" cy="400" r="4" fill="#000"/>
+
+        <!-- A相下桥臂续流二极管 -->
+        <line x1="217" y1="273" x2="217" y2="313" stroke="#000" stroke-width="2"/>
+        <polygon points="205,313 229,313 217,289" fill="#000"/>
+        <line x1="170" y1="232" x2="217" y2="232" stroke="#000" stroke-width="1.5"/>
+        <line x1="217" y1="232" x2="217" y2="273" stroke="#000" stroke-width="1.5"/>
+        <line x1="170" y1="351" x2="205" y2="351" stroke="#000" stroke-width="1.5"/>
+        <line x1="205" y1="313" x2="205" y2="351" stroke="#000" stroke-width="1.5"/>
+
+        <!-- B 相 (x=335) 上桥臂 IGBT -->
+        <circle cx="335" cy="55" r="4" fill="#000"/>
+        <line x1="335" y1="55" x2="335" y2="100" stroke="#000" stroke-width="2"/>
+        <rect x="305" y="100" width="60" height="80" fill="none" stroke="#000" stroke-width="2"/>
+        <line x1="335" y1="100" x2="335" y2="180" stroke="#000" stroke-width="2"/>
+        <line x1="319" y1="120" x2="319" y2="160" stroke="#000" stroke-width="2"/>
+        <line x1="326" y1="120" x2="326" y2="160" stroke="#000" stroke-width="2"/>
+        <line x1="267" y1="140" x2="319" y2="140" stroke="#000" stroke-width="1.8"/>
+        <line x1="335" y1="180" x2="335" y2="190" stroke="#000" stroke-width="2"/>
+        <polygon points="335,208 323,190 347,190" fill="#000"/>
+        <line x1="335" y1="208" x2="335" y2="220" stroke="#000" stroke-width="2"/>
+        <circle cx="335" cy="220" r="5" fill="#000"/>
+        <text x="323" y="244" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="#000">B</text>
+
+        <!-- B相上桥臂续流二极管 -->
+        <line x1="382" y1="118" x2="382" y2="158" stroke="#000" stroke-width="2"/>
+        <polygon points="370,158 394,158 382,134" fill="#000"/>
+        <line x1="335" y1="77" x2="382" y2="77" stroke="#000" stroke-width="1.5"/>
+        <line x1="382" y1="77" x2="382" y2="118" stroke="#000" stroke-width="1.5"/>
+        <line x1="335" y1="196" x2="370" y2="196" stroke="#000" stroke-width="1.5"/>
+        <line x1="370" y1="158" x2="370" y2="196" stroke="#000" stroke-width="1.5"/>
+
+        <!-- B相下桥臂 IGBT -->
+        <line x1="335" y1="220" x2="335" y2="255" stroke="#000" stroke-width="2"/>
+        <rect x="305" y="255" width="60" height="80" fill="none" stroke="#000" stroke-width="2"/>
+        <line x1="335" y1="255" x2="335" y2="335" stroke="#000" stroke-width="2"/>
+        <line x1="319" y1="275" x2="319" y2="315" stroke="#000" stroke-width="2"/>
+        <line x1="326" y1="275" x2="326" y2="315" stroke="#000" stroke-width="2"/>
+        <line x1="267" y1="295" x2="319" y2="295" stroke="#000" stroke-width="1.8"/>
+        <line x1="335" y1="335" x2="335" y2="345" stroke="#000" stroke-width="2"/>
+        <polygon points="335,363 323,345 347,345" fill="#000"/>
+        <line x1="335" y1="363" x2="335" y2="400" stroke="#000" stroke-width="2"/>
+        <circle cx="335" cy="400" r="4" fill="#000"/>
+
+        <!-- B相下桥臂续流二极管 -->
+        <line x1="382" y1="273" x2="382" y2="313" stroke="#000" stroke-width="2"/>
+        <polygon points="370,313 394,313 382,289" fill="#000"/>
+        <line x1="335" y1="232" x2="382" y2="232" stroke="#000" stroke-width="1.5"/>
+        <line x1="382" y1="232" x2="382" y2="273" stroke="#000" stroke-width="1.5"/>
+        <line x1="335" y1="351" x2="370" y2="351" stroke="#000" stroke-width="1.5"/>
+        <line x1="370" y1="313" x2="370" y2="351" stroke="#000" stroke-width="1.5"/>
+
+        <!-- C 相 (x=500) 上桥臂 IGBT -->
+        <circle cx="500" cy="55" r="4" fill="#000"/>
+        <line x1="500" y1="55" x2="500" y2="100" stroke="#000" stroke-width="2"/>
+        <rect x="470" y="100" width="60" height="80" fill="none" stroke="#000" stroke-width="2"/>
+        <line x1="500" y1="100" x2="500" y2="180" stroke="#000" stroke-width="2"/>
+        <line x1="484" y1="120" x2="484" y2="160" stroke="#000" stroke-width="2"/>
+        <line x1="491" y1="120" x2="491" y2="160" stroke="#000" stroke-width="2"/>
+        <line x1="432" y1="140" x2="484" y2="140" stroke="#000" stroke-width="1.8"/>
+        <line x1="500" y1="180" x2="500" y2="190" stroke="#000" stroke-width="2"/>
+        <polygon points="500,208 488,190 512,190" fill="#000"/>
+        <line x1="500" y1="208" x2="500" y2="220" stroke="#000" stroke-width="2"/>
+        <circle cx="500" cy="220" r="5" fill="#000"/>
+        <text x="488" y="244" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="#000">C</text>
+
+        <!-- C相上桥臂续流二极管 -->
+        <line x1="547" y1="118" x2="547" y2="158" stroke="#000" stroke-width="2"/>
+        <polygon points="535,158 559,158 547,134" fill="#000"/>
+        <line x1="500" y1="77" x2="547" y2="77" stroke="#000" stroke-width="1.5"/>
+        <line x1="547" y1="77" x2="547" y2="118" stroke="#000" stroke-width="1.5"/>
+        <line x1="500" y1="196" x2="535" y2="196" stroke="#000" stroke-width="1.5"/>
+        <line x1="535" y1="158" x2="535" y2="196" stroke="#000" stroke-width="1.5"/>
+
+        <!-- C相下桥臂 IGBT -->
+        <line x1="500" y1="220" x2="500" y2="255" stroke="#000" stroke-width="2"/>
+        <rect x="470" y="255" width="60" height="80" fill="none" stroke="#000" stroke-width="2"/>
+        <line x1="500" y1="255" x2="500" y2="335" stroke="#000" stroke-width="2"/>
+        <line x1="484" y1="275" x2="484" y2="315" stroke="#000" stroke-width="2"/>
+        <line x1="491" y1="275" x2="491" y2="315" stroke="#000" stroke-width="2"/>
+        <line x1="432" y1="295" x2="484" y2="295" stroke="#000" stroke-width="1.8"/>
+        <line x1="500" y1="335" x2="500" y2="345" stroke="#000" stroke-width="2"/>
+        <polygon points="500,363 488,345 512,345" fill="#000"/>
+        <line x1="500" y1="363" x2="500" y2="400" stroke="#000" stroke-width="2"/>
+        <circle cx="500" cy="400" r="4" fill="#000"/>
+
+        <!-- C相下桥臂续流二极管 -->
+        <line x1="547" y1="273" x2="547" y2="313" stroke="#000" stroke-width="2"/>
+        <polygon points="535,313 559,313 547,289" fill="#000"/>
+        <line x1="500" y1="232" x2="547" y2="232" stroke="#000" stroke-width="1.5"/>
+        <line x1="547" y1="232" x2="547" y2="273" stroke="#000" stroke-width="1.5"/>
+        <line x1="500" y1="351" x2="535" y2="351" stroke="#000" stroke-width="1.5"/>
+        <line x1="535" y1="313" x2="535" y2="351" stroke="#000" stroke-width="1.5"/>
+
+        <!-- 三相输出线 -->
+        <path d="M170,220 L170,200 L600,200 L600,55 L760,55 L760,30" stroke="#000" stroke-width="2" fill="none"/>
+        <path d="M335,220 L335,225 L645,225" stroke="#000" stroke-width="2" fill="none"/>
+        <path d="M500,220 L500,250 L600,250 L600,395 L760,395 L760,420" stroke="#000" stroke-width="2" fill="none"/>
+
+        <!-- 星形(Y形)电感负载外框 -->
+        <rect x="600" y="30" width="280" height="390" fill="none" stroke="#000" stroke-width="2"/>
+
+        <!-- 中性点 o -->
+        <circle cx="770" cy="225" r="5" fill="#000"/>
+        <text x="782" y="231" font-family="Arial, Helvetica, sans-serif" font-size="26" font-weight="bold" fill="#000">o</text>
+
+        <!-- b 相线圈 (竖直, 从上往下) -->
+        <text x="742" y="55" font-family="Arial, Helvetica, sans-serif" font-size="24" font-weight="bold" fill="#000">b</text>
+        <line x1="760" y1="30" x2="760" y2="65" stroke="#000" stroke-width="2"/>
+        <path d="M760,65 c-9,4 -9,16 0,20 c9,4 9,16 0,20 c-9,4 -9,16 0,20 c9,4 9,16 0,20 c-9,4 -9,16 0,20 c9,4 9,16 0,20 c-9,4 -9,16 0,20" stroke="#000" stroke-width="2" fill="none"/>
+        <line x1="760" y1="205" x2="760" y2="225" stroke="#000" stroke-width="2"/>
+        <line x1="760" y1="225" x2="770" y2="225" stroke="#000" stroke-width="2"/>
+
+        <!-- a 相线圈 (水平, 从左往右) -->
+        <text x="632" y="215" font-family="Arial, Helvetica, sans-serif" font-size="24" font-weight="bold" fill="#000">a</text>
+        <path d="M645,225 c5,-8 15,-8 20,0 c5,8 15,8 20,0 c5,-8 15,-8 20,0 c5,8 15,8 20,0 c5,-8 15,-8 20,0" stroke="#000" stroke-width="2" fill="none"/>
+        <line x1="745" y1="225" x2="770" y2="225" stroke="#000" stroke-width="2"/>
+
+        <!-- c 相线圈 (竖直, 从下往上) -->
+        <text x="742" y="412" font-family="Arial, Helvetica, sans-serif" font-size="24" font-weight="bold" fill="#000">c</text>
+        <line x1="760" y1="385" x2="760" y2="420" stroke="#000" stroke-width="2"/>
+        <path d="M760,385 c-9,-4 -9,-16 0,-20 c9,-4 9,-16 0,-20 c-9,-4 -9,-16 0,-20 c9,-4 9,-16 0,-20 c-9,-4 -9,-16 0,-20 c9,-4 9,-16 0,-20 c-9,-4 -9,-16 0,-20" stroke="#000" stroke-width="2" fill="none"/>
+        <line x1="760" y1="245" x2="760" y2="225" stroke="#000" stroke-width="2"/>
+      </svg>
+      <div class="fig-caption">图 19B：三相电压源型逆变器电路拓扑（SVG 矢量备案版）——与图 19 内容相同的可编辑 SVG 版本，采用 IGBT 符号绘制六个开关管（A/B/C 三相 × 上/下桥臂），反并联续流二极管，输出端接星形（Y）连接的三相电感负载（a/b/c），中性点为 o。此版本可直接在 HTML 源码中编辑修改</div>
+    </div>
+
     <p><b>工作原理：</b>逆变器的本质是<b>三个半桥</b>（Half-Bridge）。每个半桥有两个开关管（上管和下管），输出端在两者之间：</p>
     <ul>
       <li><b>上管导通、下管关断</b>：输出接 Vdc+，相电压 ≈ +Vdc/2</li>
@@ -2205,7 +2377,8 @@
       <li><b>第四节与第五节调换</b>（2026-08-12）：将 Clarke 与 Park 坐标变换（原第五节）调至第四节，STO+PLL 无感观测器（原第四节）调至第五节，遵循从易到难的顺序。全部小节编号（4.x↔5.x）和跨节交叉引用同步更新。</li>
       <li><b>第六节 + 图 18-19 新增</b>（2026-08-12）：新增"FOC 控制系统框图与三相逆变器"章节，将前五节的模块"拼装"为完整 FOC 系统。6.1 节绘制 FOC 控制系统完整框图（图 18），展示双闭环结构、坐标变换、SVPWM、逆变器和反馈路径的全局视图；6.2 节解释串级控制策略（速度环 1kHz + 电流环 16kHz）及 id*=0 控制；6.3 节绘制三相桥式逆变器电路拓扑图（图 19），含 6 个 MOSFET、续流二极管、星形连接电机绕组和电流采样电阻；6.4 节解释 SVPWM 调制原理与开关控制；6.5 节串联从法拉第定律到硬件执行的完整链条。原"转写与修正说明"由第六节顺延为第七节。</li>
       <li><b>章节顺序策略调整</b>（2026-08-12）：废除此前"从易到难顺序排列章节"的要求，改为先完整写完笔记打通整个链条，之后再依据旧笔记重新梳理章节顺序。</li>
-      <li>若需修改或增补，直接编辑本 HTML 即可，所有图形均为可编辑的 SVG 代码。</li>
+      <li><b>图 19B 新增</b>（2026-08-12）：在 6.3 节原有 PNG 电路截图（图 19）之后，新增同名内容的 SVG 矢量备案版（图 19B）。该 SVG 采用 IGBT 符号绘制六个开关管（A/B/C 三相 × 上/下桥臂），含反并联续流二极管与星形（Y）连接三相电感负载，可直接在 HTML 源码中编辑修改，作为图 19 位图版本的可编辑备选方案。</li>
+      <li>若需修改或增补，直接编辑本 HTML 即可，所有图形均为可编辑的 SVG 代码。<b>每次修改后须在本节追加修订记录</b>，格式为「<b>修改摘要</b>（日期）：详细说明」。</li>
     </ul>
 
   </main>
