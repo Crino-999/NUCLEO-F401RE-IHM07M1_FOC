@@ -1,0 +1,2215 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>手写笔记电子化：三相电与电机模型</title>
+<style>
+  :root {
+    --ink: #1a1a2e;
+    --paper: #fdfbf7;
+    --line: #d8d3c9;
+    --accent: #b3541e;
+    --accent2: #1e5b8a;
+    --note-bg: #f4f1e8;
+    --code-bg: #efece2;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: "Segoe UI", "Microsoft YaHei", "PingFang SC", sans-serif;
+    background: var(--paper);
+    color: var(--ink);
+    line-height: 1.75;
+    padding: 32px 16px;
+  }
+  .page {
+    max-width: 860px;
+    margin: 0 auto;
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+    overflow: hidden;
+  }
+  header {
+    padding: 28px 40px 20px;
+    border-bottom: 3px solid var(--accent);
+  }
+  header h1 { font-size: 24px; color: var(--accent); }
+  header .meta { margin-top: 8px; font-size: 13px; color: #777; }
+  main { padding: 28px 40px 40px; }
+  h2 {
+    font-size: 19px;
+    margin: 32px 0 14px;
+    padding-bottom: 6px;
+    border-bottom: 2px solid var(--line);
+    color: var(--accent2);
+  }
+  h3 { font-size: 16px; margin: 20px 0 10px; color: var(--ink); }
+  p { margin-bottom: 10px; }
+  .formula {
+    background: var(--code-bg);
+    border-left: 4px solid var(--accent);
+    padding: 12px 18px;
+    margin: 12px 0;
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 16px;
+    overflow-x: auto;
+  }
+  .formula .em { color: var(--accent); font-weight: 600; }
+  .note {
+    background: var(--note-bg);
+    border-radius: 8px;
+    padding: 12px 16px;
+    margin: 14px 0;
+    font-size: 14px;
+    border: 1px solid var(--line);
+  }
+  .note .label { font-weight: 600; color: var(--accent); }
+  .fig-wrap {
+    margin: 18px 0;
+    text-align: center;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 12px;
+    background: #fcfbf7;
+  }
+  .fig-wrap svg { max-width: 100%; height: auto; }
+  .fig-caption { font-size: 13px; color: #888; margin-top: 6px; }
+  table {
+    border-collapse: collapse;
+    margin: 12px 0;
+    width: 100%;
+    font-size: 14px;
+  }
+  th, td { border: 1px solid var(--line); padding: 8px 12px; text-align: left; }
+  th { background: var(--note-bg); }
+  sup, sub { font-size: 75%; }
+  ul, ol { padding-left: 24px; margin-bottom: 12px; }
+  li { margin-bottom: 4px; }
+  .correction { font-size: 13px; color: #666; }
+  footer {
+    padding: 14px 40px;
+    border-top: 1px solid var(--line);
+    font-size: 12px;
+    color: #999;
+    background: #faf8f2;
+  }
+</style>
+</head>
+<body>
+<div class="page">
+  <header>
+    <h1>手写笔记电子化：三相电与电机模型</h1>
+    <div class="meta">电子化日期：2026-08-11 ｜ 原载体：手写笔记照片 ｜ 归档：docs/02-笔记/电机原理/</div>
+  </header>
+  <main>
+
+    <!-- ==================== 一、三相电 ==================== -->
+    <h2>一、三相电基础</h2>
+
+    <h3>1.1 交流发电机与感应电动势</h3>
+    <p>矩形线圈在磁场中以角速度 <b>ω</b> 旋转，设磁通密度为 <b>B</b>（方向为 N 极指向 S 极）、线圈面积为 <b>S</b>。t = 0 时刻线圈平面与中性面的夹角为初相 <b>φ</b>。中性面指线圈平面与磁场方向垂直的位置。</p>
+
+    <div class="fig-wrap">
+      <svg viewBox="0 0 640 340" xmlns="http://www.w3.org/2000/svg" font-family="Segoe UI, Microsoft YaHei, sans-serif">
+        <!-- 磁极 -->
+        <rect x="40" y="60" width="46" height="180" rx="8" fill="#e8e0d8" stroke="#8a7f72" stroke-width="1.5"/>
+        <text x="63" y="156" font-size="20" fill="#8a7f72" text-anchor="middle" font-weight="bold">N</text>
+        <rect x="554" y="60" width="46" height="180" rx="8" fill="#e8e0d8" stroke="#8a7f72" stroke-width="1.5"/>
+        <text x="577" y="156" font-size="20" fill="#8a7f72" text-anchor="middle" font-weight="bold">S</text>
+        <!-- 磁场线 B -->
+        <line x1="86" y1="150" x2="120" y2="150" stroke="#b3541e" stroke-width="3"/>
+        <line x1="520" y1="150" x2="554" y2="150" stroke="#b3541e" stroke-width="3"/>
+        <polygon points="128,150 114,144 114,156" fill="#b3541e"/>
+        <text x="110" y="136" font-size="14" fill="#b3541e" font-weight="bold">B</text>
+        <!-- 中性面（垂直 B 的虚线平面） -->
+        <line x1="320" y1="52" x2="320" y2="248" stroke="#999" stroke-width="1.4" stroke-dasharray="8,5"/>
+        <text x="332" y="62" font-size="12.5" fill="#777">中性面（线圈平面⊥B）</text>
+        <!-- 线圈（与中性面夹角 φ，旋转中） -->
+        <g transform="rotate(-35 320 150)">
+          <rect x="255" y="60" width="130" height="180" rx="6" fill="none" stroke="#1e5b8a" stroke-width="2.6"/>
+          <line x1="320" y1="60" x2="320" y2="240" stroke="#1e5b8a" stroke-width="1.2" stroke-dasharray="5,4"/>
+        </g>
+        <!-- 旋转轴（垂直纸面，画中心点） -->
+        <circle cx="320" cy="150" r="4.5" fill="#1e5b8a"/>
+        <!-- 旋转方向 ω -->
+        <path d="M 320,178 A 28,28 0 0 1 345,156" fill="none" stroke="#333" stroke-width="1.8"/>
+        <polygon points="349,150 338,150 345,163" fill="#333"/>
+        <text x="352" y="180" font-size="14" fill="#333" font-style="italic">ω</text>
+        <!-- φ 夹角标注 -->
+        <path d="M 320,150 A 70,70 0 0 1 267,128" fill="none" stroke="#888" stroke-width="1.4"/>
+        <text x="250" y="120" font-size="14" fill="#888" font-style="italic">φ</text>
+        <!-- 说明 -->
+        <text x="320" y="290" font-size="13" fill="#555" text-anchor="middle">磁通 Φ = B·S·cos(ωt + φ)，感应电动势 e = −dΦ/dt = B·S·ω·sin(ωt + φ)</text>
+      </svg>
+      <div class="fig-caption">图 1：交流发电机原理——N/S 磁极、水平磁场 B、线圈绕轴旋转，中性面与 B 垂直（SVG 重绘）</div>
+    </div>
+
+    <div class="formula">
+      感应电动势：e = −dΦ/dt = −d/dt [ B·S·cos(ωt + φ) ] = B·S·ω·sin(ωt + φ)
+    </div>
+    <p>电动势幅值（最大值）：<span class="em">E<sub>m</sub> = B·S·ω</span>（线圈平面转至与 B 平行、磁通变化率最大时取得；cosφ 项在推导中体现为 sin，故幅值不含 cosφ）。</p>
+
+    <div class="formula">
+      e = E<sub>m</sub>·sin(ωt + φ) ，理想端电压 u(t) = e(t) = U<sub>m</sub>·sin(ωt + φ)
+    </div>
+    <p>其中角频率 <span class="em">ω = 2πf = 2π·n/60</span>（n 为发电机转速 RPM，一对极）。例如工频 50Hz 对应 3000 RPM。</p>
+
+    <h3>1.2 推广到三相对称绕组</h3>
+    <p>三相绕组在空间互差 120° 电角度，转子旋转时各相感应电动势依次滞后 120°。以 A 相为参考（正序 A→B→C），三相电压：</p>
+
+    <div class="formula">
+      U<sub>A</sub>(t) = U<sub>m</sub>·sin(ωt + φ)<br>
+      U<sub>B</sub>(t) = U<sub>m</sub>·sin(ωt + φ − 2π/3)　<span style="color:#777">（B 相滞后 A 相 120°）</span><br>
+      U<sub>C</sub>(t) = U<sub>m</sub>·sin(ωt + φ + 2π/3)　<span style="color:#777">（C 相超前 A 相 120°）</span>
+    </div>
+    <p>任意时刻三相瞬时值之和为零：u<sub>A</sub> + u<sub>B</sub> + u<sub>C</sub> = 0，波形"此起彼伏"。</p>
+
+    <div class="fig-wrap">
+      <svg viewBox="0 0 640 320" xmlns="http://www.w3.org/2000/svg" font-family="Segoe UI, Microsoft YaHei, sans-serif">
+        <defs>
+          <clipPath id="clip3"><rect x="40" y="20" width="580" height="235"/></clipPath>
+        </defs>
+        <!-- 坐标轴 -->
+        <line x1="40" y1="150" x2="622" y2="150" stroke="#999" stroke-width="1.2"/>
+        <line x1="60" y1="252" x2="60" y2="28" stroke="#999" stroke-width="1.2"/>
+        <text x="606" y="172" font-size="12" fill="#777">ωt</text>
+        <text x="34" y="40" font-size="12" fill="#777">U</text>
+        <!-- 90°/180°/270° 刻度 -->
+        <line x1="200" y1="146" x2="200" y2="154" stroke="#999" stroke-width="1"/>
+        <text x="192" y="142" font-size="11" fill="#999">90°</text>
+        <line x1="340" y1="146" x2="340" y2="154" stroke="#999" stroke-width="1"/>
+        <text x="332" y="142" font-size="11" fill="#999">180°</text>
+        <line x1="480" y1="146" x2="480" y2="154" stroke="#999" stroke-width="1"/>
+        <text x="472" y="142" font-size="11" fill="#999">270°</text>
+        <g clip-path="url(#clip3)">
+          <!-- A 相：sin(ωt)，0° 零点上升，90° 峰值 -->
+          <path d="M 60.0,150.0 L 69.3,139.5 L 78.7,129.2 L 88.0,119.1 L 97.3,109.3 L 106.7,100.0 L 116.0,91.2 L 125.3,83.1 L 134.7,75.7 L 144.0,69.1 L 153.3,63.4 L 162.7,58.6 L 172.0,54.9 L 181.3,52.2 L 190.7,50.5 L 200.0,50.0 L 209.3,50.5 L 218.7,52.2 L 228.0,54.9 L 237.3,58.6 L 246.7,63.4 L 256.0,69.1 L 265.3,75.7 L 274.7,83.1 L 284.0,91.2 L 293.3,100.0 L 302.7,109.3 L 312.0,119.1 L 321.3,129.2 L 330.7,139.5 L 340.0,150.0 L 349.3,160.5 L 358.7,170.8 L 368.0,180.9 L 377.3,190.7 L 386.7,200.0 L 396.0,208.8 L 405.3,216.9 L 414.7,224.3 L 424.0,230.9 L 433.3,236.6 L 442.7,241.4 L 452.0,245.1 L 461.3,247.8 L 470.7,249.5 L 480.0,250.0 L 489.3,249.5 L 498.7,247.8 L 508.0,245.1 L 517.3,241.4 L 526.7,236.6 L 536.0,230.9 L 545.3,224.3 L 554.7,216.9 L 564.0,208.8 L 573.3,200.0 L 582.7,190.7 L 592.0,180.9 L 601.3,170.8 L 610.7,160.5 L 620.0,150.0" fill="none" stroke="#c0392b" stroke-width="2.5"/>
+          <!-- B 相：sin(ωt−120°)，t=0 时为 −0.866 且继续下降 -->
+          <path d="M 60.0,236.6 L 69.3,241.4 L 78.7,245.1 L 88.0,247.8 L 97.3,249.5 L 106.7,250.0 L 116.0,249.5 L 125.3,247.8 L 134.7,245.1 L 144.0,241.4 L 153.3,236.6 L 162.7,230.9 L 172.0,224.3 L 181.3,216.9 L 190.7,208.8 L 200.0,200.0 L 209.3,190.7 L 218.7,180.9 L 228.0,170.8 L 237.3,160.5 L 246.7,150.0 L 256.0,139.5 L 265.3,129.2 L 274.7,119.1 L 284.0,109.3 L 293.3,100.0 L 302.7,91.2 L 312.0,83.1 L 321.3,75.7 L 330.7,69.1 L 340.0,63.4 L 349.3,58.6 L 358.7,54.9 L 368.0,52.2 L 377.3,50.5 L 386.7,50.0 L 396.0,50.5 L 405.3,52.2 L 414.7,54.9 L 424.0,58.6 L 433.3,63.4 L 442.7,69.1 L 452.0,75.7 L 461.3,83.1 L 470.7,91.2 L 480.0,100.0 L 489.3,109.3 L 498.7,119.1 L 508.0,129.2 L 517.3,139.5 L 526.7,150.0 L 536.0,160.5 L 545.3,170.8 L 554.7,180.9 L 564.0,190.7 L 573.3,200.0 L 582.7,208.8 L 592.0,216.9 L 601.3,224.3 L 610.7,230.9 L 620.0,236.6" fill="none" stroke="#1e5b8a" stroke-width="2.5" stroke-dasharray="7,4"/>
+          <!-- C 相：sin(ωt+120°)，t=0 时为 +0.866 且下降 -->
+          <path d="M 60.0,63.4 L 69.3,69.1 L 78.7,75.7 L 88.0,83.1 L 97.3,91.2 L 106.7,100.0 L 116.0,109.3 L 125.3,119.1 L 134.7,129.2 L 144.0,139.5 L 153.3,150.0 L 162.7,160.5 L 172.0,170.8 L 181.3,180.9 L 190.7,190.7 L 200.0,200.0 L 209.3,208.8 L 218.7,216.9 L 228.0,224.3 L 237.3,230.9 L 246.7,236.6 L 256.0,241.4 L 265.3,245.1 L 274.7,247.8 L 284.0,249.5 L 293.3,250.0 L 302.7,249.5 L 312.0,247.8 L 321.3,245.1 L 330.7,241.4 L 340.0,236.6 L 349.3,230.9 L 358.7,224.3 L 368.0,216.9 L 377.3,208.8 L 386.7,200.0 L 396.0,190.7 L 405.3,180.9 L 414.7,170.8 L 424.0,160.5 L 433.3,150.0 L 442.7,139.5 L 452.0,129.2 L 461.3,119.1 L 470.7,109.3 L 480.0,100.0 L 489.3,91.2 L 498.7,83.1 L 508.0,75.7 L 517.3,69.1 L 526.7,63.4 L 536.0,58.6 L 545.3,54.9 L 554.7,52.2 L 564.0,50.5 L 573.3,50.0 L 582.7,50.5 L 592.0,52.2 L 601.3,54.9 L 610.7,58.6 L 620.0,63.4" fill="none" stroke="#1e8449" stroke-width="2.5" stroke-dasharray="3,4"/>
+        </g>
+        <!-- 峰值标注（A 相 90° 峰值 → B 相 210° 峰值 → C 相 330° 峰值 = 正序） -->
+        <line x1="200" y1="50" x2="200" y2="150" stroke="#c0392b" stroke-width="1" stroke-dasharray="2,3"/>
+        <text x="206" y="44" font-size="11" fill="#c0392b">A 峰值</text>
+        <line x1="386.7" y1="50" x2="386.7" y2="150" stroke="#1e5b8a" stroke-width="1" stroke-dasharray="2,3"/>
+        <text x="392" y="44" font-size="11" fill="#1e5b8a">B 峰值</text>
+        <line x1="573.3" y1="50" x2="573.3" y2="150" stroke="#1e8449" stroke-width="1" stroke-dasharray="2,3"/>
+        <text x="536" y="44" font-size="11" fill="#1e8449">C 峰值(330°)</text>
+        <!-- 图例 -->
+        <line x1="90" y1="292" x2="130" y2="292" stroke="#c0392b" stroke-width="3"/>
+        <text x="138" y="297" font-size="13" fill="#555">U_A</text>
+        <line x1="210" y1="292" x2="250" y2="292" stroke="#1e5b8a" stroke-width="3" stroke-dasharray="7,4"/>
+        <text x="258" y="297" font-size="13" fill="#555">U_B（滞后120°）</text>
+        <line x1="390" y1="292" x2="430" y2="292" stroke="#1e8449" stroke-width="3" stroke-dasharray="3,4"/>
+        <text x="438" y="297" font-size="13" fill="#555">U_C（超前120°）</text>
+      </svg>
+      <div class="fig-caption">图 2：三相对称电压波形（精确正弦采样绘制）——正序 A→B→C，峰值依次出现，相位互差 120°</div>
+    </div>
+
+    <!-- ==================== 1.3 感应电流 ==================== -->
+    <h3>1.3 从电动势到电流：回路中的感应电流</h3>
+    <p>1.1 节推导了感应电动势 e = E<sub>m</sub>sin(ωt + φ)，但电动势只是"推动电荷的能力"——实际流过多少电流，取决于回路阻抗。好比水压（电动势）与水管阻力（阻抗）共同决定水流量（电流）。</p>
+
+    <div class="formula">
+      纯电阻回路：I = E / R　<span style="color:#777">（欧姆定律，电流与电动势同相）</span><br>
+      RL 回路（如电机绕组）：I = E / Z，Z = √(R² + (ωL)²)<br>
+      电流滞后角：φ = arctan(ωL / R)　<span style="color:#777">（电感使电流滞后于电动势）</span>
+    </div>
+
+    <p>电机绕组（R<sub>s</sub> + L<sub>s</sub>）正是典型的 RL 回路——电流<b>滞后</b>于电动势 φ 角，这与第二节"电机模型"中的电气回路直接对应。</p>
+
+    <div class="note">
+      <span class="label">电机中的电流公式：</span>运行时外加电压 V<sub>bus</sub> 与反电动势 E 共同决定实际电流：I = (V<sub>bus</sub> − E) / Z。转速 n 越高 → 反电动势 E = K<sub>e</sub>·n 越大 → 电流 I 越小 → 这就是电机自然限速的原理。
+    </div>
+
+    <!-- ==================== 1.4 安培力 ==================== -->
+    <h3>1.4 载流导体在磁场中的力：安培力</h3>
+    <p>感应出电流后，这股电流在磁场中会受到力——这就是<b>安培力</b>，也是电动机产生转矩的物理根源。</p>
+
+    <div class="formula">
+      标量形式：F = B · I · L · sin(θ)<br>
+      矢量形式：<b>F</b> = I<b>L</b> × <b>B</b>　<span style="color:#777">（叉积，方向垂直于 I 和 B 所构成的平面）</span><br>
+      <span style="font-size:13px;color:#777">B——磁感应强度(T)，I——电流(A)，L——导体长度(m)，θ——I 与 B 的夹角</span>
+    </div>
+
+    <p>力的方向由<b>左手定则</b>判断（电动机定则）：四指指向电流方向 I，磁力线 B 穿过掌心，拇指所指即为受力方向 F。力始终垂直于电流与磁场所在的平面。</p>
+
+    <div class="fig-wrap">
+      <svg viewBox="0 0 640 260" xmlns="http://www.w3.org/2000/svg" font-family="Segoe UI, Microsoft YaHei, sans-serif">
+        <!-- N/S 磁极 -->
+        <rect x="40" y="40" width="46" height="160" rx="8" fill="#e8e0d8" stroke="#8a7f72" stroke-width="1.5"/>
+        <text x="63" y="126" font-size="20" fill="#8a7f72" text-anchor="middle" font-weight="bold">N</text>
+        <rect x="554" y="40" width="46" height="160" rx="8" fill="#e8e0d8" stroke="#8a7f72" stroke-width="1.5"/>
+        <text x="577" y="126" font-size="20" fill="#8a7f72" text-anchor="middle" font-weight="bold">S</text>
+
+        <!-- B 磁场线 -->
+        <line x1="86" y1="80" x2="548" y2="80" stroke="#b3541e" stroke-width="2"/>
+        <polygon points="554,80 542,74 542,86" fill="#b3541e"/>
+        <line x1="86" y1="120" x2="548" y2="120" stroke="#b3541e" stroke-width="2"/>
+        <polygon points="554,120 542,114 542,126" fill="#b3541e"/>
+        <line x1="86" y1="160" x2="548" y2="160" stroke="#b3541e" stroke-width="2"/>
+        <polygon points="554,160 542,154 542,166" fill="#b3541e"/>
+        <text x="110" y="72" font-size="14" fill="#b3541e" font-weight="bold">B</text>
+
+        <!-- 载流导体 ⊙（电流流出纸面，力向上） -->
+        <circle cx="250" cy="120" r="16" fill="#fff" stroke="#1e5b8a" stroke-width="2.5"/>
+        <circle cx="250" cy="120" r="4.5" fill="#1e5b8a"/>
+        <text x="250" y="155" font-size="12" fill="#1e5b8a" text-anchor="middle">I ⊙ 流出</text>
+        <line x1="250" y1="100" x2="250" y2="35" stroke="#c0392b" stroke-width="3"/>
+        <polygon points="250,27 242,41 258,41" fill="#c0392b"/>
+        <text x="268" y="42" font-size="15" fill="#c0392b" font-weight="bold">F</text>
+
+        <!-- 载流导体 ⊗（电流流入纸面，力向下） -->
+        <circle cx="390" cy="120" r="16" fill="#fff" stroke="#1e5b8a" stroke-width="2.5"/>
+        <line x1="380" y1="110" x2="400" y2="130" stroke="#1e5b8a" stroke-width="2.5"/>
+        <line x1="400" y1="110" x2="380" y2="130" stroke="#1e5b8a" stroke-width="2.5"/>
+        <text x="390" y="155" font-size="12" fill="#1e5b8a" text-anchor="middle">I ⊗ 流入</text>
+        <line x1="390" y1="140" x2="390" y2="205" stroke="#c0392b" stroke-width="3"/>
+        <polygon points="390,213 382,199 398,199" fill="#c0392b"/>
+        <text x="408" y="210" font-size="15" fill="#c0392b" font-weight="bold">F</text>
+
+        <!-- 说明 -->
+        <text x="320" y="235" font-size="12.5" fill="#555" text-anchor="middle">B 水平向右，I⊙ 流出 → F 向上；I⊗ 流入 → F 向下（左手定则）</text>
+        <text x="320" y="252" font-size="12" fill="#777" text-anchor="middle">F = BIL，方向始终垂直于 I 和 B 所构成的平面</text>
+      </svg>
+      <div class="fig-caption">图 3：安培力示意——磁场 B 中载流导体的受力方向。电流流出纸面(⊙)时力向上，流入纸面(⊗)时力向下</div>
+    </div>
+
+    <!-- ==================== 1.5 线圈力矩 ==================== -->
+    <h3>1.5 从力到力矩：线圈如何转起来</h3>
+    <p>单根导体受力只能平移，但将导体绕成矩形线圈后，两侧边受到方向相反的安培力，形成<b>力偶</b>——这就是转矩的来源。</p>
+
+    <div class="formula">
+      单匝线圈转矩：τ = B · I · A · sin(θ)<br>
+      N 匝线圈转矩：τ = N · B · I · A · sin(θ)<br>
+      <span style="font-size:13px;color:#777">A——线圈面积(m²)，θ——线圈法线与 B 的夹角</span>
+    </div>
+
+    <p>注意角度的对应关系：</p>
+    <ul>
+      <li>θ = 0°（线圈平面⊥B，即<b>中性面</b>）：磁通最大、变化率为零 → <b>电动势为零</b>；同时电流方向与 B 平行 → <b>力矩为零</b></li>
+      <li>θ = 90°（线圈平面∥B）：磁通为零、变化率最大 → <b>电动势最大</b>；同时电流方向与 B 垂直 → <b>力矩最大</b></li>
+    </ul>
+    <p>电动势和力矩都正比于 sin(θ)——这不是巧合，而是法拉第定律和安培力定律同源于洛伦兹力的必然结果。</p>
+
+    <div class="fig-wrap">
+      <svg viewBox="0 0 640 300" xmlns="http://www.w3.org/2000/svg" font-family="Segoe UI, Microsoft YaHei, sans-serif">
+        <!-- N/S 磁极 -->
+        <rect x="30" y="50" width="46" height="180" rx="8" fill="#e8e0d8" stroke="#8a7f72" stroke-width="1.5"/>
+        <text x="53" y="146" font-size="20" fill="#8a7f72" text-anchor="middle" font-weight="bold">N</text>
+        <rect x="564" y="50" width="46" height="180" rx="8" fill="#e8e0d8" stroke="#8a7f72" stroke-width="1.5"/>
+        <text x="587" y="146" font-size="20" fill="#8a7f72" text-anchor="middle" font-weight="bold">S</text>
+
+        <!-- B 磁场线 -->
+        <line x1="76" y1="90" x2="558" y2="90" stroke="#b3541e" stroke-width="1.5" stroke-dasharray="8,4"/>
+        <polygon points="564,90 552,84 552,96" fill="#b3541e"/>
+        <line x1="76" y1="190" x2="558" y2="190" stroke="#b3541e" stroke-width="1.5" stroke-dasharray="8,4"/>
+        <polygon points="564,190 552,184 552,196" fill="#b3541e"/>
+        <text x="100" y="82" font-size="14" fill="#b3541e" font-weight="bold">B</text>
+
+        <!-- 转轴中心 -->
+        <circle cx="320" cy="140" r="5" fill="#333"/>
+        <text x="320" y="268" font-size="11" fill="#777" text-anchor="middle">转轴（⊥纸面）</text>
+
+        <!-- 线圈（倾斜 -20°，表示旋转中的某个时刻） -->
+        <g transform="rotate(-20 320 140)">
+          <!-- 线圈连接边（虚线，非活性边） -->
+          <line x1="230" y1="140" x2="410" y2="140" stroke="#1e5b8a" stroke-width="1.5" stroke-dasharray="5,3" opacity="0.4"/>
+          <!-- 左侧活性边 ⊙ -->
+          <circle cx="230" cy="140" r="14" fill="#fff" stroke="#1e5b8a" stroke-width="2.5"/>
+          <circle cx="230" cy="140" r="4.5" fill="#1e5b8a"/>
+          <!-- 右侧活性边 ⊗ -->
+          <circle cx="410" cy="140" r="14" fill="#fff" stroke="#1e5b8a" stroke-width="2.5"/>
+          <line x1="400" y1="130" x2="420" y2="150" stroke="#1e5b8a" stroke-width="2.5"/>
+          <line x1="420" y1="130" x2="400" y2="150" stroke="#1e5b8a" stroke-width="2.5"/>
+        </g>
+
+        <!-- 力箭头（位置对应旋转后的导体位置：左侧约235,171；右侧约405,109） -->
+        <!-- 左侧力 F 向上 -->
+        <line x1="235" y1="155" x2="235" y2="100" stroke="#c0392b" stroke-width="2.5"/>
+        <polygon points="235,92 227,106 243,106" fill="#c0392b"/>
+        <text x="210" y="98" font-size="13" fill="#c0392b" font-weight="bold">F</text>
+
+        <!-- 右侧力 F 向下 -->
+        <line x1="405" y1="125" x2="405" y2="180" stroke="#c0392b" stroke-width="2.5"/>
+        <polygon points="405,188 397,174 413,174" fill="#c0392b"/>
+        <text x="420" y="180" font-size="13" fill="#c0392b" font-weight="bold">F</text>
+
+        <!-- 转矩弧线 -->
+        <path d="M 275,85 A 55,55 0 0 1 365,85" fill="none" stroke="#1e8449" stroke-width="2.5"/>
+        <polygon points="365,85 355,78 355,92" fill="#1e8449"/>
+        <text x="320" y="75" font-size="14" fill="#1e8449" font-weight="bold" text-anchor="middle">τ</text>
+
+        <!-- θ 角标注（线圈法线与 B 的夹角） -->
+        <line x1="320" y1="140" x2="385" y2="140" stroke="#888" stroke-width="1" stroke-dasharray="3,2"/>
+        <path d="M 365,140 A 25,25 0 0 0 362,125" fill="none" stroke="#888" stroke-width="1.2"/>
+        <text x="372" y="128" font-size="12" fill="#888" font-style="italic">θ</text>
+
+        <!-- 说明 -->
+        <text x="320" y="288" font-size="12.5" fill="#555" text-anchor="middle">左侧 F↑ + 右侧 F↓ = 力偶 → 转矩 τ = NBIA·sin(θ)</text>
+      </svg>
+      <div class="fig-caption">图 4：线圈力矩示意——矩形线圈两侧导体电流方向相反，受力方向相反形成力偶，产生旋转转矩 τ</div>
+    </div>
+
+    <div class="note">
+      <span class="label">发电与电动的对称性：</span>同一根在磁场中运动的导体——用外力转动它，磁通变化产生感应电动势 → 电流流出（<b>发电机</b>）；反过来通入电流，安培力推动导体运动（<b>电动机</b>）。法拉第电磁感应定律和安培力公式是同一物理过程的两个面。这正是 FOC 控制的物理基础：通过控制电流的大小和方向，精确控制产生的转矩。
+    </div>
+
+    <!-- ==================== 二、电机模型 ==================== -->
+    <h2>二、电机模型</h2>
+    <p>电机模型分为电气模型与机械模型两部分：电气侧由母线电压源 V_bus、相电阻 R_s、相电感 L_s 及反电动势源 E 构成闭环回路，产生电流 I_max；反电动势常数 K_e 是电气与机械的耦合参数（E = K_e·n），将机械转速反馈到电气侧。机械侧转子受摩擦与阻尼制约，输出最大转速。</p>
+
+    <div class="fig-wrap">
+      <svg viewBox="0 0 660 320" xmlns="http://www.w3.org/2000/svg" font-family="Segoe UI, Microsoft YaHei, sans-serif">
+        <!-- ======== 电气模型区域（左）======== -->
+        <rect x="20" y="20" width="320" height="280" rx="10" fill="#fdf3ec" stroke="#b3541e" stroke-width="2"/>
+        <text x="180" y="44" font-size="14" fill="#b3541e" font-weight="bold" text-anchor="middle">电气模型</text>
+
+        <!-- 电气回路：矩形闭环 V_bus(+) → R_s → L_s → 反电动势源E(+) → E(−) → V_bus(−) -->
+        <!-- V_bus 电压源（左侧，垂直放置） -->
+        <circle cx="65" cy="130" r="16" fill="#fff" stroke="#333" stroke-width="1.8"/>
+        <text x="65" y="125" font-size="11" fill="#555" text-anchor="middle">+</text>
+        <text x="65" y="140" font-size="11" fill="#555" text-anchor="middle">−</text>
+        <text x="65" y="100" font-size="12" fill="#333" text-anchor="middle">V_bus</text>
+        <text x="65" y="165" font-size="11" fill="#1e8449" text-anchor="middle">(V)</text>
+
+        <!-- 顶部导线：V_bus(+) 向上 → 向右 → R_s -->
+        <line x1="65" y1="114" x2="65" y2="80" stroke="#333" stroke-width="2"/>
+        <line x1="65" y1="80" x2="120" y2="80" stroke="#333" stroke-width="2"/>
+
+        <!-- 电阻 R_s（矩形符号） -->
+        <rect x="120" y="71" width="44" height="18" fill="#fff" stroke="#333" stroke-width="1.8"/>
+        <text x="142" y="62" font-size="12" fill="#333" text-anchor="middle">R_s</text>
+        <text x="142" y="105" font-size="11" fill="#1e8449" text-anchor="middle">(Ω)</text>
+
+        <!-- 导线：R_s → L_s -->
+        <line x1="164" y1="80" x2="195" y2="80" stroke="#333" stroke-width="2"/>
+
+        <!-- 电感 L_s（螺线管符号） -->
+        <path d="M 195,80 a 10,10 0 0 1 20,0 a 10,10 0 0 1 20,0 a 10,10 0 0 1 20,0" fill="none" stroke="#333" stroke-width="1.8"/>
+        <text x="235" y="62" font-size="12" fill="#333" text-anchor="middle">L_s</text>
+        <text x="235" y="105" font-size="11" fill="#1e8449" text-anchor="middle">(mH)</text>
+
+        <!-- 导线：L_s → 反电动势源E -->
+        <line x1="255" y1="80" x2="295" y2="80" stroke="#333" stroke-width="2"/>
+        <line x1="295" y1="80" x2="295" y2="114" stroke="#333" stroke-width="2"/>
+
+        <!-- 反电动势源 E（右侧，垂直放置） -->
+        <circle cx="295" cy="130" r="16" fill="#fff" stroke="#333" stroke-width="1.8"/>
+        <text x="295" y="125" font-size="11" fill="#555" text-anchor="middle">+</text>
+        <text x="295" y="140" font-size="11" fill="#555" text-anchor="middle">−</text>
+        <text x="295" y="100" font-size="12" fill="#333" text-anchor="middle">E</text>
+        <text x="295" y="165" font-size="11" fill="#1e8449" text-anchor="middle">(V)</text>
+
+        <!-- 底部导线：E(−) → V_bus(−) 闭合回路 -->
+        <line x1="295" y1="146" x2="295" y2="185" stroke="#333" stroke-width="2"/>
+        <line x1="65" y1="146" x2="65" y2="185" stroke="#333" stroke-width="2"/>
+        <line x1="65" y1="185" x2="295" y2="185" stroke="#333" stroke-width="2"/>
+
+        <!-- 电流 I_max 箭头（顺时针方向，回路内指向右） -->
+        <line x1="150" y1="150" x2="195" y2="150" stroke="#1e5b8a" stroke-width="2"/>
+        <polygon points="205,150 193,144 193,156" fill="#1e5b8a"/>
+        <text x="180" y="170" font-size="12" fill="#1e5b8a" text-anchor="middle">I_max (A_pk)</text>
+
+        <!-- 反电动势常数 K_e（下方标注，机电耦合参数） -->
+        <text x="180" y="220" font-size="12.5" fill="#333" text-anchor="middle">反电动势常数 K_e</text>
+        <text x="180" y="238" font-size="11" fill="#1e8449" text-anchor="middle">(V_rms/kRPM)</text>
+        <text x="180" y="262" font-size="11.5" fill="#b3541e" text-anchor="middle" font-style="italic">E = K_e · n</text>
+        <text x="180" y="280" font-size="10.5" fill="#888" text-anchor="middle">（转速反馈到电气侧）</text>
+
+        <!-- ======== 机械模型区域（右）======== -->
+        <rect x="360" y="20" width="280" height="280" rx="10" fill="#eef4fa" stroke="#1e5b8a" stroke-width="2"/>
+        <text x="500" y="44" font-size="14" fill="#1e5b8a" font-weight="bold" text-anchor="middle">机械模型</text>
+
+        <!-- 电机本体：横向圆柱体 -->
+        <rect x="395" y="115" width="110" height="55" rx="6" fill="#dfe9f3" stroke="#1e5b8a" stroke-width="2"/>
+        <!-- 左端面椭圆 -->
+        <ellipse cx="395" cy="142" rx="7" ry="27" fill="#dfe9f3" stroke="#1e5b8a" stroke-width="2"/>
+        <!-- 右端面虚线椭圆（表示内部） -->
+        <ellipse cx="505" cy="142" rx="7" ry="27" fill="none" stroke="#1e5b8a" stroke-width="1.5" stroke-dasharray="4,3"/>
+        <!-- 转子中心线 -->
+        <line x1="395" y1="142" x2="505" y2="142" stroke="#1e5b8a" stroke-width="1" stroke-dasharray="3,3"/>
+
+        <!-- 转轴 -->
+        <line x1="512" y1="142" x2="575" y2="142" stroke="#333" stroke-width="3"/>
+        <!-- 轴端轴承 -->
+        <circle cx="575" cy="142" r="7" fill="#dfe9f3" stroke="#333" stroke-width="1.5"/>
+
+        <!-- 旋转方向箭头 ω -->
+        <path d="M 425,90 A 35,35 0 0 1 465,110" fill="none" stroke="#1e5b8a" stroke-width="2"/>
+        <polygon points="468,115 458,110 465,123" fill="#1e5b8a"/>
+        <text x="415" y="82" font-size="13" fill="#1e5b8a" font-style="italic">ω</text>
+
+        <!-- 摩擦系数（圆柱体上方） -->
+        <text x="450" y="200" font-size="12" fill="#333" text-anchor="middle">摩擦系数</text>
+        <text x="450" y="218" font-size="11" fill="#1e8449" text-anchor="middle">(μN·m·s)</text>
+
+        <!-- 阻尼系数（圆柱体下方） -->
+        <text x="450" y="245" font-size="12" fill="#333" text-anchor="middle">阻尼系数</text>
+        <text x="450" y="263" font-size="11" fill="#1e8449" text-anchor="middle">(μN·m·s²)</text>
+
+        <!-- 最大转速（轴端右侧） -->
+        <text x="570" y="120" font-size="12" fill="#333" text-anchor="middle">最大转速</text>
+        <text x="570" y="138" font-size="11" fill="#1e8449" text-anchor="middle">(RPM)</text>
+
+        <!-- K_e 耦合标注（连接电气与机械） -->
+        <line x1="340" y1="155" x2="358" y2="155" stroke="#b3541e" stroke-width="1.5" stroke-dasharray="4,3"/>
+        <text x="349" y="148" font-size="10" fill="#b3541e" text-anchor="middle">K_e</text>
+        <text x="349" y="172" font-size="9.5" fill="#888" text-anchor="middle">耦合</text>
+      </svg>
+      <div class="fig-caption">图 5：电机模型——左：电气模型（V_bus → R_s → L_s → 反电动势源 E 闭环回路，电流 I_max，反电动势常数 K_e）；右：机械模型（横向圆柱形电机本体 + 转轴 + 摩擦/阻尼/最大转速），K_e 通过 E = K_e·n 实现机电耦合</div>
+    </div>
+
+    <div class="note">
+      <span class="label">理解：</span>这张模型是电机控制仿真的基础——电气回路决定电流动态（τ<sub>e</sub> = L<sub>s</sub>/R<sub>s</sub>），反电动势源 E = K_e·n 将机械转速反馈到电气侧，构成机电耦合。机械部分决定转速动态（摩擦与阻尼）。参数与 <code>04-资料/yuntai2804.json</code> 对应：R_s→rs、L_s→ls、K_e→BEmfConstant、最大转速→maxRatedSpeed、摩擦系数→friction。
+    </div>
+
+    <!-- ==================== 三、从 RLC 到电机等效电路 ==================== -->
+    <h2>三、从 RLC 基础到电机等效电路</h2>
+    <p>先吃透纯电阻、电感、RLC 基础公式与物理意义，再一步步套入电机绕组模型，最后引出反电动势——全程只讲时域基础公式，避开复杂矩阵。</p>
+
+    <h3>3.1 基础元件伏安关系（最核心三式）</h3>
+    <p>电压与电流的瞬时关系，是所有电路的根基。</p>
+
+    <p><b>电阻 R</b> — 电流流过电阻产生压降，电能全部变成热量消耗掉，无储能。电压、电流同相位。</p>
+    <div class="formula">
+      u<sub>R</sub> = R · i
+    </div>
+
+    <p><b>电感 L</b>（电机绕组最关键元件）— 电感阻碍电流变化，电流变化越快，感应电压越大。</p>
+    <div class="formula">
+      u<sub>L</sub> = L · di/dt　<span style="font-size:13px;color:#777">（di/dt：电流随时间的变化率）</span>
+    </div>
+    <p>物理含义：</p>
+    <ul>
+      <li>电流不变（直流稳态）：di/dt = 0，电感两端电压 = 0，相当于<b>导线</b></li>
+      <li>电流快速波动 / 交流：电感产生反向电压<b>阻碍</b>电流变化</li>
+      <li>储存磁场能量：W = ½Li²</li>
+    </ul>
+    <div class="note">
+      <span class="label">电机联系：</span>电机定子铜线绕了几百匝，天生就是<b>大电感</b>——这也是电机电流不能瞬间改变的物理原因。
+    </div>
+
+    <p><b>电容 C</b>（电机里极少用到，仅滤波用）— 电压变化才有电流，储存电场能。电机绕组本体不含电容，后续仅滤波电路会遇见。</p>
+    <div class="formula">
+      i<sub>C</sub> = C · du/dt
+    </div>
+
+    <h3>3.2 串联电路公式</h3>
+    <p><b>RL 串联电路</b>（电机绕组最基础等效单元）— 电阻 + 电感串联，总电压等于两元件电压之和：</p>
+    <div class="formula">
+      <b>u = R·i + L·di/dt</b>
+    </div>
+    <p>这就是电机单相绕组最原始的电压方程。两种工况理解：</p>
+    <ul>
+      <li><b>直流稳态</b>：di/dt = 0 → u = Ri，只剩电阻压降</li>
+      <li><b>交流 / 快速变化</b>：电感分压显现，电压超前电流</li>
+    </ul>
+
+    <p><b>RLC 串联</b>（电机本体不用，外围滤波电路）— KVL 电压平衡方程（电流 i 串联流过各元件，u 为总电压）：</p>
+    <div class="formula">
+      u = u<sub>R</sub> + u<sub>L</sub> + u<sub>C</sub> = R·i + L·di/dt + (1/C)·∫i·dt
+    </div>
+
+    <div class="fig-wrap">
+      <svg viewBox="0 0 640 250" xmlns="http://www.w3.org/2000/svg" font-family="Segoe UI, Microsoft YaHei, sans-serif">
+        <!-- 电源 -->
+        <line x1="80" y1="90" x2="80" y2="150" stroke="#333" stroke-width="2"/>
+        <circle cx="80" cy="76" r="15" fill="none" stroke="#333" stroke-width="1.6"/>
+        <text x="80" y="70" font-size="11" fill="#555" text-anchor="middle">+</text>
+        <text x="80" y="84" font-size="11" fill="#555" text-anchor="middle">−</text>
+        <text x="80" y="52" font-size="13" fill="#333" text-anchor="middle">u(t)</text>
+        <!-- 顶线 -->
+        <line x1="95" y1="90" x2="150" y2="90" stroke="#333" stroke-width="2"/>
+        <!-- 电阻 R（矩形符号） -->
+        <rect x="150" y="81" width="50" height="18" fill="none" stroke="#333" stroke-width="1.8"/>
+        <line x1="140" y1="90" x2="150" y2="90" stroke="#333" stroke-width="2"/>
+        <line x1="200" y1="90" x2="220" y2="90" stroke="#333" stroke-width="2"/>
+        <text x="175" y="122" font-size="13" fill="#333" text-anchor="middle">R</text>
+        <text x="175" y="70" font-size="12" fill="#777" text-anchor="middle">u_R</text>
+        <!-- 电感 L（半圆弧） -->
+        <path d="M 248,74 a 14,14 0 0 1 28,0 a 14,14 0 0 1 28,0 a 14,14 0 0 1 28,0" fill="none" stroke="#333" stroke-width="2"/>
+        <line x1="220" y1="90" x2="245" y2="90" stroke="#333" stroke-width="2"/>
+        <line x1="330" y1="90" x2="350" y2="90" stroke="#333" stroke-width="2"/>
+        <text x="290" y="130" font-size="13" fill="#333" text-anchor="middle">L</text>
+        <text x="290" y="70" font-size="12" fill="#777" text-anchor="middle">u_L</text>
+        <!-- 电容 C（两条平行极板） -->
+        <line x1="350" y1="90" x2="380" y2="90" stroke="#333" stroke-width="2"/>
+        <line x1="350" y1="72" x2="350" y2="108" stroke="#333" stroke-width="2.2"/>
+        <line x1="392" y1="72" x2="392" y2="108" stroke="#333" stroke-width="2.2"/>
+        <line x1="392" y1="90" x2="420" y2="90" stroke="#333" stroke-width="2"/>
+        <text x="372" y="130" font-size="13" fill="#333" text-anchor="middle">C</text>
+        <text x="372" y="70" font-size="12" fill="#777" text-anchor="middle">u_C</text>
+        <!-- 底线 -->
+        <line x1="420" y1="90" x2="560" y2="90" stroke="#333" stroke-width="2"/>
+        <line x1="560" y1="90" x2="560" y2="150" stroke="#333" stroke-width="2"/>
+        <line x1="80" y1="150" x2="560" y2="150" stroke="#333" stroke-width="2"/>
+        <!-- 电流方向（顺时针：顶线从左到右，底线从右到左） -->
+        <polygon points="300,162 290,150 310,150" fill="#1e5b8a"/>
+        <text x="302" y="182" font-size="13" fill="#1e5b8a">i（串联电流，顺时针）</text>
+        <!-- 各元件压降方向标注已在上方 -->
+      </svg>
+      <div class="fig-caption">图 6：RLC 串联电路——电流串联流过 R、L、C，总电压 u = u_R + u_L + u_C</div>
+    </div>
+
+    <!-- ==================== 3.3 阻抗 ==================== -->
+    <h3>3.3 正弦交流下的阻抗形式（简化计算）</h3>
+    <p>通入正弦交流电时，可以用阻抗代替微分运算：</p>
+    <div class="formula">
+      电阻阻抗：Z<sub>R</sub> = R<br>
+      电感感抗：X<sub>L</sub> = ωL<br>
+      RL 串联总阻抗：Z = √(R² + (ωL)²)
+    </div>
+    <p>其中 ω = 2πf，转速越快 → 电机电频率 f 越高 → 感抗越大——高频下电感"堵住"电流。</p>
+
+    <!-- ==================== 3.4 反电动势 ==================== -->
+    <h3>3.4 引入关键：反电动势 E（电机独有的电压源）</h3>
+    <p>普通 RL 电路只有外部供电电压；旋转的电机绕组切割磁场，会自己生出一个反向电压——<b>反电动势 E</b>。</p>
+    <p>等效理解：绕组 RL 串联回路里，多了一个反向电压源 E。电压平衡定律：</p>
+    <div class="formula" style="border-left-color:#c0392b;">
+      <b style="font-size:17px;">u = R·i + L·di/dt + E</b><br>
+      <span style="font-size:13px;color:#777">外加电压 = 电阻压降 + 电感压降 + 反电动势</span>
+    </div>
+    <div class="note">
+      <span class="label" style="color:#c0392b;">✅ 这个公式是所有电机控制的本源公式</span>
+    </div>
+    <p>各项拆解：<b>Ri</b> — 铜线发热损耗压降；<b>L·di/dt</b> — 电流波动的电感压降；<b>E</b> — 转子永磁体旋转产生的感应电压，方向与供电电压相反。</p>
+    <p>反电动势规律：转速越快，切割磁感线越快，反电动势越大。</p>
+    <div class="formula">
+      E = k<sub>e</sub> · ω<br>
+      <span style="font-size:13px;color:#777">k<sub>e</sub>：反电动势常数（出厂固定参数）；ω：转子电角速度</span>
+    </div>
+    <p>这与图 5 电机模型中 E = K<sub>e</sub>·n 一致——n 为机械转速，ω 为电角速度，差一个极对数。</p>
+
+    <!-- ==================== 3.5 BLDC vs PMSM ==================== -->
+    <h3>3.5 BLDC 与 PMSM 等效电路</h3>
+    <p><b>1. BLDC 无刷直流电机</b>（梯形波反电动势）— 三相星形连接，每相满足：</p>
+    <div class="formula">
+      u<sub>A</sub> = R<sub>s</sub>i<sub>A</sub> + L<sub>s</sub>·di<sub>A</sub>/dt + E<sub>A</sub><br>
+      u<sub>B</sub> = R<sub>s</sub>i<sub>B</sub> + L<sub>s</sub>·di<sub>B</sub>/dt + E<sub>B</sub><br>
+      u<sub>C</sub> = R<sub>s</sub>i<sub>C</sub> + L<sub>s</sub>·di<sub>C</sub>/dt + E<sub>C</sub>
+    </div>
+    <p>特点：E<sub>A</sub>、E<sub>B</sub>、E<sub>C</sub> 为<b>梯形波</b>；六步换向时总有一相不通电（i = 0）。</p>
+    <p>悬空相简化：i = 0，di/dt = 0 → <b>u<sub>悬空相</sub> = E<sub>悬空相</sub></b> — 不通电相的端电压就等于反电动势，这就是 BLDC 无感检测原理。</p>
+
+    <div class="fig-wrap">
+      <svg viewBox="0 0 640 340" xmlns="http://www.w3.org/2000/svg" font-family="Segoe UI, Microsoft YaHei, sans-serif">
+        <!-- A相 (x=140) -->
+        <text x="140" y="25" font-size="13" fill="#333" text-anchor="middle">u_A</text>
+        <line x1="140" y1="30" x2="140" y2="55" stroke="#333" stroke-width="2"/>
+        <rect x="120" y="55" width="40" height="16" fill="none" stroke="#333" stroke-width="1.8"/>
+        <text x="140" y="48" font-size="10" fill="#555" text-anchor="middle">R_s</text>
+        <line x1="140" y1="71" x2="140" y2="92" stroke="#333" stroke-width="2"/>
+        <path d="M 128,92 a 8,8 0 0 1 16,0 a 8,8 0 0 1 16,0 a 8,8 0 0 1 16,0" fill="none" stroke="#333" stroke-width="1.8" transform="translate(-8,0)"/>
+        <text x="140" y="118" font-size="10" fill="#555" text-anchor="middle">L_s</text>
+        <line x1="140" y1="100" x2="140" y2="135" stroke="#333" stroke-width="2"/>
+        <circle cx="140" cy="155" r="15" fill="#fff" stroke="#333" stroke-width="1.8"/>
+        <text x="140" y="151" font-size="10" fill="#555" text-anchor="middle">+</text>
+        <text x="140" y="164" font-size="10" fill="#555" text-anchor="middle">−</text>
+        <text x="162" y="160" font-size="11" fill="#333">E_A</text>
+        <line x1="140" y1="170" x2="140" y2="275" stroke="#333" stroke-width="2"/>
+
+        <!-- B相 (x=320) -->
+        <text x="320" y="25" font-size="13" fill="#333" text-anchor="middle">u_B</text>
+        <line x1="320" y1="30" x2="320" y2="55" stroke="#333" stroke-width="2"/>
+        <rect x="300" y="55" width="40" height="16" fill="none" stroke="#333" stroke-width="1.8"/>
+        <text x="320" y="48" font-size="10" fill="#555" text-anchor="middle">R_s</text>
+        <line x1="320" y1="71" x2="320" y2="92" stroke="#333" stroke-width="2"/>
+        <path d="M 308,92 a 8,8 0 0 1 16,0 a 8,8 0 0 1 16,0 a 8,8 0 0 1 16,0" fill="none" stroke="#333" stroke-width="1.8" transform="translate(-8,0)"/>
+        <text x="320" y="118" font-size="10" fill="#555" text-anchor="middle">L_s</text>
+        <line x1="320" y1="100" x2="320" y2="135" stroke="#333" stroke-width="2"/>
+        <circle cx="320" cy="155" r="15" fill="#fff" stroke="#333" stroke-width="1.8"/>
+        <text x="320" y="151" font-size="10" fill="#555" text-anchor="middle">+</text>
+        <text x="320" y="164" font-size="10" fill="#555" text-anchor="middle">−</text>
+        <text x="342" y="160" font-size="11" fill="#333">E_B</text>
+        <line x1="320" y1="170" x2="320" y2="275" stroke="#333" stroke-width="2"/>
+
+        <!-- C相 (x=500, 悬空) -->
+        <text x="500" y="25" font-size="13" fill="#c0392b" text-anchor="middle">u_C</text>
+        <line x1="500" y1="30" x2="500" y2="55" stroke="#c0392b" stroke-width="2" stroke-dasharray="5,3"/>
+        <rect x="480" y="55" width="40" height="16" fill="none" stroke="#c0392b" stroke-width="1.5" stroke-dasharray="5,3"/>
+        <text x="500" y="48" font-size="10" fill="#c0392b" text-anchor="middle">R_s</text>
+        <line x1="500" y1="71" x2="500" y2="92" stroke="#c0392b" stroke-width="2" stroke-dasharray="5,3"/>
+        <path d="M 488,92 a 8,8 0 0 1 16,0 a 8,8 0 0 1 16,0 a 8,8 0 0 1 16,0" fill="none" stroke="#c0392b" stroke-width="1.5" stroke-dasharray="5,3" transform="translate(-8,0)"/>
+        <text x="500" y="118" font-size="10" fill="#c0392b" text-anchor="middle">L_s</text>
+        <line x1="500" y1="100" x2="500" y2="135" stroke="#c0392b" stroke-width="2" stroke-dasharray="5,3"/>
+        <circle cx="500" cy="155" r="15" fill="#fff" stroke="#c0392b" stroke-width="1.5" stroke-dasharray="5,3"/>
+        <text x="500" y="151" font-size="10" fill="#c0392b" text-anchor="middle">+</text>
+        <text x="500" y="164" font-size="10" fill="#c0392b" text-anchor="middle">−</text>
+        <text x="522" y="160" font-size="11" fill="#c0392b">E_C</text>
+        <line x1="500" y1="170" x2="500" y2="275" stroke="#c0392b" stroke-width="2" stroke-dasharray="5,3"/>
+
+        <!-- 悬空标注 -->
+        <rect x="460" y="200" width="80" height="38" rx="5" fill="#fff3e0" stroke="#c0392b" stroke-width="1"/>
+        <text x="500" y="218" font-size="11" fill="#c0392b" text-anchor="middle">悬空相</text>
+        <text x="500" y="232" font-size="10" fill="#c0392b" text-anchor="middle">i=0 → u=E_C</text>
+
+        <!-- 中性点 N -->
+        <line x1="140" y1="275" x2="500" y2="275" stroke="#333" stroke-width="2"/>
+        <circle cx="320" cy="275" r="6" fill="#333"/>
+        <text x="345" y="280" font-size="13" fill="#333">N（中性点）</text>
+
+        <!-- 说明 -->
+        <text x="320" y="308" font-size="12.5" fill="#555" text-anchor="middle">每相：u = R_s·i + L_s·di/dt + E</text>
+        <text x="320" y="328" font-size="12" fill="#777" text-anchor="middle">BLDC 六步换向：悬空相 i=0 → u = E（无感检测原理）</text>
+      </svg>
+      <div class="fig-caption">图 7：BLDC 三相星形连接等效电路——每相 R_s + L_s + E，C 相悬空时 i=0，端电压直接等于反电动势</div>
+    </div>
+
+    <p><b>2. PMSM 永磁同步电机</b>（正弦反电动势，FOC）— 三相始终有电流，没有悬空相，无法直接测 E。沿用 u = Ri + L·di/dt + E，通过坐标变换到 α-β 静止坐标系，依靠电流、电压采样反算 E——即<b>观测器</b>。</p>
+
+    <!-- ==================== 3.6 低速 ==================== -->
+    <h3>3.6 低速为什么测不到反电动势？</h3>
+    <p>电机刚启动转速极低：ω ≈ 0 → E ≈ 0，公式简化为：</p>
+    <div class="formula">
+      u ≈ R·i + L·di/dt
+    </div>
+    <p>反电动势幅值太小，淹没在噪声中，无法分辨——必须<b>开环拉起转速</b>，等 E 足够大后再切换闭环。这就是无传感器电机启动时需要"开环强拖"阶段的原因。</p>
+
+    <!-- ==================== 3.7 RC 滤波 ==================== -->
+    <h3>3.7 外围 RC 滤波电路（采样端 RLC 应用）</h3>
+    <p>采集电机端电压时，逆变器 PWM 高频开关噪声很大，需加 RC 低通滤波（电阻 + 电容串联）滤除高频毛刺：</p>
+    <div class="formula">
+      u<sub>out</sub> = u<sub>in</sub> · 1 / (1 + jωRC)
+    </div>
+
+    <div class="fig-wrap">
+      <svg viewBox="0 0 640 240" xmlns="http://www.w3.org/2000/svg" font-family="Segoe UI, Microsoft YaHei, sans-serif">
+        <!-- 输入端 u_in -->
+        <circle cx="80" cy="80" r="15" fill="none" stroke="#333" stroke-width="1.6"/>
+        <text x="80" y="76" font-size="10" fill="#555" text-anchor="middle">+</text>
+        <text x="80" y="88" font-size="10" fill="#555" text-anchor="middle">−</text>
+        <text x="80" y="55" font-size="13" fill="#333" text-anchor="middle">u_in</text>
+        <text x="80" y="108" font-size="10" fill="#777" text-anchor="middle">(PWM+噪声)</text>
+        <line x1="95" y1="80" x2="150" y2="80" stroke="#333" stroke-width="2"/>
+        <!-- 电阻 R -->
+        <rect x="150" y="71" width="50" height="18" fill="none" stroke="#333" stroke-width="1.8"/>
+        <text x="175" y="62" font-size="12" fill="#333" text-anchor="middle">R</text>
+        <!-- 导线到输出节点 -->
+        <line x1="200" y1="80" x2="350" y2="80" stroke="#333" stroke-width="2"/>
+        <circle cx="350" cy="80" r="4" fill="#333"/>
+        <!-- 输出标注 -->
+        <line x1="350" y1="80" x2="430" y2="80" stroke="#333" stroke-width="2"/>
+        <text x="450" y="85" font-size="13" fill="#1e5b8a">u_out</text>
+        <text x="450" y="100" font-size="10" fill="#777">(平滑)</text>
+        <!-- 电容 C -->
+        <line x1="350" y1="80" x2="350" y2="118" stroke="#333" stroke-width="2"/>
+        <line x1="332" y1="118" x2="368" y2="118" stroke="#333" stroke-width="2.2"/>
+        <line x1="332" y1="130" x2="368" y2="130" stroke="#333" stroke-width="2.2"/>
+        <text x="385" y="128" font-size="12" fill="#333">C</text>
+        <line x1="350" y1="130" x2="350" y2="168" stroke="#333" stroke-width="2"/>
+        <!-- 地线 -->
+        <line x1="80" y1="95" x2="80" y2="168" stroke="#333" stroke-width="2"/>
+        <line x1="80" y1="168" x2="350" y2="168" stroke="#333" stroke-width="2"/>
+        <line x1="200" y1="168" x2="200" y2="178" stroke="#333" stroke-width="2"/>
+        <line x1="190" y1="178" x2="210" y2="178" stroke="#333" stroke-width="2"/>
+        <line x1="194" y1="182" x2="206" y2="182" stroke="#333" stroke-width="1.5"/>
+        <line x1="197" y1="186" x2="203" y2="186" stroke="#333" stroke-width="1.2"/>
+        <!-- 波形示意 -->
+        <text x="80" y="208" font-size="11" fill="#777" text-anchor="middle">输入：高频毛刺</text>
+        <path d="M 30,223 L 40,220 L 45,226 L 50,218 L 55,228 L 60,221 L 70,225 L 80,219 L 90,227 L 100,222 L 110,226 L 120,220 L 130,225" fill="none" stroke="#c0392b" stroke-width="1.5"/>
+        <text x="155" y="226" font-size="14" fill="#555">→</text>
+        <text x="320" y="208" font-size="11" fill="#777" text-anchor="middle">输出：平滑波形</text>
+        <path d="M 260,224 Q 290,216 320,222 T 380,224" fill="none" stroke="#1e5b8a" stroke-width="2"/>
+        <!-- 传递函数 -->
+        <text x="540" y="78" font-size="12" fill="#333">u_out = u_in ·</text>
+        <text x="555" y="98" font-size="14" fill="#b3541e" text-anchor="middle">1</text>
+        <line x1="535" y1="103" x2="590" y2="103" stroke="#b3541e" stroke-width="1"/>
+        <text x="555" y="118" font-size="11" fill="#b3541e" text-anchor="middle">1 + jωRC</text>
+      </svg>
+      <div class="fig-caption">图 8：RC 低通滤波电路——PWM 噪声输入经 R-C 滤波后输出平滑电压，用于电机端电压采样</div>
+    </div>
+
+    <p>作用：平滑电压波形，避免反电动势过零点误检测——这就是 RLC 在电机采样里的实际用处。</p>
+
+    <div class="note">
+      <span class="label">全链路总结：</span>R（铜耗）→ L（电流惯性）→ RL（绕组基础方程 u = Ri + L·di/dt）→ +E（电机完整方程 u = Ri + L·di/dt + E）→ BLDC（悬空测 E）/ PMSM（观测器算 E）→ RC（采样滤波）。整条链路的本源公式就是 <b>u = Ri + L·di/dt + E</b>。
+    </div>
+
+    <!-- ==================== 3.8 I_m 和 U_m 推导 ==================== -->
+    <h3>3.8 补充推导：电流幅值 I<sub>m</sub> 与电压幅值 U<sub>m</sub> 从何而来？</h3>
+
+    <div class="note">
+      <span class="label" style="color:#c0392b;">问题溯源</span>第一节 1.1 推导了感应电动势幅值 E<sub>m</sub> = B·S·ω，1.2 节直接写出 u = U<sub>m</sub>·sin(ωt)；第二节电机模型标注了电流 I<sub>max</sub>，但没说它怎么算出来的。第四节 4.2 节又直接用了 i<sub>a</sub> = I<sub>m</sub>·sin(ωt)——I<sub>m</sub> 到底从哪来？本节用 3.4 节的电机方程 <b>u = R·i + L·di/dt + E</b> 把这个缺口补上。
+    </div>
+
+    <p><b>第一步：明确稳态运行时各量都是正弦波</b></p>
+    <p>电机稳态运行（转速恒定）时，外加电压、电流、反电动势都是<b>同一频率 ω 的正弦波</b>：</p>
+    <div class="formula">
+      外加电压：u(t) = U<sub>m</sub>·sin(ωt)　<span style="color:#777">（逆变器输出的相电压）</span><br>
+      反电动势：E(t) = E<sub>m</sub>·sin(ωt)　<span style="color:#777">（E<sub>m</sub> = k<sub>e</sub>·ω，与转速成正比）</span><br>
+      电流：i(t) = I<sub>m</sub>·sin(ωt − φ)　<span style="color:#c0392b">← 这就是待求量！</span>
+    </div>
+    <p>其中 φ 是电流滞后电压的角度——因为绕组有电感 L，电流不能瞬间跟上电压。现在的问题变成：<b>已知 U<sub>m</sub>、E<sub>m</sub>、R、L、ω，怎么求 I<sub>m</sub> 和 φ？</b></p>
+
+    <p><b>第二步：用相量法把微分方程变成代数方程</b></p>
+    <p>3.4 节的电机方程 <b>u = R·i + L·di/dt + E</b> 里有一个微分项 di/dt，直接解微分方程比较麻烦。<b>相量法</b>的核心技巧是：正弦量的微分等价于乘以 jω。下面把这个变换拆开讲透。</p>
+
+    <div class="note" style="border-left-color:#b3541e;">
+      <span class="label" style="color:#b3541e;">推导：为什么 di/dt → jω·Ī？</span>
+      <p style="margin-top:8px;"><b>从时域出发，一步步算</b>。假设电流是正弦函数：</p>
+      <div class="formula" style="margin:6px 0;">
+        i(t) = I<sub>m</sub>·sin(ωt + φ)
+      </div>
+      <p>对时间求导（基本求导公式 d/dt[sin(ωt+φ)] = ω·cos(ωt+φ)）：</p>
+      <div class="formula" style="margin:6px 0;">
+        di/dt = I<sub>m</sub>·ω·cos(ωt + φ)
+      </div>
+      <p>利用三角恒等式 <b>cosθ = sin(θ + 90°)</b>，改写成正弦形式：</p>
+      <div class="formula" style="margin:6px 0;">
+        di/dt = ω·I<sub>m</sub>·sin(ωt + φ + 90°)
+      </div>
+      <p>对比原来的 i(t)，发生了<b>两件事</b>：</p>
+      <ul style="margin:4px 0 4px 18px; padding:0;">
+        <li><b>幅值 ×ω</b>：从 I<sub>m</sub> 变成了 ω·I<sub>m</sub></li>
+        <li><b>相位 +90°</b>：整个波形往左移了 1/4 周期（超前 90°）</li>
+      </ul>
+      <p style="margin-top:8px;"><b>翻译成相量语言</b>：相量 Ī 代表的就是幅值 I<sub>m</sub>、相位 φ。微分后的结果——幅值乘 ω、相位加 90°。在复数里，乘以 <b>j</b> 就是逆时针旋转 90°（因为 j = e<sup>j·90°</sup>），所以"幅值×ω 且 相位+90°"等价于"乘以 jω"：</p>
+      <div class="formula" style="border-left-color:#b3541e; margin:6px 0;">
+        <b>di/dt 的相量 = jω·Ī</b>
+      </div>
+      <p style="margin-top:4px; font-size:13px; color:#888;">一句话记忆：正弦函数求导 → 幅值乘 ω、相位超前 90° → 相量法里就是乘 jω。</p>
+    </div>
+
+    <p>有了这个工具，整个电机方程变成纯代数运算——不再有微分：</p>
+    <div class="formula" style="border-left-color:#c0392b; font-size:16px;">
+      <b>Ũ = R·Ī + jωL·Ī + Ẽ</b><br>
+      <span style="font-size:13px;color:#777">相量电压 = 电阻压降 + 电感压降 + 反电动势</span>
+    </div>
+    <p>把含 Ī 的项合并：</p>
+    <div class="formula">
+      Ũ − Ẽ = (R + jωL)·Ī = <b>Z</b>·Ī
+    </div>
+    <p>这里 <b>Z = R + jωL</b> 就是 3.3 节讲过的阻抗，它的模值和相角为：</p>
+    <div class="formula">
+      |Z| = √(R² + (ωL)²)　<span style="color:#777">（阻抗大小）</span><br>
+      φ = arctan(ωL / R)　<span style="color:#777">（阻抗角 = 电流滞后角）</span>
+    </div>
+
+    <div class="note" style="border-left-color:#8e44ad;">
+      <span class="label" style="color:#8e44ad;">深入推导：φ = arctan(ωL/R) 是怎么来的？</span>
+      <p style="margin-top:8px;">上面直接写了"阻抗角 = arctan(ωL/R)"，但这个角度为什么恰好就是电流滞后电压的角度？下面用<b>三种方法</b>从不同角度证明，殊途同归。</p>
+    </div>
+
+    <p><b>方法一：复数法（从阻抗辐角直接得到）</b></p>
+    <p>阻抗 Z = R + jωL 是一个复数。任何复数 a + jb 都可以写成极坐标形式 |Z|∠θ，其中：</p>
+    <div class="formula">
+      模长：|Z| = √(a² + b²)<br>
+      辐角：θ = arctan(虚部 / 实部) = arctan(b / a)
+    </div>
+    <p>代入 RL 阻抗 a = R，b = ωL：</p>
+    <div class="formula">
+      阻抗角：θ = arctan(ωL / R)
+    </div>
+    <p>关键定义：串联电路中电流处处相同，<b>以电流为参考基准（相位 0°）</b>。电阻电压与电流同相，电感电压超前电流 90°，总电压 = 两者的矢量和——总电压超前电流的角度恰好等于阻抗角 θ。而"电流滞后电压" = "电压超前电流"，所以：</p>
+    <div class="formula" style="border-left-color:#8e44ad;">
+      <b>电流滞后角 φ = θ = arctan(ωL / R)</b>
+    </div>
+
+    <p><b>方法二：几何法（阻抗三角形）</b></p>
+    <p>把 R、X<sub>L</sub> = ωL、|Z| 拼成一个直角三角形——这就是 3.8 节图 16 右下角画的小三角形：</p>
+
+    <div class="fig-wrap">
+      <svg viewBox="0 0 420 200" xmlns="http://www.w3.org/2000/svg" font-family="Segoe UI, Microsoft YaHei, sans-serif">
+        <!-- 阻抗三角形 -->
+        <!-- 水平边 R -->
+        <line x1="60" y1="150" x2="280" y2="150" stroke="#1e5b8a" stroke-width="3"/>
+        <text x="160" y="172" font-size="14" fill="#1e5b8a" font-weight="bold" text-anchor="middle">R（电阻）</text>
+
+        <!-- 垂直边 ωL -->
+        <line x1="280" y1="150" x2="280" y2="50" stroke="#1e8449" stroke-width="3"/>
+        <text x="305" y="105" font-size="14" fill="#1e8449" font-weight="bold">ωL</text>
+        <text x="305" y="122" font-size="10" fill="#1e8449">（感抗）</text>
+
+        <!-- 斜边 |Z| -->
+        <line x1="60" y1="150" x2="280" y2="50" stroke="#333" stroke-width="3"/>
+        <text x="140" y="90" font-size="14" fill="#333" font-weight="bold">|Z|</text>
+        <text x="140" y="106" font-size="10" fill="#555">= √(R²+(ωL)²)</text>
+
+        <!-- φ 角 -->
+        <path d="M 110,150 A 50,50 0 0 0 108,134" fill="none" stroke="#8e44ad" stroke-width="1.8"/>
+        <text x="115" y="142" font-size="16" fill="#8e44ad" font-weight="bold">φ</text>
+
+        <!-- 标注 -->
+        <text x="195" y="150" font-size="10" fill="#888" text-anchor="middle">邻边</text>
+        <text x="280" y="172" font-size="10" fill="#888" text-anchor="middle">↑对边</text>
+
+        <!-- 公式 -->
+        <text x="210" y="193" font-size="13" fill="#333" text-anchor="middle">tan(φ) = 对边/邻边 = ωL / R　→　φ = arctan(ωL / R)</text>
+      </svg>
+      <div class="fig-caption">图 17：阻抗三角形——R 为邻边（与电流同相），ωL 为对边（超前 90°），斜边为总阻抗 |Z|。夹角 φ 就是电流滞后电压的角度</div>
+    </div>
+
+    <p>邻边是 R（电阻，与电流同相），对边是 ωL（感抗，超前 90°），夹角 φ 的正切值 = 对边/邻边：</p>
+    <div class="formula">
+      tan(φ) = ωL / R　→　<b>φ = arctan(ωL / R)</b>
+    </div>
+
+    <p><b>方法三：时域推演法（从基本元件公式严格证明）</b></p>
+    <p>设回路电流 i(t) = I<sub>m</sub>·sin(ωt)（以电流为参考，相位设为 0°），分别求电阻和电感的电压：</p>
+    <div class="formula">
+      <b>电阻电压</b>：u<sub>R</sub> = R·i = I<sub>m</sub>·R·sin(ωt)　<span style="color:#777">（与电流同相）</span><br>
+      <b>电感电压</b>：u<sub>L</sub> = L·di/dt = L·I<sub>m</sub>·ω·cos(ωt) = I<sub>m</sub>·ωL·sin(ωt + 90°)　<span style="color:#777">（超前电流 90°）</span>
+    </div>
+    <p>总电压 = u<sub>R</sub> + u<sub>L</sub>（两个同频率正弦量相加）。两个相位差 90° 的正弦量叠加，幅值用勾股定理，相位用正切：</p>
+    <div class="formula">
+      幅值：U<sub>m</sub> = √((I<sub>m</sub>·R)² + (I<sub>m</sub>·ωL)²) = I<sub>m</sub>·√(R² + (ωL)²)<br>
+      相位：tan(φ) = U<sub>Lm</sub> / U<sub>Rm</sub> = (I<sub>m</sub>·ωL) / (I<sub>m</sub>·R) = ωL / R
+    </div>
+    <p>I<sub>m</sub> 在分子分母中约掉，最终：</p>
+    <div class="formula" style="border-left-color:#8e44ad;">
+      <b>φ = arctan(ωL / R)</b>
+    </div>
+
+    <div class="note">
+      <span class="label">三种方法殊途同归</span>
+      <table style="width:100%; border-collapse:collapse; margin-top:6px; font-size:13px;">
+        <tr style="border-bottom:1px solid #ddd;">
+          <td style="padding:4px 8px; font-weight:bold; width:20%;">复数法</td>
+          <td style="padding:4px 8px;">从复阻抗 Z = R + jωL 的辐角直接得到</td>
+        </tr>
+        <tr style="border-bottom:1px solid #ddd;">
+          <td style="padding:4px 8px; font-weight:bold;">几何法</td>
+          <td style="padding:4px 8px;">阻抗三角形中 tan(φ) = 对边/邻边</td>
+        </tr>
+        <tr>
+          <td style="padding:4px 8px; font-weight:bold;">时域法</td>
+          <td style="padding:4px 8px;">从 u<sub>R</sub> = Ri 和 u<sub>L</sub> = L·di/dt 出发严格推演</td>
+        </tr>
+      </table>
+      <p style="margin-top:6px;">物理本质：电感的储能特性使电流"来不及"跟上电压——电感越大（ωL↑）、电阻越小（R↓），滞后角 φ 越大。极端情况：纯电感 R→0 时 φ→90°，纯电阻 L→0 时 φ→0°。</p>
+    </div>
+
+    <p><b>第三步：解出电流幅值 I<sub>m</sub></b></p>
+    <p>从 Ũ − Ẽ = Z·Ī 直接解出电流：</p>
+    <div class="formula" style="border-left-color:#c0392b; font-size:16px;">
+      <b>Ī = (Ũ − Ẽ) / Z</b>
+    </div>
+    <p>取模值（幅值 = 向量长度），就得到电流幅值：</p>
+    <div class="formula" style="border-left-color:#c0392b; font-size:17px;">
+      <b>I<sub>m</sub> = |U<sub>m</sub> − E<sub>m</sub>| / |Z| = (U<sub>m</sub> − E<sub>m</sub>) / √(R² + (ωL)²)</b>
+    </div>
+    <p>（稳态运行时 U<sub>m</sub> > E<sub>m</sub>，所以可以直接去掉绝对值。）电流滞后角 φ = arctan(ωL/R)，由电阻和电感的比例决定。</p>
+
+    <div class="note">
+      <span class="label">公式翻译成大白话：</span>外加电压 U<sub>m</sub> 减去反电动势 E<sub>m</sub>（被转子旋转"抵消"掉的部分），剩下的"净电压"除以阻抗 |Z|（电阻+电感的阻碍作用），就是实际流过的电流幅值 I<sub>m</sub>。跟 1.3 节的 I = E/Z 是同一个道理，只是电机里多了一个反电动势 E 在"分走"电压。
+    </div>
+
+    <p><b>第四步：反过来——已知电流求电压幅值 U<sub>m</sub></b></p>
+    <p>工程中更常见的场景是：FOC 控制器需要输出某个目标电流 I<sub>m</sub>，反推需要多大的电压 U<sub>m</sub>。从 Ũ = Ẽ + Z·Ī 展开：</p>
+    <div class="formula">
+      Ũ = Ẽ + R·Ī + jωL·Ī
+    </div>
+    <p>这三项的矢量关系（相量图）如下——<b>记住这个图，比记公式管用</b>：</p>
+
+    <div class="fig-wrap">
+      <svg viewBox="0 0 640 380" xmlns="http://www.w3.org/2000/svg" font-family="Segoe UI, Microsoft YaHei, sans-serif">
+        <!-- 坐标轴 -->
+        <line x1="80" y1="290" x2="600" y2="290" stroke="#ccc" stroke-width="1.2"/>
+        <polygon points="600,290 592,285 592,295" fill="#ccc"/>
+        <text x="610" y="295" font-size="12" fill="#999">实轴</text>
+        <line x1="120" y1="340" x2="120" y2="40" stroke="#ccc" stroke-width="1.2"/>
+        <polygon points="120,40 115,48 125,48" fill="#ccc"/>
+        <text x="100" y="35" font-size="12" fill="#999">虚轴</text>
+
+        <!-- 原点 -->
+        <circle cx="120" cy="290" r="3.5" fill="#333"/>
+        <text x="95" y="305" font-size="12" fill="#777">O</text>
+
+        <!-- I_m 参考方向（水平虚线） -->
+        <line x1="120" y1="290" x2="400" y2="290" stroke="#c0392b" stroke-width="2" stroke-dasharray="8,4"/>
+        <text x="260" y="310" font-size="13" fill="#c0392b">I_m（电流参考方向）</text>
+
+        <!-- ① R·I_m 向量（水平，从原点向右） -->
+        <line x1="120" y1="290" x2="240" y2="290" stroke="#1e5b8a" stroke-width="3"/>
+        <polygon points="240,290 232,285 232,295" fill="#1e5b8a"/>
+        <text x="155" y="278" font-size="13" fill="#1e5b8a" font-weight="bold">R·I_m</text>
+        <text x="148" y="332" font-size="10" fill="#1e5b8a">电阻压降（与I同相）</text>
+
+        <!-- ② jωL·I_m 向量（垂直向上，从 R·I_m 末端开始） -->
+        <line x1="240" y1="290" x2="240" y2="200" stroke="#1e8449" stroke-width="3"/>
+        <polygon points="240,200 235,208 245,208" fill="#1e8449"/>
+        <text x="250" y="250" font-size="13" fill="#1e8449" font-weight="bold">ωL·I_m</text>
+        <text x="250" y="265" font-size="10" fill="#1e8449">电感压降（超前I 90°）</text>
+
+        <!-- ③ E_m 向量（水平，从 ωL·I_m 末端向右） -->
+        <line x1="240" y1="200" x2="420" y2="200" stroke="#b3541e" stroke-width="3"/>
+        <polygon points="420,200 412,195 412,205" fill="#b3541e"/>
+        <text x="305" y="192" font-size="13" fill="#b3541e" font-weight="bold">E_m</text>
+        <text x="280" y="222" font-size="10" fill="#b3541e">反电动势（与I同相简化）</text>
+
+        <!-- U_m 合成向量（从原点到 E_m 末端） -->
+        <line x1="120" y1="290" x2="420" y2="200" stroke="#333" stroke-width="3.5"/>
+        <polygon points="420,200 410,196 412,207" fill="#333"/>
+        <text x="245" y="168" font-size="15" fill="#333" font-weight="bold">U_m</text>
+        <text x="218" y="155" font-size="11" fill="#555">= R·I_m + jωL·I_m + E_m</text>
+
+        <!-- φ 角标注（U_m 与 I_m 之间） -->
+        <path d="M 170,290 A 50,50 0 0 0 168,272" fill="none" stroke="#8e44ad" stroke-width="1.5"/>
+        <text x="175" y="280" font-size="13" fill="#8e44ad" font-weight="bold">φ</text>
+        <text x="175" y="265" font-size="10" fill="#8e44ad">阻抗角</text>
+
+        <!-- 辅助虚线：从 E_m 末端垂直下到实轴 -->
+        <line x1="420" y1="200" x2="420" y2="290" stroke="#999" stroke-width="1" stroke-dasharray="3,3"/>
+        <line x1="120" y1="200" x2="420" y2="200" stroke="#999" stroke-width="1" stroke-dasharray="3,3"/>
+
+        <!-- U_m 分量标注 -->
+        <text x="430" y="248" font-size="10" fill="#777">水平分量 =</text>
+        <text x="430" y="262" font-size="10" fill="#777">E_m + R·I_m</text>
+
+        <!-- 阻抗三角形（右下角小图） -->
+        <rect x="470" y="300" width="150" height="70" rx="5" fill="#f8f8f8" stroke="#ddd" stroke-width="1"/>
+        <text x="545" y="316" font-size="11" fill="#555" text-anchor="middle">阻抗三角形</text>
+        <line x1="490" y1="355" x2="545" y2="355" stroke="#1e5b8a" stroke-width="2"/>
+        <text x="508" y="350" font-size="10" fill="#1e5b8a">R</text>
+        <line x1="545" y1="355" x2="545" y2="332" stroke="#1e8449" stroke-width="2"/>
+        <text x="552" y="345" font-size="10" fill="#1e8449">ωL</text>
+        <line x1="490" y1="355" x2="545" y2="332" stroke="#333" stroke-width="2"/>
+        <text x="505" y="340" font-size="10" fill="#333">|Z|</text>
+        <text x="558" y="355" font-size="9" fill="#8e44ad">φ</text>
+      </svg>
+      <div class="fig-caption">图 16：电机相量图——以电流 I_m 为参考方向（水平），R·I_m 与电流同相（水平），ωL·I_m 超前电流 90°（垂直），E_m 与电流同相（水平简化）。三个向量首尾相接，合成总电压 U_m。右下角为阻抗三角形：|Z| = √(R² + (ωL)²)，φ = arctan(ωL/R)</div>
+    </div>
+
+    <p>从相量图可以直观看出，U<sub>m</sub> 是三个分量的<b>矢量合成</b>（不是简单相加！）：</p>
+    <div class="formula" style="border-left-color:#c0392b; font-size:16px;">
+      <b>U<sub>m</sub> = √((E<sub>m</sub> + R·I<sub>m</sub>)² + (ωL·I<sub>m</sub>)²)</b>
+    </div>
+    <p>水平方向：E<sub>m</sub> + R·I<sub>m</sub>（反电动势 + 电阻压降，都与电流同相）；垂直方向：ωL·I<sub>m</sub>（电感压降，超前 90°）。用勾股定理合成就是 U<sub>m</sub>。</p>
+
+    <p><b>第五步：物理意义——三个关键工况</b></p>
+
+    <div class="note">
+      <span class="label" style="color:#c0392b;">工况① 启动瞬间（ω ≈ 0）</span>
+      <br>转速为零 → E<sub>m</sub> = k<sub>e</sub>·ω ≈ 0，公式简化为：
+      <div class="formula" style="margin-top:8px;">
+        I<sub>m</sub> ≈ U<sub>m</sub> / R　<span style="color:#c0392b">（只剩电阻限流！）</span>
+      </div>
+      绕组电阻 R 通常很小（零点几欧），直接通电会产生<b>巨大的启动电流</b>——这就是为什么 FOC 必须用电流闭环控制，不能直接满压启动。3.6 节讲过的"开环强拖"阶段，正是靠限制电流来安全拉起转速。
+    </div>
+
+    <div class="note">
+      <span class="label" style="color:#1e8449;">工况② 稳态运行（ω > 0）</span>
+      <br>转速上升 → E<sub>m</sub> 增大 → (U<sub>m</sub> − E<sub>m</sub>) 减小 → I<sub>m</sub> 下降。这就是电机的<b>自然限速</b>：转速越高，反电动势越大，"净电压"越小，电流自然减小，转矩也随之下降——直到转矩与负载平衡，转速稳定。1.3 节提到的"电机自然限速原理"就是这个数学过程。
+    </div>
+
+    <div class="note">
+      <span class="label" style="color:#1e5b8a;">工况③ FOC 控制</span>
+      <br>FOC 的核心就是<b>主动控制 I<sub>m</sub></b>（在 dq 坐标系中体现为 i<sub>q</sub>）：速度环 PI 输出目标电流 → 电流环 PI 调节电压 → 逆变器改变 U<sub>m</sub> → 实际电流 I<sub>m</sub> 跟随目标值。本节公式 U<sub>m</sub> = √((E<sub>m</sub> + R·I<sub>m</sub>)² + (ωL·I<sub>m</sub>)²) 就是<b>前馈补偿</b>的数学基础——已知目标 I<sub>m</sub> 和当前转速对应的 E<sub>m</sub>，可以直接算出需要的电压，加快电流响应。
+    </div>
+
+    <div class="note" style="border-left-color:#8e44ad;">
+      <span class="label" style="color:#8e44ad;">与第四节的衔接</span>第四节 4.2 节直接写出 i<sub>a</sub> = I<sub>m</sub>·sin(ωt)，其中 I<sub>m</sub> 就是本节推导的电流幅值：<b>I<sub>m</sub> = (U<sub>m</sub> − E<sub>m</sub>) / √(R² + (ωL)²)</b>。它是外加电压、反电动势、绕组阻抗共同决定的——不是凭空给定的。经过 Clarke + Park 变换后，这个交流幅值 I<sub>m</sub> 变成了直流量 i<sub>q</sub> = 3/2·I<sub>m</sub>，FOC 的 PI 调节器就是在控制这个值。
+    </div>
+
+    <!-- ==================== 四、Clarke 与 Park 坐标变换 ==================== -->
+    <h2>四、Clarke 与 Park 坐标变换</h2>
+    <p>第五节 STO+PLL 观测器输出转子角度 θ̂ 后，需要用它做 Park 变换——而 Park 变换的输入来自 Clarke 变换。本节从手写笔记的<b>坐标系图形</b>入手（图形记忆比公式记忆更牢），再手把手推导矩阵如何与第一节的三相电公式联立。</p>
+
+    <div class="note">
+      <span class="label">变换全链路：</span>三相交流量（abc）─ Clarke ─→ 两相静止（αβ）─ Park ─→ 两相旋转（dq）= 直流量。FOC 的核心目标就是把三相交流"翻译"成直流，这样才能用普通 PI 调节器控制。
+    </div>
+
+    <h3>4.1 三个坐标系的关系（先看图，后记公式）</h3>
+    <p>电机控制中有三套坐标系，记住它们的图形关系就够了：</p>
+
+    <div class="fig-wrap">
+      <svg viewBox="0 0 660 420" xmlns="http://www.w3.org/2000/svg" font-family="Segoe UI, Microsoft YaHei, sans-serif">
+        <!-- ===== 左：abc 三相坐标系 ===== -->
+        <text x="110" y="25" font-size="14" fill="#1e5b8a" font-weight="bold" text-anchor="middle">abc 三相静止坐标系</text>
+        <text x="110" y="42" font-size="11" fill="#777" text-anchor="middle">三相绕组空间互差 120°</text>
+        <!-- 坐标系 -->
+        <circle cx="110" cy="160" r="90" fill="none" stroke="#ddd" stroke-width="1" stroke-dasharray="4,3"/>
+        <!-- ia 轴：水平向右 -->
+        <line x1="110" y1="160" x2="200" y2="160" stroke="#c0392b" stroke-width="2.5"/>
+        <polygon points="200,160 192,155 192,165" fill="#c0392b"/>
+        <text x="208" y="165" font-size="13" fill="#c0392b" font-weight="bold">i_a</text>
+        <!-- ib 轴：左上 120° -->
+        <line x1="110" y1="160" x2="65" y2="82" stroke="#1e5b8a" stroke-width="2.5"/>
+        <polygon points="65,82 72,86 69,76" fill="#1e5b8a"/>
+        <text x="42" y="75" font-size="13" fill="#1e5b8a" font-weight="bold">i_b</text>
+        <!-- ic 轴：左下 120° -->
+        <line x1="110" y1="160" x2="65" y2="238" stroke="#1e8449" stroke-width="2.5"/>
+        <polygon points="65,238 72,234 69,244" fill="#1e8449"/>
+        <text x="42" y="250" font-size="13" fill="#1e8449" font-weight="bold">i_c</text>
+        <!-- 角度标注 -->
+        <text x="165" y="125" font-size="11" fill="#888">120°</text>
+        <text x="55" y="145" font-size="11" fill="#888">120°</text>
+        <text x="55" y="200" font-size="11" fill="#888">120°</text>
+        <!-- 原点 -->
+        <circle cx="110" cy="160" r="3.5" fill="#333"/>
+        <text x="110" y="280" font-size="11" fill="#555" text-anchor="middle">三相绕组在定子上</text>
+        <text x="110" y="295" font-size="11" fill="#555" text-anchor="middle">空间互差 120°</text>
+
+        <!-- 箭头：Clarke 变换 -->
+        <path d="M 225,160 L 265,160" fill="none" stroke="#b3541e" stroke-width="2.5"/>
+        <polygon points="265,160 257,155 257,165" fill="#b3541e"/>
+        <text x="245" y="150" font-size="12" fill="#b3541e" text-anchor="middle" font-weight="bold">Clarke</text>
+
+        <!-- ===== 中：αβ 两相静止坐标系 ===== -->
+        <text x="335" y="25" font-size="14" fill="#b3541e" font-weight="bold" text-anchor="middle">αβ 两相静止坐标系</text>
+        <text x="335" y="42" font-size="11" fill="#777" text-anchor="middle">α 轴与 i_a 重合，β 轴超前 90°</text>
+        <!-- 坐标轴 -->
+        <circle cx="335" cy="160" r="90" fill="none" stroke="#ddd" stroke-width="1" stroke-dasharray="4,3"/>
+        <!-- α 轴：水平向右（与 ia 重合） -->
+        <line x1="335" y1="160" x2="425" y2="160" stroke="#b3541e" stroke-width="2.5"/>
+        <polygon points="425,160 417,155 417,165" fill="#b3541e"/>
+        <text x="433" y="165" font-size="13" fill="#b3541e" font-weight="bold">i_α</text>
+        <!-- β 轴：垂直向上 -->
+        <line x1="335" y1="160" x2="335" y2="70" stroke="#b3541e" stroke-width="2.5"/>
+        <polygon points="335,70 330,78 340,78" fill="#b3541e"/>
+        <text x="345" y="68" font-size="13" fill="#b3541e" font-weight="bold">i_β</text>
+        <!-- 90° 标注 -->
+        <path d="M 375,160 A 40,40 0 0 0 335,120" fill="none" stroke="#888" stroke-width="1"/>
+        <text x="368" y="135" font-size="11" fill="#888">90°</text>
+        <!-- 原点 -->
+        <circle cx="335" cy="160" r="3.5" fill="#333"/>
+        <text x="335" y="280" font-size="11" fill="#555" text-anchor="middle">3 轴 → 2 轴</text>
+        <text x="335" y="295" font-size="11" fill="#555" text-anchor="middle">降维但信息不丢</text>
+
+        <!-- 箭头：Park 变换 -->
+        <path d="M 450,160 L 490,160" fill="none" stroke="#1e8449" stroke-width="2.5"/>
+        <polygon points="490,160 482,155 482,165" fill="#1e8449"/>
+        <text x="470" y="150" font-size="12" fill="#1e8449" text-anchor="middle" font-weight="bold">Park</text>
+
+        <!-- ===== 右：dq 两相旋转坐标系 ===== -->
+        <text x="560" y="25" font-size="14" fill="#1e8449" font-weight="bold" text-anchor="middle">dq 两相旋转坐标系</text>
+        <text x="560" y="42" font-size="11" fill="#777" text-anchor="middle">d 轴跟随转子旋转，θ 为转角</text>
+        <!-- 静止参考 αβ（虚线） -->
+        <line x1="560" y1="160" x2="640" y2="160" stroke="#ccc" stroke-width="1.5" stroke-dasharray="5,3"/>
+        <line x1="560" y1="160" x2="560" y2="80" stroke="#ccc" stroke-width="1.5" stroke-dasharray="5,3"/>
+        <text x="643" y="165" font-size="10" fill="#bbb">α</text>
+        <text x="555" y="78" font-size="10" fill="#bbb">β</text>
+        <!-- dq 旋转轴（旋转约 35°） -->
+        <g transform="rotate(-35 560 160)">
+          <!-- d 轴 -->
+          <line x1="560" y1="160" x2="650" y2="160" stroke="#1e8449" stroke-width="2.5"/>
+          <polygon points="650,160 642,155 642,165" fill="#1e8449"/>
+          <text x="655" y="165" font-size="13" fill="#1e8449" font-weight="bold">i_d</text>
+          <!-- q 轴 -->
+          <line x1="560" y1="160" x2="560" y2="70" stroke="#c0392b" stroke-width="2.5"/>
+          <polygon points="560,70 555,78 565,78" fill="#c0392b"/>
+          <text x="545" y="68" font-size="13" fill="#c0392b" font-weight="bold">i_q</text>
+        </g>
+        <!-- θ 角标注 -->
+        <path d="M 600,160 A 40,40 0 0 0 588,137" fill="none" stroke="#888" stroke-width="1.2"/>
+        <text x="605" y="140" font-size="12" fill="#888" font-style="italic">θ</text>
+        <!-- 原点 -->
+        <circle cx="560" cy="160" r="3.5" fill="#333"/>
+        <text x="560" y="280" font-size="11" fill="#555" text-anchor="middle">坐标系随转子旋转</text>
+        <text x="560" y="295" font-size="11" fill="#555" text-anchor="middle">交流 → 直流</text>
+
+        <!-- 底部说明 -->
+        <text x="335" y="345" font-size="13" fill="#333" text-anchor="middle" font-weight="bold">坐标变换本质 = 投影</text>
+        <text x="335" y="368" font-size="12" fill="#555" text-anchor="middle">Clarke：把三相 120° 轴上的量投影到正交的 αβ 轴</text>
+        <text x="335" y="388" font-size="12" fill="#555" text-anchor="middle">Park：把静止 αβ 轴上的量投影到旋转的 dq 轴（旋转角 = 转子角 θ）</text>
+      </svg>
+      <div class="fig-caption">图 12：三个坐标系全景——abc（120°互差）→ Clarke → αβ（正交静止）→ Park → dq（正交旋转，随转子转动 θ 角）</div>
+    </div>
+
+    <div class="note">
+      <span class="label">记忆口诀：</span><b>abc 是三根线互差 120°，αβ 是十字架不动，dq 是十字架跟着转子转</b>。所有公式都是从"投影"这一个动作推出来的。
+    </div>
+
+    <h3>4.2 Clarke 变换：从三相电公式推导矩阵（手把手）</h3>
+    <p>回忆第一节 1.2 节的三相电流公式——三相绕组在空间互差 120°，电流随时间正弦变化：</p>
+    <div class="formula">
+      i<sub>a</sub> = I<sub>m</sub>·sin(ωt)<br>
+      i<sub>b</sub> = I<sub>m</sub>·sin(ωt − 120°)<br>
+      i<sub>c</sub> = I<sub>m</sub>·sin(ωt + 120°)
+    </div>
+    <p>其中 I<sub>m</sub> 是电流幅值——它的推导见 <b>3.8 节</b>：由电机方程 u = R·i + L·di/dt + E 经相量法化简得 I<sub>m</sub> = (U<sub>m</sub> − E<sub>m</sub>) / √(R² + (ωL)²)，即外加电压减去反电动势的"净电压"除以绕组阻抗。FOC 控制器的核心任务就是调节这个 I<sub>m</sub>。</p>
+    <p>现在要做的事：把三个互差 120° 的轴上的量，投影到正交的 α-β 坐标系上。<b>α 轴与 i<sub>a</sub> 轴重合</b>（这是约定），β 轴垂直于 α 轴。</p>
+
+    <p><b>第一步：画出投影关系</b></p>
+    <div class="fig-wrap">
+      <svg viewBox="0 0 640 360" xmlns="http://www.w3.org/2000/svg" font-family="Segoe UI, Microsoft YaHei, sans-serif">
+        <!-- α 轴（水平）和 β 轴（垂直） -->
+        <line x1="80" y1="200" x2="580" y2="200" stroke="#b3541e" stroke-width="2"/>
+        <polygon points="580,200 572,195 572,205" fill="#b3541e"/>
+        <text x="588" y="205" font-size="14" fill="#b3541e" font-weight="bold">α</text>
+        <line x1="300" y1="330" x2="300" y2="50" stroke="#b3541e" stroke-width="2"/>
+        <polygon points="300,50 295,58 305,58" fill="#b3541e"/>
+        <text x="308" y="48" font-size="14" fill="#b3541e" font-weight="bold">β</text>
+        <circle cx="300" cy="200" r="3.5" fill="#333"/>
+
+        <!-- ia 矢量：沿 α 轴正方向（0°） -->
+        <line x1="300" y1="200" x2="470" y2="200" stroke="#c0392b" stroke-width="2.5"/>
+        <polygon points="470,200 462,195 462,205" fill="#c0392b"/>
+        <text x="478" y="195" font-size="13" fill="#c0392b" font-weight="bold">i_a</text>
+        <text x="385" y="220" font-size="11" fill="#c0392b">角度 = 0°</text>
+        <text x="385" y="235" font-size="11" fill="#c0392b">cos(0°) = 1, sin(0°) = 0</text>
+
+        <!-- ib 矢量：120°方向（左上） -->
+        <line x1="300" y1="200" x2="215" y2="53" stroke="#1e5b8a" stroke-width="2.5"/>
+        <polygon points="215,53 221,60 210,62" fill="#1e5b8a"/>
+        <text x="185" y="48" font-size="13" fill="#1e5b8a" font-weight="bold">i_b</text>
+        <!-- ib 在 α 轴投影（虚线） -->
+        <line x1="215" y1="53" x2="215" y2="200" stroke="#1e5b8a" stroke-width="1.2" stroke-dasharray="4,3"/>
+        <!-- ib 在 β 轴投影（虚线） -->
+        <line x1="215" y1="53" x2="300" y2="53" stroke="#1e5b8a" stroke-width="1.2" stroke-dasharray="4,3"/>
+        <text x="150" y="145" font-size="11" fill="#1e5b8a">角度 = 120°</text>
+        <text x="135" y="160" font-size="11" fill="#1e5b8a">cos(120°) = −1/2</text>
+        <text x="135" y="175" font-size="11" fill="#1e5b8a">sin(120°) = √3/2</text>
+
+        <!-- ic 矢量：240°方向（左下） -->
+        <line x1="300" y1="200" x2="215" y2="347" stroke="#1e8449" stroke-width="2.5"/>
+        <polygon points="215,347 221,340 210,338" fill="#1e8449"/>
+        <text x="185" y="350" font-size="13" fill="#1e8449" font-weight="bold">i_c</text>
+        <!-- ic 在 α 轴投影 -->
+        <line x1="215" y1="347" x2="215" y2="200" stroke="#1e8449" stroke-width="1.2" stroke-dasharray="4,3"/>
+        <!-- ic 在 β 轴投影 -->
+        <line x1="215" y1="347" x2="300" y2="347" stroke="#1e8449" stroke-width="1.2" stroke-dasharray="4,3"/>
+        <text x="130" y="280" font-size="11" fill="#1e8449">角度 = 240°</text>
+        <text x="130" y="295" font-size="11" fill="#1e8449">cos(240°) = −1/2</text>
+        <text x="130" y="310" font-size="11" fill="#1e8449">sin(240°) = −√3/2</text>
+
+        <!-- 120° 标注 -->
+        <text x="350" y="145" font-size="11" fill="#888">120°</text>
+        <text x="350" y="265" font-size="11" fill="#888">120°</text>
+      </svg>
+      <div class="fig-caption">图 13：Clarke 变换投影图——i_a 在 α 轴上（0°），i_b 在 120° 方向，i_c 在 240° 方向。虚线为各自在 α、β 轴上的投影分量</div>
+    </div>
+
+    <p><b>第二步：把每个相投影到 α 轴和 β 轴</b></p>
+    <p>矢量的投影 = 矢量幅值 × cos(角度差)。i<sub>a</sub> 与 α 轴夹角 0°，i<sub>b</sub> 夹角 120°，i<sub>c</sub> 夹角 240°（即 −120°）。</p>
+
+    <div class="formula">
+      <b>α 轴投影（水平分量）：</b><br>
+      i<sub>α</sub> = i<sub>a</sub>·cos(0°) + i<sub>b</sub>·cos(120°) + i<sub>c</sub>·cos(240°)<br>
+      <span style="color:#777">↑ i_a 完全在 α 上　↑ i_b 投到 α 上　↑ i_c 投到 α 上</span>
+    </div>
+    <p>代入三角函数值：cos(0°) = 1，cos(120°) = −1/2，cos(240°) = −1/2</p>
+    <div class="formula" style="border-left-color:#b3541e;">
+      i<sub>α</sub> = i<sub>a</sub>·1 + i<sub>b</sub>·(−1/2) + i<sub>c</sub>·(−1/2) = <b>i<sub>a</sub> − ½i<sub>b</sub> − ½i<sub>c</sub></b>
+    </div>
+
+    <div class="formula">
+      <b>β 轴投影（垂直分量）：</b><br>
+      i<sub>β</sub> = i<sub>a</sub>·sin(0°) + i<sub>b</sub>·sin(120°) + i<sub>c</sub>·sin(240°)
+    </div>
+    <p>代入：sin(0°) = 0，sin(120°) = √3/2，sin(240°) = −√3/2</p>
+    <div class="formula" style="border-left-color:#b3541e;">
+      i<sub>β</sub> = i<sub>a</sub>·0 + i<sub>b</sub>·(√3/2) + i<sub>c</sub>·(−√3/2) = <b>√3/2·i<sub>b</sub> − √3/2·i<sub>c</sub></b>
+    </div>
+
+    <p><b>第三步：写成矩阵形式</b></p>
+    <div class="formula" style="border-left-color:#c0392b; font-size:15px;">
+      <b>┌ ┐　　┌　　　　　　　　　┐　┌ ┐</b><br>
+      <b>│i_α│　　│ 1　 −1/2　 −1/2 │　│i_a│</b><br>
+      <b>│i_β│ =　│ 0　 √3/2　 −√3/2│　│i_b│</b><br>
+      <b>└ ┘　　└　　　　　　　　　┘　│i_c│</b><br>
+      <b>　　　　　　　　　　　　　　　└ ┘</b>
+    </div>
+    <p>这个矩阵就是手写笔记中的系数表格——行是 α、β 轴，列是 a、b、c 相，每个格子就是对应相在该轴上的投影系数。</p>
+
+    <div class="note">
+      <span class="label">与手写笔记的对应：</span>笔记中的表格正是这个矩阵的"拆解版"——i_a 行是 (1, 0) 因为 i_a 完全在 α 轴上、β 轴分量为 0；i_b 行是 (−1/2, √3/2)；i_c 行是 (−1/2, −√3/2)。把每一列加起来就是 i_α 和 i_β。
+    </div>
+
+    <p><b>第四步：验证——代入三相正弦电流看结果</b></p>
+    <p>把第一节的三相电流公式代入 i<sub>α</sub>：</p>
+    <div class="formula">
+      i<sub>α</sub> = I<sub>m</sub>sin(ωt) − ½·I<sub>m</sub>sin(ωt−120°) − ½·I<sub>m</sub>sin(ωt+120°)
+    </div>
+    <p>利用三角恒等式 sin(A−120°) + sin(A+120°) = −sin(A)（两个差 120° 的正弦之和），化简：</p>
+    <div class="formula">
+      i<sub>α</sub> = I<sub>m</sub>sin(ωt) − ½·I<sub>m</sub>·(−sin(ωt)) = I<sub>m</sub>sin(ωt) + ½·I<sub>m</sub>sin(ωt) = <b>3/2·I<sub>m</sub>sin(ωt)</b>
+    </div>
+    <p>同理可得 i<sub>β</sub> = <b>3/2·I<sub>m</sub>·(−cos(ωt))</b>。结果是幅值变成了原来的 3/2 倍——这就是"等幅值变换"需要补一个 2/3 系数的原因。在 MCSDK 工程代码中，这个系数已经包含在定点运算的缩放因子里。</p>
+
+    <div class="note">
+      <span class="label">等幅值 vs 等功率：</span>手写笔记用的是等幅值形式（不乘 2/3，结果幅值为 3/2 倍）。工程中常乘 2/3 使输出幅值 = 原始幅值（等幅值变换），或乘 √(2/3) 使功率不变（等功率变换）。MCSDK 的 Clarke 变换在 <code>mc_math.c</code> 中实现，采用定点数格式。
+    </div>
+
+    <h3>4.3 Park 变换：从旋转投影推导矩阵（手把手）</h3>
+    <p>Clarke 变换后得到 i<sub>α</sub>、i<sub>β</sub>——它们仍然是交流量（随时间正弦变化）。Park 变换的目的是<b>把坐标系转起来</b>，跟着转子一起转，这样在旋转坐标系里看到的量就是直流。</p>
+
+    <p><b>第一步：理解旋转坐标系</b></p>
+    <div class="fig-wrap">
+      <svg viewBox="0 0 640 380" xmlns="http://www.w3.org/2000/svg" font-family="Segoe UI, Microsoft YaHei, sans-serif">
+        <!-- 静止 αβ 轴（灰色虚线） -->
+        <line x1="100" y1="190" x2="580" y2="190" stroke="#bbb" stroke-width="1.5" stroke-dasharray="6,4"/>
+        <polygon points="580,190 572,185 572,195" fill="#bbb"/>
+        <text x="588" y="195" font-size="13" fill="#999" font-weight="bold">α（静止）</text>
+        <line x1="320" y1="350" x2="320" y2="40" stroke="#bbb" stroke-width="1.5" stroke-dasharray="6,4"/>
+        <polygon points="320,40 315,48 325,48" fill="#bbb"/>
+        <text x="328" y="38" font-size="13" fill="#999" font-weight="bold">β（静止）</text>
+
+        <!-- 旋转 dq 轴（旋转约 35°） -->
+        <g transform="rotate(-35 320 190)">
+          <!-- d 轴 -->
+          <line x1="320" y1="190" x2="520" y2="190" stroke="#1e8449" stroke-width="2.5"/>
+          <polygon points="520,190 512,185 512,195" fill="#1e8449"/>
+          <text x="528" y="195" font-size="14" fill="#1e8449" font-weight="bold">d（旋转）</text>
+          <!-- q 轴 -->
+          <line x1="320" y1="190" x2="320" y2="65" stroke="#c0392b" stroke-width="2.5"/>
+          <polygon points="320,65 315,73 325,73" fill="#c0392b"/>
+          <text x="300" y="60" font-size="14" fill="#c0392b" font-weight="bold">q（旋转）</text>
+        </g>
+
+        <!-- θ 角标注 -->
+        <path d="M 380,190 A 60,60 0 0 0 364,156" fill="none" stroke="#888" stroke-width="1.3"/>
+        <text x="390" y="160" font-size="14" fill="#888" font-style="italic" font-weight="bold">θ</text>
+        <text x="395" y="178" font-size="11" fill="#888">转子电角度</text>
+
+        <!-- 电流矢量 I（在 αβ 中是旋转的） -->
+        <line x1="320" y1="190" x2="440" y2="100" stroke="#333" stroke-width="2.5"/>
+        <polygon points="440,100 432,102 436,112" fill="#333"/>
+        <text x="448" y="95" font-size="13" fill="#333" font-weight="bold">I</text>
+
+        <!-- I 在 d 轴的投影（虚线垂直于 d 轴） -->
+        <g transform="rotate(-35 320 190)">
+          <line x1="440" y1="100" x2="440" y2="190" stroke="#1e8449" stroke-width="1.2" stroke-dasharray="4,3" transform="rotate(35 440 100)"/>
+        </g>
+        <!-- I 在 d 轴的投影线 -->
+        <line x1="440" y1="100" x2="420" y2="148" stroke="#1e8449" stroke-width="1.5" stroke-dasharray="4,3"/>
+        <text x="395" y="135" font-size="12" fill="#1e8449">i_d（投影）</text>
+
+        <!-- I 在 q 轴的投影线 -->
+        <line x1="440" y1="100" x2="348" y2="117" stroke="#c0392b" stroke-width="1.5" stroke-dasharray="4,3"/>
+        <text x="345" y="108" font-size="12" fill="#c0392b">i_q（投影）</text>
+
+        <!-- 原点 -->
+        <circle cx="320" cy="190" r="4" fill="#333"/>
+
+        <!-- 旋转方向 -->
+        <path d="M 250,80 A 40,40 0 0 1 290,60" fill="none" stroke="#1e8449" stroke-width="1.5"/>
+        <polygon points="290,60 282,58 284,68" fill="#1e8449"/>
+        <text x="235" y="65" font-size="11" fill="#1e8449">dq 随转子旋转</text>
+
+        <!-- 底部说明 -->
+        <text x="320" y="372" font-size="12.5" fill="#555" text-anchor="middle">电流矢量 I 在 αβ 中旋转 → 但在 dq 坐标系中是静止的 → i_d、i_q 变成直流量</text>
+      </svg>
+      <div class="fig-caption">图 14：Park 变换投影图——dq 坐标系以 θ 角旋转，电流矢量 I 投影到 d 轴得 i_d，投影到 q 轴得 i_q。在 dq 坐标系中 I 是静止的，所以 i_d、i_q 是直流</div>
+    </div>
+
+    <p><b>第二步：推导投影公式</b></p>
+    <p>d 轴与 α 轴夹角为 θ。把 i<sub>α</sub>、i<sub>β</sub> 投影到 d 轴和 q 轴上，本质是一个<b>坐标旋转</b>：</p>
+    <div class="formula">
+      <b>d 轴投影</b>（沿 d 方向的分量）：<br>
+      i<sub>d</sub> = i<sub>α</sub>·cos(θ) + i<sub>β</sub>·sin(θ)
+    </div>
+    <p>为什么？i<sub>α</sub> 在 d 轴上的投影 = i<sub>α</sub>·cos(θ)（θ 是两轴夹角）；i<sub>β</sub> 与 d 轴的夹角是 (90°−θ)，投影 = i<sub>β</sub>·cos(90°−θ) = i<sub>β</sub>·sin(θ)。两者相加。</p>
+    <div class="formula">
+      <b>q 轴投影</b>（沿 q 方向的分量，q 超前 d 为 90°）：<br>
+      i<sub>q</sub> = −i<sub>α</sub>·sin(θ) + i<sub>β</sub>·cos(θ)
+    </div>
+    <p>i<sub>α</sub> 在 q 轴上的投影 = i<sub>α</sub>·cos(90°+θ) = −i<sub>α</sub>·sin(θ)（负号因为 q 轴在 α 的"前方"）；i<sub>β</sub> 在 q 轴上的投影 = i<sub>β</sub>·cos(θ)。</p>
+
+    <p><b>第三步：写成矩阵形式</b></p>
+    <div class="formula" style="border-left-color:#1e8449; font-size:15px;">
+      <b>┌ ┐　　┌　　　　　　　　┐　┌ ┐</b><br>
+      <b>│i_d│　　│ cosθ　　sinθ │　│i_α│</b><br>
+      <b>│i_q│ =　│−sinθ　　cosθ │　│i_β│</b><br>
+      <b>└ ┘　　└　　　　　　　　┘　└ ┘</b>
+    </div>
+
+    <div class="note">
+      <span class="label">与手写笔记的对应：</span>笔记中表格写的是"u 轴"和"v 轴"，并注释"v 代表转子的轴"（= d 轴），"u 代表转子正交方向"（= q 轴，即力矩方向）。公式 i_q = −i_α·sinθ + i_β·cosθ 和 i_d = i_α·cosθ + i_β·sinθ 与上面的矩阵完全一致，只是笔记中先写 q 后写 d。
+    </div>
+
+    <p><b>第四步：为什么 Park 变换后交流变直流？</b></p>
+    <p>将 Clarke 变换的结果 i<sub>α</sub> = 3/2·I<sub>m</sub>·sin(ωt)、i<sub>β</sub> = −3/2·I<sub>m</sub>·cos(ωt) 代入 Park 变换，并令 θ = ωt（转子以电角速度 ω 旋转，电角度 = ωt）：</p>
+    <div class="formula">
+      i<sub>d</sub> = (3/2)I<sub>m</sub>sin(ωt)·cos(ωt) + (−3/2)I<sub>m</sub>cos(ωt)·sin(ωt) = 0<br>
+      i<sub>q</sub> = −(3/2)I<sub>m</sub>sin(ωt)·sin(ωt) + (−3/2)I<sub>m</sub>cos(ωt)·cos(ωt) = −3/2·I<sub>m</sub>
+    </div>
+    <p>结果：<b>i<sub>d</sub> = 0，i<sub>q</sub> = 常数</b>——交流量变成了直流量！这就是 FOC 能用普通 PI 调节器控制交流电机的根本原因。</p>
+
+    <div class="note">
+      <span class="label">物理意义：</span>i_d = 0 意味着电流全部在 q 轴（转矩方向），没有 d 轴（磁场方向）分量——这就是"最大转矩/电流比"控制。d 轴控制磁通（类似直流电机的励磁绕组），q 轴控制转矩（类似直流电机的电枢绕组）。Park 变换把交流电机"解耦"成了直流电机。
+    </div>
+
+    <div class="note">
+      <span class="label">推导不够细？</span>上面的验证跳过了三角恒等式的证明和逐项展开。如果你想知道"cos 项为什么抵消""sin²+cos² 怎么把交流压平成直流"的每一步代数运算，请看 <b>4.4 节</b>——那里把三相公式代进矩阵里，一行一行展开给你看。
+    </div>
+
+    <h3>4.4 矩阵与三相电公式的完整联立推导（手把手）</h3>
+    <p>4.2 和 4.3 分别推导了 Clarke 和 Park 矩阵，并做了简要验证。但验证中跳过了关键步骤——三角恒等式为什么成立、展开后各项如何抵消。本节把<b>三相正弦公式 → Clarke 矩阵 → αβ 结果 → Park 矩阵 → dq 直流结果</b>整条链路联立推导，每一步代数运算都不省略。</p>
+
+    <div class="note">
+      <span class="label">为什么要联立？</span>单独看矩阵，它只是"投影系数表"；单独看三相公式，它只是"三条正弦波"。只有把公式代进矩阵里逐项展开，才能亲眼看到交流量如何一步步变成直流量——这是理解 FOC 数学本质的关键一步。
+    </div>
+
+    <p><b>第一步：先准备工具——三角恒等式的证明</b></p>
+    <p>推导中要用到四个三角工具，这里先证明一遍，后面直接引用。</p>
+
+    <p><b>工具 ① 和角公式</b>（展开 sin(A±B)，高中基本公式）：</p>
+    <div class="formula">
+      sin(A + B) = sinA·cosB + cosA·sinB<br>
+      sin(A − B) = sinA·cosB − cosA·sinB
+    </div>
+
+    <p><b>工具 ② 两式加减</b>（把工具 ① 两行相加/相减，消去一侧）：</p>
+    <div class="formula">
+      相加：sin(A−B) + sin(A+B) = 2·sinA·cosB　<span style="color:#888;">← cosB 项保留，sinB 项一加一减抵消</span><br>
+      相减：sin(A−B) − sin(A+B) = −2·cosA·sinB　<span style="color:#888;">← sinB 项保留，cosB 项一加一减抵消</span>
+    </div>
+
+    <p><b>工具 ③ 代入 B = 120°</b>（cos120° = −1/2，sin120° = √3/2）：</p>
+    <div class="formula" style="border-left-color:#c0392b;">
+      sin(A−120°) + sin(A+120°) = 2·sinA·(−1/2) = <b>−sinA</b><br>
+      sin(A−120°) − sin(A+120°) = −2·cosA·(√3/2) = <b>−√3·cosA</b>
+    </div>
+    <p>这两个结果就是 4.2 节第四步中"直接引用"的恒等式——现在你知道它们怎么来的了。关键是：两个差 120° 的正弦相加，cos 项抵消、sin 项叠加为原来的 −1 倍。</p>
+
+    <p><b>工具 ④ 平方和</b>：</p>
+    <div class="formula">
+      sin²θ + cos²θ = 1
+    </div>
+
+    <p><b>第二步：用和角公式展开三相电流</b></p>
+    <p>第一节的三个电流公式（令 A = ωt, B = 120°）：</p>
+    <div class="formula">
+      i<sub>a</sub> = I<sub>m</sub>·sin(ωt)<br>
+      i<sub>b</sub> = I<sub>m</sub>·sin(ωt − 120°)<br>
+      i<sub>c</sub> = I<sub>m</sub>·sin(ωt + 120°)
+    </div>
+    <p>用<b>工具 ①</b>展开 i<sub>b</sub> 和 i<sub>c</sub>：</p>
+    <div class="formula">
+      i<sub>b</sub> = I<sub>m</sub>·[sin(ωt)·cos(120°) <u>−</u> cos(ωt)·sin(120°)]<br>
+      　 = I<sub>m</sub>·[<b>−½·sin(ωt)</b> − <b>√3/2·cos(ωt)</b>]<br><br>
+      i<sub>c</sub> = I<sub>m</sub>·[sin(ωt)·cos(120°) <u>+</u> cos(ωt)·sin(120°)]<br>
+      　 = I<sub>m</sub>·[<b>−½·sin(ωt)</b> + <b>√3/2·cos(ωt)</b>]
+    </div>
+
+    <div class="note">
+      <span class="label">关键规律：</span>i<sub>b</sub> 和 i<sub>c</sub> 的 sin(ωt) 项完全相同（都是 −½·I<sub>m</sub>·sin(ωt)），但 cos(ωt) 项<b>符号相反</b>。这个"cos 项相反"正是后面各项抵消的核心。
+    </div>
+
+    <p><b>第三步：代入 Clarke 矩阵第一行，逐项展开求 i_α</b></p>
+    <p>Clarke 矩阵第一行：i<sub>α</sub> = 1·i<sub>a</sub> + (−½)·i<sub>b</sub> + (−½)·i<sub>c</sub></p>
+    <p>把第二步展开的三个电流代入，<b>每一项都标出来</b>：</p>
+    <div class="formula">
+      i<sub>α</sub> = <span style="color:#c0392b;">I<sub>m</sub>·sin(ωt)</span>　<span style="color:#c0392b;">← 来自 i_a（系数 1）</span><br>
+      　 − ½·<span style="color:#1e5b8a;">I<sub>m</sub>·[−½·sin(ωt) − √3/2·cos(ωt)]</span>　<span style="color:#1e5b8a;">← 来自 i_b（系数 −½）</span><br>
+      　 − ½·<span style="color:#1e8449;">I<sub>m</sub>·[−½·sin(ωt) + √3/2·cos(ωt)]</span>　<span style="color:#1e8449;">← 来自 i_c（系数 −½）</span>
+    </div>
+    <p>展开三个括号（注意 −½ 乘进去时负号的变化）：</p>
+    <div class="formula">
+      i<sub>α</sub> = I<sub>m</sub>·sin(ωt)<br>
+      　 + <b>¼</b>·I<sub>m</sub>·sin(ωt) + <b>√3/4</b>·I<sub>m</sub>·cos(ωt)　<span style="color:#888;">← −½ × (−½) = +¼；−½ × (−√3/2) = +√3/4</span><br>
+      　 + <b>¼</b>·I<sub>m</sub>·sin(ωt) − <b>√3/4</b>·I<sub>m</sub>·cos(ωt)　<span style="color:#888;">← −½ × (−½) = +¼；−½ × (+√3/2) = −√3/4</span>
+    </div>
+    <p>合并同类项——注意 <b>cos(ωt) 项一正一负，完全抵消</b>：</p>
+    <div class="formula" style="border-left-color:#b3541e;">
+      i<sub>α</sub> = I<sub>m</sub>·sin(ωt) + ¼·I<sub>m</sub>·sin(ωt) + ¼·I<sub>m</sub>·sin(ωt)<br>
+      　 = (1 + ¼ + ¼)·I<sub>m</sub>·sin(ωt)<br>
+      　 = <b style="color:#b3541e; font-size:17px;">3/2 · I<sub>m</sub> · sin(ωt)</b>　<span style="color:#888;">← 还是正弦，但幅值变成 3/2 倍</span>
+    </div>
+
+    <p><b>第四步：代入 Clarke 矩阵第二行，逐项展开求 i_β</b></p>
+    <p>Clarke 矩阵第二行：i<sub>β</sub> = 0·i<sub>a</sub> + (√3/2)·i<sub>b</sub> + (−√3/2)·i<sub>c</sub> = (√3/2)·(i<sub>b</sub> − i<sub>c</sub>)</p>
+    <p>先算 i<sub>b</sub> − i<sub>c</sub>（用第二步的展开式）：</p>
+    <div class="formula">
+      i<sub>b</sub> − i<sub>c</sub> = I<sub>m</sub>·[−½·sin(ωt) − √3/2·cos(ωt)] − I<sub>m</sub>·[−½·sin(ωt) + √3/2·cos(ωt)]<br>
+      　 = I<sub>m</sub>·[<b>−½·sin(ωt)</b> − √3/2·cos(ωt) <b>+ ½·sin(ωt)</b> − √3/2·cos(ωt)]<br>
+      　 = I<sub>m</sub>·[−√3·cos(ωt)]　<span style="color:#888;">← sin 项一加一减抵消，cos 项叠加</span>
+    </div>
+    <p>乘以 √3/2：</p>
+    <div class="formula" style="border-left-color:#b3541e;">
+      i<sub>β</sub> = (√3/2) · I<sub>m</sub> · (−√3) · cos(ωt) = (√3 × √3 / 2) · (−I<sub>m</sub>) · cos(ωt) = <b style="color:#b3541e; font-size:17px;">−3/2 · I<sub>m</sub> · cos(ωt)</b>
+    </div>
+
+    <div class="note">
+      <span class="label">阶段性小结：</span>Clarke 变换把三相互差 120° 的正弦波，变成了两相互差 90° 的正弦波——i<sub>α</sub> 含 sin(ωt)，i<sub>β</sub> 含 cos(ωt)（相位差 90°）。但它们<b>仍然是交流</b>！下一步 Park 变换的任务就是把这两条交流变成直流。
+    </div>
+
+    <p><b>第五步：代入 Park 矩阵第一行，逐项展开求 i_d</b></p>
+    <p>令 θ = ωt（转子电角度与电流同步旋转）。Park 矩阵第一行：i<sub>d</sub> = cos(θ)·i<sub>α</sub> + sin(θ)·i<sub>β</sub></p>
+    <p>把第三、四步的结果代入：</p>
+    <div class="formula">
+      i<sub>d</sub> = cos(ωt) · <span style="color:#b3541e;">(3/2·I<sub>m</sub>·sin(ωt))</span> + sin(ωt) · <span style="color:#8e44ad;">(−3/2·I<sub>m</sub>·cos(ωt))</span><br>
+      　 = (3/2)·I<sub>m</sub>·sin(ωt)·cos(ωt) <b>−</b> (3/2)·I<sub>m</sub>·cos(ωt)·sin(ωt)
+    </div>
+    <p>两项<b>完全相同</b>（sin·cos = cos·sin，乘法交换律），相减为零：</p>
+    <div class="formula" style="border-left-color:#1e8449;">
+      i<sub>d</sub> = (3/2)·I<sub>m</sub>·[sin(ωt)·cos(ωt) − cos(ωt)·sin(ωt)] = <b style="color:#1e8449; font-size:17px;">0</b>
+    </div>
+
+    <p><b>第六步：代入 Park 矩阵第二行，逐项展开求 i_q</b></p>
+    <p>Park 矩阵第二行：i<sub>q</sub> = −sin(θ)·i<sub>α</sub> + cos(θ)·i<sub>β</sub></p>
+    <div class="formula">
+      i<sub>q</sub> = −sin(ωt) · <span style="color:#b3541e;">(3/2·I<sub>m</sub>·sin(ωt))</span> + cos(ωt) · <span style="color:#8e44ad;">(−3/2·I<sub>m</sub>·cos(ωt))</span><br>
+      　 = −(3/2)·I<sub>m</sub>·sin²(ωt) <b>−</b> (3/2)·I<sub>m</sub>·cos²(ωt)
+    </div>
+    <p>提取公因式 −(3/2)·I<sub>m</sub>，用<b>工具 ④</b>（sin²θ + cos²θ = 1）：</p>
+    <div class="formula" style="border-left-color:#1e8449;">
+      i<sub>q</sub> = −(3/2)·I<sub>m</sub>·[sin²(ωt) + cos²(ωt)] = −(3/2)·I<sub>m</sub>·1 = <b style="color:#1e8449; font-size:17px;">−3/2 · I<sub>m</sub></b>
+    </div>
+
+    <div class="note">
+      <span class="label">最终结论：</span>经过 Clarke + Park 两次矩阵变换，三相正弦交流量变成了两个直流量：<b>i<sub>d</sub> = 0，i<sub>q</sub> = −3/2·I<sub>m</sub></b>。交流变直流的数学本质是<b>两条</b>：① Clarke 步骤中 cos 项抵消、sin 项叠加；② Park 步骤中 sin²+cos²=1。记住这两个抵消点，整个推导就串起来了。
+    </div>
+
+    <p><b>第七步：波形可视化——看交流如何变成直流</b></p>
+    <div class="fig-wrap">
+      <svg viewBox="0 0 820 260" xmlns="http://www.w3.org/2000/svg" font-family="Segoe UI, Microsoft YaHei, sans-serif">
+        <!-- ===== Panel 1: abc 三相 ===== -->
+        <text x="145" y="18" font-size="13" fill="#1e5b8a" font-weight="bold" text-anchor="middle">abc 三相交流（互差 120°）</text>
+        <line x1="35" y1="85" x2="255" y2="85" stroke="#ddd" stroke-width="1"/>
+        <polyline points="40,85 48.75,70 57.5,59 66.25,55 75,59 83.75,70 92.5,85 101.25,100 110,111 118.75,115 127.5,111 136.25,100 145,85 153.75,70 162.5,59 171.25,55 180,59 188.75,70 197.5,85 206.25,100 215,111 223.75,115 232.5,111 241.25,100 250,85" fill="none" stroke="#c0392b" stroke-width="2"/>
+        <polyline points="40,111 48.75,115 57.5,111 66.25,100 75,85 83.75,70 92.5,59 101.25,55 110,59 118.75,70 127.5,85 136.25,100 145,111 153.75,115 162.5,111 171.25,100 180,85 188.75,70 197.5,59 206.25,55 215,59 223.75,70 232.5,85 241.25,100 250,111" fill="none" stroke="#1e5b8a" stroke-width="2"/>
+        <polyline points="40,59 48.75,70 57.5,85 66.25,100 75,111 83.75,115 92.5,111 101.25,100 110,85 118.75,70 127.5,59 136.25,55 145,59 153.75,70 162.5,85 171.25,100 180,111 188.75,115 197.5,111 206.25,100 215,85 223.75,70 232.5,59 241.25,55 250,59" fill="none" stroke="#1e8449" stroke-width="2"/>
+        <text x="40" y="160" font-size="10" fill="#c0392b">— i_a</text>
+        <text x="75" y="160" font-size="10" fill="#1e5b8a">— i_b</text>
+        <text x="110" y="160" font-size="10" fill="#1e8449">— i_c</text>
+        <text x="145" y="180" font-size="11" fill="#555" text-anchor="middle">3 条正弦波，频率相同</text>
+        <text x="145" y="195" font-size="11" fill="#555" text-anchor="middle">相位互差 120°</text>
+
+        <!-- 箭头：Clarke -->
+        <path d="M 265,85 L 290,85" fill="none" stroke="#b3541e" stroke-width="2"/>
+        <polygon points="290,85 282,80 282,90" fill="#b3541e"/>
+        <text x="277" y="75" font-size="11" fill="#b3541e" text-anchor="middle" font-weight="bold">Clarke</text>
+        <text x="277" y="103" font-size="9" fill="#888" text-anchor="middle">3轴→2轴</text>
+
+        <!-- ===== Panel 2: αβ 两相 ===== -->
+        <text x="405" y="18" font-size="13" fill="#b3541e" font-weight="bold" text-anchor="middle">αβ 两相交流（互差 90°）</text>
+        <line x1="295" y1="85" x2="515" y2="85" stroke="#ddd" stroke-width="1"/>
+        <polyline points="300,85 308.75,62.5 317.5,46 326.25,40 335,46 343.75,62.5 352.5,85 361.25,107.5 370,124 378.75,130 387.5,124 396.25,107.5 405,85 413.75,62.5 422.5,46 431.25,40 440,46 448.75,62.5 457.5,85 466.25,107.5 475,124 483.75,130 492.5,124 501.25,107.5 510,85" fill="none" stroke="#b3541e" stroke-width="2"/>
+        <polyline points="300,130 308.75,124 317.5,107.5 326.25,85 335,62.5 343.75,46 352.5,40 361.25,46 370,62.5 378.75,85 387.5,107.5 396.25,124 405,130 413.75,124 422.5,107.5 431.25,85 440,62.5 448.75,46 457.5,40 466.25,46 475,62.5 483.75,85 492.5,107.5 501.25,124 510,130" fill="none" stroke="#8e44ad" stroke-width="2"/>
+        <text x="300" y="160" font-size="10" fill="#b3541e">— i_α = 3/2·I_m·sin(ωt)</text>
+        <text x="300" y="175" font-size="10" fill="#8e44ad">— i_β = −3/2·I_m·cos(ωt)</text>
+        <text x="405" y="195" font-size="11" fill="#555" text-anchor="middle">2 条正弦波，互差 90°，幅值 3/2 倍</text>
+
+        <!-- 箭头：Park -->
+        <path d="M 525,85 L 550,85" fill="none" stroke="#1e8449" stroke-width="2"/>
+        <polygon points="550,85 542,80 542,90" fill="#1e8449"/>
+        <text x="537" y="75" font-size="11" fill="#1e8449" text-anchor="middle" font-weight="bold">Park</text>
+        <text x="537" y="103" font-size="9" fill="#888" text-anchor="middle">θ=ωt</text>
+
+        <!-- ===== Panel 3: dq 直流 ===== -->
+        <text x="665" y="18" font-size="13" fill="#1e8449" font-weight="bold" text-anchor="middle">dq 直流量（常数）</text>
+        <line x1="555" y1="85" x2="775" y2="85" stroke="#ddd" stroke-width="1"/>
+        <line x1="560" y1="85" x2="770" y2="85" stroke="#1e8449" stroke-width="2.5"/>
+        <line x1="560" y1="130" x2="770" y2="130" stroke="#c0392b" stroke-width="2.5"/>
+        <text x="775" y="80" font-size="11" fill="#1e8449" font-weight="bold">i_d = 0</text>
+        <text x="775" y="135" font-size="11" fill="#c0392b" font-weight="bold">i_q = −3/2·I_m</text>
+        <text x="665" y="180" font-size="11" fill="#555" text-anchor="middle">交流 → 直流！</text>
+        <text x="665" y="195" font-size="11" fill="#555" text-anchor="middle">可用 PI 调节器控制</text>
+
+        <!-- 底部标注 -->
+        <text x="410" y="240" font-size="12" fill="#333" text-anchor="middle" font-weight="bold">联立推导核心：Clarke 步骤 cos 项抵消 → Park 步骤 sin²+cos²=1 → 交流变直流</text>
+      </svg>
+      <div class="fig-caption">图 15：波形联立可视化——左：abc 三相正弦（互差 120°）→ 中：Clarke 变换后 αβ 两相正弦（互差 90°，幅值 3/2 倍）→ 右：Park 变换后 dq 直流量（i_d=0, i_q=常数）。两个抵消点把交流"压平"成了直流</div>
+    </div>
+
+    <div class="note">
+      <span class="label">记忆图形比记忆公式更牢：</span>看左图，3 条波 → 中图变 2 条波（频率不变、相位差从 120° 变 90°）→ 右图变 2 条直线。这就是 FOC 的全部数学本质：<b>用两次投影（Clarke + Park）把旋转的交流量"拉平"成静止的直流量</b>，然后用 PI 控制器像调直流电机一样调它。
+    </div>
+
+    <h3>4.5 反变换：从 dq 回到 abc（简要）</h3>
+    <p>FOC 控制流程中，PI 调节器输出 dq 电压参考后，需要反向变换回 abc 去驱动 SVPWM：</p>
+    <div class="formula">
+      <b>逆 Park</b>（dq → αβ）：<br>
+      i<sub>α</sub> = i<sub>d</sub>·cos(θ) − i<sub>q</sub>·sin(θ)<br>
+      i<sub>β</sub> = i<sub>d</sub>·sin(θ) + i<sub>q</sub>·cos(θ)<br><br>
+      <b>逆 Clarke</b>（αβ → abc）：<br>
+      i<sub>a</sub> = i<sub>α</sub><br>
+      i<sub>b</sub> = −½·i<sub>α</sub> + √3/2·i<sub>β</sub><br>
+      i<sub>c</sub> = −½·i<sub>α</sub> − √3/2·i<sub>β</sub>
+    </div>
+    <p>逆变换就是矩阵求逆——Park 矩阵是正交矩阵，逆 = 转置；Clarke 矩阵的逆需要用伪逆（因为 3→2 降维不可逆，需补零序分量 i<sub>0</sub> = (i<sub>a</sub>+i<sub>b</sub>+i<sub>c</sub>)/3 才能完全还原）。</p>
+
+    <h3>4.6 在 FOC 中的完整位置</h3>
+    <p>将坐标变换放回第五节 STO+PLL 观测器的上下文中，FOC 的完整信号链：</p>
+    <div class="formula" style="font-size:14px; line-height:2.2;">
+      ADC 采样 i<sub>a</sub>, i<sub>b</sub><br>
+      → <b>Clarke 变换</b> → i<sub>α</sub>, i<sub>β</sub><br>
+      → STO 观测器输入（估算 Ê<sub>αβ</sub>）<br>
+      → PLL 锁出 θ̂<br>
+      → <b>Park 变换</b>（用 θ̂）→ i<sub>d</sub>, i<sub>q</sub>（直流量）<br>
+      → PI 电流环 → V<sub>d</sub><sup>*</sub>, V<sub>q</sub><sup>*</sup><br>
+      → <b>逆 Park</b> → V<sub>α</sub><sup>*</sup>, V<sub>β</sub><sup>*</sup><br>
+      → <b>逆 Clarke / SVPWM</b> → V<sub>a</sub>, V<sub>b</sub>, V<sub>c</sub> → 逆变器 → 电机
+    </div>
+
+    <div class="note">
+      <span class="label">全链路串联：</span>第一节的"三相电公式"给出了 abc 坐标系下的正弦量；本节的 Clarke 变换把它们投影到 αβ 静止坐标系；Park 变换再投影到 dq 旋转坐标系——三次变换的数学本质都是<b>投影</b>。第五节观测器在 αβ 坐标系工作，输出的角度 θ̂ 用于 Park 变换。整条链路从第一节到第五节到此完全闭环。
+    </div>
+
+    <!-- ==================== 五、STO+PLL 观测器 ==================== -->
+    <h2>五、STO+PLL 无感观测器原理</h2>
+    <p>第三节讲到 PMSM 没有悬空相，无法直接测量反电动势 E，需要用<b>观测器</b>反算。本工程（MCSDK v6.4.2）使用的是 <b>STO + PLL</b>（State Observer + Phase-Locked Loop，状态观测器 + 锁相环），代码位于 <code>sto_pll_speed_pos_fdbk.c</code>，配置在 <code>mc_config.c</code> 的 <code>STO_PLL_M1</code> 结构体。</p>
+
+    <div class="note">
+      <span class="label">一句话概括：</span>STO 用电机数学模型"虚拟"一个电机，比较虚拟电流与真实电流的误差来修正估算的反电动势；PLL 从反电动势中锁出转子角度和转速。
+    </div>
+
+    <h3>5.1 为什么需要观测器？</h3>
+    <p>回顾第三节的本源公式（α-β 静止坐标系下，单相形式）：</p>
+    <div class="formula">
+      u<sub>α</sub> = R·i<sub>α</sub> + L·di<sub>α</sub>/dt + E<sub>α</sub><br>
+      u<sub>β</sub> = R·i<sub>β</sub> + L·di<sub>β</sub>/dt + E<sub>β</sub>
+    </div>
+    <p>已知量：电压 u（由占空比 × Vbus 计算）、电流 i（ADC 采样）、R 和 L（电机参数）。未知量：反电动势 E。如果能算出 E<sub>α</sub>、E<sub>β</sub>，就能反推转子角度——因为 E 的方向始终与转子磁极方向正交。</p>
+    <p>但公式里有微分项 di/dt，直接微分运算对噪声极其敏感。STO 的思路是：<b>不直接求 E，而是建一个"影子电机"模型，让它自己跑，用误差反馈修正</b>。</p>
+
+    <h3>5.2 状态观测器（STO）核心思想</h3>
+    <p>STO 本质是一个 <b>Luenberger 观测器</b>——在软件中复制一份电机模型，用真实电流与估算电流的偏差做负反馈修正。</p>
+
+    <div class="fig-wrap">
+      <svg viewBox="0 0 660 380" xmlns="http://www.w3.org/2000/svg" font-family="Segoe UI, Microsoft YaHei, sans-serif">
+        <!-- 真实电机框 -->
+        <rect x="20" y="30" width="200" height="120" rx="8" fill="#eef4fa" stroke="#1e5b8a" stroke-width="2"/>
+        <text x="120" y="52" font-size="14" fill="#1e5b8a" font-weight="bold" text-anchor="middle">真实电机</text>
+        <text x="120" y="78" font-size="12" fill="#555" text-anchor="middle">输入：u_αβ（电压）</text>
+        <text x="120" y="98" font-size="12" fill="#555" text-anchor="middle">输出：i_αβ（ADC 采样）</text>
+        <text x="120" y="120" font-size="11" fill="#777" text-anchor="middle">内部状态：真实 E_αβ</text>
+        <text x="120" y="138" font-size="11" fill="#777" text-anchor="middle">（无法直接测量）</text>
+
+        <!-- 观测器框 -->
+        <rect x="280" y="30" width="240" height="120" rx="8" fill="#fdf3ec" stroke="#b3541e" stroke-width="2"/>
+        <text x="400" y="52" font-size="14" fill="#b3541e" font-weight="bold" text-anchor="middle">状态观测器（影子电机）</text>
+        <text x="400" y="78" font-size="12" fill="#555" text-anchor="middle">相同输入：u_αβ</text>
+        <text x="400" y="98" font-size="12" fill="#555" text-anchor="middle">估算输出：î_αβ</text>
+        <text x="400" y="120" font-size="11" fill="#777" text-anchor="middle">估算状态：Ê_αβ（目标输出）</text>
+
+        <!-- 误差比较器 -->
+        <circle cx="580" cy="90" r="22" fill="#fff" stroke="#333" stroke-width="2"/>
+        <text x="580" y="87" font-size="18" fill="#333" text-anchor="middle">⊕</text>
+        <text x="580" y="130" font-size="11" fill="#555" text-anchor="middle">误差</text>
+        <text x="580" y="145" font-size="11" fill="#555" text-anchor="middle">e = î − i</text>
+
+        <!-- 电流箭头：真实电机 → 比较器 -->
+        <line x1="220" y1="90" x2="280" y2="90" stroke="#1e5b8a" stroke-width="2"/>
+        <text x="250" y="82" font-size="11" fill="#1e5b8a" text-anchor="middle">i_αβ</text>
+        <line x1="520" y1="90" x2="558" y2="90" stroke="#b3541e" stroke-width="2"/>
+        <text x="540" y="82" font-size="11" fill="#b3541e" text-anchor="middle">î_αβ</text>
+
+        <!-- 误差反馈线 -->
+        <path d="M 580,112 L 580,200 L 400,200 L 400,150" fill="none" stroke="#c0392b" stroke-width="2" stroke-dasharray="6,3"/>
+        <polygon points="400,150 395,160 405,160" fill="#c0392b"/>
+        <text x="490" y="195" font-size="12" fill="#c0392b" font-weight="bold">误差反馈 × 增益 K</text>
+
+        <!-- 电压输入分支到观测器 -->
+        <line x1="120" y1="150" x2="120" y2="180" stroke="#333" stroke-width="2"/>
+        <line x1="120" y1="180" x2="400" y2="180" stroke="#333" stroke-width="2"/>
+        <line x1="400" y1="180" x2="400" y2="150" stroke="#333" stroke-width="2" stroke-dasharray="0"/>
+        <text x="250" y="175" font-size="11" fill="#333">u_αβ（相同输入）</text>
+
+        <!-- 观测器输出 → PLL -->
+        <line x1="400" y1="30" x2="400" y2="10" stroke="#b3541e" stroke-width="2"/>
+        <line x1="400" y1="10" x2="580" y2="10" stroke="#b3541e" stroke-width="2"/>
+        <line x1="580" y1="10" x2="580" y2="68" stroke="#b3541e" stroke-width="2"/>
+
+        <!-- PLL 框 -->
+        <rect x="280" y="240" width="360" height="100" rx="8" fill="#eafaf1" stroke="#1e8449" stroke-width="2"/>
+        <text x="460" y="262" font-size="14" fill="#1e8449" font-weight="bold" text-anchor="middle">PLL 锁相环</text>
+        <text x="460" y="285" font-size="12" fill="#555" text-anchor="middle">输入：Ê_α, Ê_β（估算反电动势）</text>
+        <text x="460" y="305" font-size="12" fill="#555" text-anchor="middle">PI 调节器 → 输出：ω̂（电角速度）</text>
+        <text x="460" y="325" font-size="12" fill="#555" text-anchor="middle">积分 → θ̂（转子电角度）</text>
+
+        <!-- Ê → PLL 连线 -->
+        <path d="M 400,150 L 400,220 L 460,220 L 460,240" fill="none" stroke="#b3541e" stroke-width="2"/>
+        <polygon points="460,240 455,232 465,232" fill="#b3541e"/>
+        <text x="420" y="215" font-size="11" fill="#b3541e">Ê_αβ</text>
+
+        <!-- PLL 输出 -->
+        <line x1="640" y1="290" x2="620" y2="290" stroke="#1e8449" stroke-width="2.5"/>
+        <polygon points="620,290 630,285 630,295" fill="#1e8449"/>
+        <text x="640" y="282" font-size="12" fill="#1e8449" font-weight="bold">θ̂, ω̂</text>
+
+        <!-- 说明 -->
+        <text x="330" y="365" font-size="12" fill="#555" text-anchor="middle">观测器估算反电动势 Ê → PLL 从中锁出角度 θ̂ 和转速 ω̂</text>
+      </svg>
+      <div class="fig-caption">图 9：STO+PLL 观测器总体结构——真实电机与影子电机（观测器）共用电压输入，电流误差经增益 K 反馈修正估算反电动势 Ê，PLL 从 Ê 中提取转子角度和转速</div>
+    </div>
+
+    <h3>5.3 观测器数学模型（对应代码 <code>STO_PLL_CalcElAngle</code>）</h3>
+    <p>观测器在 α-β 坐标系下对每轴独立建模（以 α 轴为例，β 轴完全对称）。将连续微分方程离散化后，每个 PWM 周期执行一次迭代：</p>
+
+    <p><b>第一步：计算电流误差</b>（代码第 225-239 行）</p>
+    <div class="formula">
+      Δi<sub>α</sub> = î<sub>α</sub> − i<sub>α</sub><span style="color:#777">　（估算电流 − 实测电流）</span>
+    </div>
+    <p>这个误差反映了模型与真实电机的偏差——如果估算反电动势 Ê<sub>α</sub> 不准，估算电流 î<sub>α</sub> 就会偏离实测值。</p>
+
+    <p><b>第二步：更新估算电流</b>（代码第 257-274 行）</p>
+    <div class="formula" style="border-left-color:#1e5b8a;">
+      î<sub>α</sub>(k+1) = î<sub>α</sub>(k) − C<sub>1</sub>·î<sub>α</sub>(k) + C<sub>2</sub>·Δi<sub>α</sub> + C<sub>5</sub>·u<sub>α</sub> − C<sub>3</sub>·Ê<sub>α</sub>(k)
+    </div>
+    <p>各项含义：</p>
+    <ul>
+      <li><b>−C<sub>1</sub>·î<sub>α</sub></b>：电阻衰减项，对应 R/L·Δt，电流自然衰减</li>
+      <li><b>+C<sub>2</sub>·Δi<sub>α</sub></b>：误差反馈修正项（Luenberger 增益 K<sub>1</sub>），把模型拉回真实值</li>
+      <li><b>+C<sub>5</sub>·u<sub>α</sub></b>：外加电压驱动项，对应 (1/L)·u·Δt</li>
+      <li><b>−C<sub>3</sub>·Ê<sub>α</sub></b>：反电动势耦合项，对应 (1/L)·E·Δt</li>
+    </ul>
+
+    <p><b>第三步：更新估算反电动势</b>（代码第 276-287 行）</p>
+    <div class="formula" style="border-left-color:#c0392b;">
+      Ê<sub>α</sub>(k+1) = Ê<sub>α</sub>(k) + C<sub>4</sub>·Δi<sub>α</sub> + C<sub>6</sub>·ω̂·Ê<sub>β</sub>(k)
+    </div>
+    <p>各项含义：</p>
+    <ul>
+      <li><b>+C<sub>4</sub>·Δi<sub>α</sub></b>：误差积分项（Luenberger 增益 K<sub>2</sub>），缓慢修正反电动势估计</li>
+      <li><b>+C<sub>6</sub>·ω̂·Ê<sub>β</sub></b>：交叉耦合项——α 轴反电动势的变化受 β 轴反电动势和转速影响（因为 E<sub>αβ</sub> 是旋转矢量）</li>
+    </ul>
+
+    <div class="note">
+      <span class="label">关键理解：</span>观测器不是"一步算出"E，而是通过每个 PWM 周期的误差反馈，让估算值逐渐收敛到真实值。增益 K<sub>1</sub>（C<sub>2</sub>）控制电流收敛速度，K<sub>2</sub>（C<sub>4</sub>）控制反电动势收敛速度——增益越大收敛越快，但对噪声也越敏感。
+    </div>
+
+    <h3>5.4 PLL 锁相环（对应代码 <code>STO_ExecutePLL</code>）</h3>
+    <p>观测器输出估算反电动势 Ê<sub>α</sub>、Ê<sub>β</sub>，这是一个旋转矢量，幅值 ∝ 转速，方向与转子磁极正交。PLL 从中提取角度和转速。</p>
+
+    <p><b>PLL 核心原理：</b>用估算角度 θ̂ 的 sin/cos 与 Ê 做叉乘，得到角度误差信号：</p>
+    <div class="formula">
+      error = Ê<sub>β</sub>·cos(θ̂) − Ê<sub>α</sub>·sin(θ̂)
+    </div>
+    <p>当 θ̂ 完全锁定时，error → 0。这个误差信号送入 PI 调节器，输出估算电角速度 ω̂：</p>
+    <div class="formula">
+      ω̂ = PI(error)<br>
+      θ̂(k+1) = θ̂(k) + ω̂　<span style="color:#777">（角度积分）</span>
+    </div>
+
+    <div class="fig-wrap">
+      <svg viewBox="0 0 640 300" xmlns="http://www.w3.org/2000/svg" font-family="Segoe UI, Microsoft YaHei, sans-serif">
+        <!-- Ê_αβ 矢量图 -->
+        <text x="160" y="30" font-size="14" fill="#b3541e" font-weight="bold" text-anchor="middle">反电动势矢量</text>
+        <!-- 坐标轴 -->
+        <line x1="60" y1="140" x2="280" y2="140" stroke="#999" stroke-width="1.2"/>
+        <line x1="160" y1="250" x2="160" y2="50" stroke="#999" stroke-width="1.2"/>
+        <text x="285" y="145" font-size="12" fill="#777">α</text>
+        <text x="150" y="48" font-size="12" fill="#777">β</text>
+
+        <!-- Ê 矢量（旋转中，约 55°） -->
+        <line x1="160" y1="140" x2="250" y2="80" stroke="#b3541e" stroke-width="2.5"/>
+        <polygon points="250,80 238,82 244,92" fill="#b3541e"/>
+        <text x="260" y="75" font-size="13" fill="#b3541e" font-weight="bold">Ê</text>
+
+        <!-- θ̂ 角度标注 -->
+        <path d="M 160,140 A 50,50 0 0 0 190,96" fill="none" stroke="#888" stroke-width="1.2"/>
+        <text x="175" y="115" font-size="12" fill="#888" font-style="italic">θ̂</text>
+
+        <!-- 旋转方向 -->
+        <path d="M 200,82 A 30,30 0 0 1 220,108" fill="none" stroke="#1e8449" stroke-width="1.5"/>
+        <polygon points="220,108 218,98 228,102" fill="#1e8449"/>
+
+        <!-- 误差鉴相器 -->
+        <rect x="340" y="90" width="120" height="50" rx="6" fill="#fff3e0" stroke="#b3541e" stroke-width="1.5"/>
+        <text x="400" y="110" font-size="12" fill="#333" text-anchor="middle">鉴相器</text>
+        <text x="400" y="128" font-size="11" fill="#777" text-anchor="middle">Ê_β·cos − Ê_α·sin</text>
+
+        <!-- PI 调节器 -->
+        <rect x="340" y="170" width="120" height="50" rx="6" fill="#eef4fa" stroke="#1e5b8a" stroke-width="1.5"/>
+        <text x="400" y="190" font-size="12" fill="#333" text-anchor="middle">PI 调节器</text>
+        <text x="400" y="208" font-size="11" fill="#777" text-anchor="middle">Kp=582, Ki=26</text>
+
+        <!-- 积分器 -->
+        <rect x="500" y="170" width="100" height="50" rx="6" fill="#eafaf1" stroke="#1e8449" stroke-width="1.5"/>
+        <text x="550" y="190" font-size="12" fill="#333" text-anchor="middle">积分器</text>
+        <text x="550" y="208" font-size="11" fill="#777" text-anchor="middle">θ̂ += ω̂</text>
+
+        <!-- 连线 -->
+        <line x1="280" y1="100" x2="340" y2="110" stroke="#b3541e" stroke-width="2"/>
+        <text x="300" y="100" font-size="11" fill="#b3541e">Ê_αβ</text>
+
+        <line x1="400" y1="140" x2="400" y2="170" stroke="#333" stroke-width="2"/>
+        <text x="408" y="158" font-size="11" fill="#333">error</text>
+
+        <line x1="460" y1="195" x2="500" y2="195" stroke="#333" stroke-width="2"/>
+        <text x="470" y="188" font-size="11" fill="#1e5b8a">ω̂</text>
+
+        <!-- 反馈线：θ̂ → sin/cos -->
+        <path d="M 550,170 L 550,60 L 400,60 L 400,90" fill="none" stroke="#1e8449" stroke-width="1.5" stroke-dasharray="5,3"/>
+        <text x="470" y="55" font-size="11" fill="#1e8449">θ̂（反馈到鉴相器）</text>
+
+        <!-- 输出 -->
+        <line x1="600" y1="195" x2="630" y2="195" stroke="#1e8449" stroke-width="2.5"/>
+        <polygon points="630,195 622,190 622,200" fill="#1e8449"/>
+        <text x="600" y="185" font-size="12" fill="#1e8449" font-weight="bold">θ̂, ω̂</text>
+
+        <!-- 说明 -->
+        <text x="320" y="270" font-size="12" fill="#555" text-anchor="middle">PLL：鉴相器提取角度误差 → PI 输出转速 ω̂ → 积分得到角度 θ̂ → θ̂ 反馈构成闭环</text>
+      </svg>
+      <div class="fig-caption">图 10：PLL 锁相环原理——左：反电动势旋转矢量 Ê 与估算角度 θ̂ 的关系；右：鉴相器 → PI → 积分器闭环结构</div>
+    </div>
+
+    <h3>5.5 工程参数对应（本工程实际值）</h3>
+    <p>观测器的所有参数由 MC Workbench 根据电机参数自动计算，定义在 <code>drive_parameters.h</code> 和 <code>parameters_conversion.h</code>：</p>
+
+    <table>
+      <tr>
+        <th>参数</th>
+        <th>宏定义</th>
+        <th>值</th>
+        <th>含义</th>
+      </tr>
+      <tr>
+        <td>C<sub>1</sub></td>
+        <td><code>C1</code></td>
+        <td>F<sub>1</sub>·R<sub>s</sub> / (L<sub>s</sub>·f<sub>FOC</sub>)</td>
+        <td>电阻衰减系数，对应 R/L·Δt</td>
+      </tr>
+      <tr>
+        <td>C<sub>2</sub> (K<sub>1</sub>)</td>
+        <td><code>GAIN1</code></td>
+        <td>-21509</td>
+        <td>电流误差反馈增益（负值表示修正方向）</td>
+      </tr>
+      <tr>
+        <td>C<sub>3</sub></td>
+        <td><code>C3</code></td>
+        <td>F<sub>1</sub>·E<sub>max</sub> / (L<sub>s</sub>·I<sub>max</sub>·f<sub>FOC</sub>)</td>
+        <td>反电动势归一化系数</td>
+      </tr>
+      <tr>
+        <td>C<sub>4</sub> (K<sub>2</sub>)</td>
+        <td><code>GAIN2</code></td>
+        <td>26133</td>
+        <td>反电动势误差积分增益</td>
+      </tr>
+      <tr>
+        <td>C<sub>5</sub></td>
+        <td><code>C5</code></td>
+        <td>F<sub>1</sub>·V<sub>max</sub> / (L<sub>s</sub>·I<sub>max</sub>·f<sub>FOC</sub>)</td>
+        <td>电压归一化系数</td>
+      </tr>
+      <tr>
+        <td>F<sub>1</sub></td>
+        <td><code>F1</code></td>
+        <td>16384</td>
+        <td>定点缩放因子（2<sup>14</sup>，用位移代替除法）</td>
+      </tr>
+      <tr>
+        <td>F<sub>2</sub></td>
+        <td><code>F2</code></td>
+        <td>8192</td>
+        <td>反电动势定点缩放因子（2<sup>13</sup>）</td>
+      </tr>
+      <tr>
+        <td>PLL K<sub>p</sub></td>
+        <td><code>PLL_KP_GAIN</code></td>
+        <td>582</td>
+        <td>锁相环比例增益</td>
+      </tr>
+      <tr>
+        <td>PLL K<sub>i</sub></td>
+        <td><code>PLL_KI_GAIN</code></td>
+        <td>26</td>
+        <td>锁相环积分增益</td>
+      </tr>
+      <tr>
+        <td>FIFO 深度</td>
+        <td><code>STO_FIFO_DEPTH</code></td>
+        <td>64</td>
+        <td>速度平均窗口（64 个采样点求平均）</td>
+      </tr>
+      <tr>
+        <td>方差阈值</td>
+        <td><code>VARIANCE_THRESHOLD</code></td>
+        <td>0.25 (25%)</td>
+        <td>速度估计方差超过 25% 判定不可靠</td>
+      </tr>
+      <tr>
+        <td>最低观测转速</td>
+        <td><code>OBS_MINIMUM_SPEED_RPM</code></td>
+        <td>901 RPM</td>
+        <td>低于此转速认为 E 太小，观测器不可靠</td>
+      </tr>
+    </table>
+
+    <div class="note">
+      <span class="label">定点运算说明：</span>F<sub>1</sub> = 16384 = 2<sup>14</sup>，意味着代码中用 <code>>> 14</code>（右移 14 位）代替除以 16384，大幅提升运算速度。代码中大量 <code>#ifndef FULL_MISRA_C_COMPLIANCY</code> 分支就是做这件事——非 MISRA 模式用位移，MISRA 模式用除法。
+    </div>
+
+    <h3>5.6 观测器在 FOC 系统中的调用流程</h3>
+    <p>观测器运行在两个频率上，与第二节中断驱动机制对应：</p>
+
+    <div class="fig-wrap">
+      <svg viewBox="0 0 660 340" xmlns="http://www.w3.org/2000/svg" font-family="Segoe UI, Microsoft YaHei, sans-serif">
+        <!-- 高频环 16kHz -->
+        <rect x="20" y="20" width="620" height="130" rx="8" fill="#fdf3ec" stroke="#b3541e" stroke-width="2"/>
+        <text x="330" y="42" font-size="14" fill="#b3541e" font-weight="bold" text-anchor="middle">高频环（16kHz，ADC 中断触发）</text>
+
+        <rect x="40" y="55" width="110" height="40" rx="5" fill="#fff" stroke="#333" stroke-width="1.5"/>
+        <text x="95" y="80" font-size="11" fill="#333" text-anchor="middle">电流采样</text>
+
+        <rect x="165" y="55" width="110" height="40" rx="5" fill="#fff" stroke="#333" stroke-width="1.5"/>
+        <text x="220" y="80" font-size="11" fill="#333" text-anchor="middle">Clarke 变换</text>
+
+        <rect x="290" y="55" width="110" height="40" rx="5" fill="#fff" stroke="#333" stroke-width="1.5"/>
+        <text x="345" y="72" font-size="11" fill="#333" text-anchor="middle">FOC 电流环</text>
+        <text x="345" y="87" font-size="10" fill="#777" text-anchor="middle">Park→PI→SVPWM</text>
+
+        <rect x="415" y="55" width="200" height="40" rx="5" fill="#fff3e0" stroke="#b3541e" stroke-width="2"/>
+        <text x="515" y="72" font-size="11" fill="#b3541e" text-anchor="middle" font-weight="bold">STO_PLL_CalcElAngle</text>
+        <text x="515" y="87" font-size="10" fill="#777" text-anchor="middle">观测器迭代 + PLL 锁相</text>
+
+        <!-- 箭头 -->
+        <line x1="150" y1="75" x2="165" y2="75" stroke="#333" stroke-width="1.5"/>
+        <polygon points="165,75 159,72 159,78" fill="#333"/>
+        <line x1="275" y1="75" x2="290" y2="75" stroke="#333" stroke-width="1.5"/>
+        <polygon points="290,75 284,72 284,78" fill="#333"/>
+        <line x1="400" y1="75" x2="415" y2="75" stroke="#333" stroke-width="1.5"/>
+        <polygon points="415,75 409,72 409,78" fill="#333"/>
+
+        <!-- 输入标注 -->
+        <text x="515" y="110" font-size="10.5" fill="#777" text-anchor="middle">输入：I_αβ（实测电流）, V_αβ（占空比×Vbus）</text>
+        <text x="515" y="125" font-size="10.5" fill="#777" text-anchor="middle">输出：θ̂（电角度）, ω̂（瞬时电转速）</text>
+
+        <!-- 低频环 1kHz -->
+        <rect x="20" y="170" width="620" height="80" rx="8" fill="#eef4fa" stroke="#1e5b8a" stroke-width="2"/>
+        <text x="330" y="192" font-size="14" fill="#1e5b8a" font-weight="bold" text-anchor="middle">中频环（1kHz，SysTick 分频调用）</text>
+
+        <rect x="60" y="205" width="200" height="35" rx="5" fill="#fff" stroke="#333" stroke-width="1.5"/>
+        <text x="160" y="227" font-size="11" fill="#333" text-anchor="middle">STO_PLL_CalcAvrgMecSpeedUnit</text>
+
+        <rect x="290" y="205" width="160" height="35" rx="5" fill="#fff" stroke="#333" stroke-width="1.5"/>
+        <text x="370" y="227" font-size="11" fill="#333" text-anchor="middle">速度可靠性检查</text>
+
+        <rect x="480" y="205" width="130" height="35" rx="5" fill="#fff" stroke="#333" stroke-width="1.5"/>
+        <text x="545" y="227" font-size="11" fill="#333" text-anchor="middle">速度 PI 调节器</text>
+
+        <line x1="260" y1="222" x2="290" y2="222" stroke="#333" stroke-width="1.5"/>
+        <polygon points="290,222 284,219 284,225" fill="#333"/>
+        <line x1="450" y1="222" x2="480" y2="222" stroke="#333" stroke-width="1.5"/>
+        <polygon points="480,222 474,219 474,225" fill="#333"/>
+
+        <!-- 连接线 -->
+        <line x1="515" y1="95" x2="515" y2="120" stroke="#b3541e" stroke-width="1.5" stroke-dasharray="4,3"/>
+        <line x1="515" y1="120" x2="160" y2="120" stroke="#b3541e" stroke-width="1.5" stroke-dasharray="4,3"/>
+        <line x1="160" y1="120" x2="160" y2="205" stroke="#b3541e" stroke-width="1.5" stroke-dasharray="4,3"/>
+        <text x="330" y="155" font-size="11" fill="#b3541e">θ̂, ω̂ 传递到中频环</text>
+
+        <!-- 说明 -->
+        <text x="330" y="285" font-size="12" fill="#555" text-anchor="middle">高频环每 62.5μs 执行一次观测器迭代，中频环每 1ms 计算平均转速并检查可靠性</text>
+        <text x="330" y="305" font-size="12" fill="#555" text-anchor="middle">观测器收敛后，θ̂ 直接作为 FOC 的 Park 变换角度输入</text>
+      </svg>
+      <div class="fig-caption">图 11：STO+PLL 在 FOC 系统中的执行流程——高频环（16kHz）迭代观测器并锁相，中频环（1kHz）计算平均转速与可靠性检查</div>
+    </div>
+
+    <h3>5.7 启动收敛与可靠性检查</h3>
+    <p>结合第三节"低速测不到反电动势"的结论，观测器在低速时无法工作，因此需要开环启动流程：</p>
+
+    <p><b>启动阶段（START 状态）：</b>虚拟速度传感器（VSS）按预设曲线强制拖动电机，同时观测器并行运行。代码中 <code>STO_PLL_IsObserverConverged</code> 检查四个条件是否同时满足：</p>
+    <ul>
+      <li><b>速度方差合格</b>：<code>IsSpeedReliable</code>——64 点速度方差 < 25%</li>
+      <li><b>速度方向一致</b>：估算速度与强制速度同号</li>
+      <li><b>速度幅值足够</b>：|估算转速| > <code>OBS_MINIMUM_SPEED_RPM</code>（901 RPM）</li>
+      <li><b>速度接近预期</b>：估算值在强制速度的 [15/16, 17/16] 区间内</li>
+    </ul>
+    <p>以上条件需连续满足 <code>NB_CONSECUTIVE_TESTS</code>（2）次，才判定观测器收敛，进入 SWITCH_OVER 过渡阶段。</p>
+
+    <p><b>反电动势一致性检查（BEMF Consistency）：</b>额外的双重验证——比较观测器输出的反电动势幅值与根据转速估算的期望反电动势幅值是否匹配。因为 E = K<sub>e</sub>·ω，如果观测到的 Ê 与转速对应的 E 相差太大，说明估算有误。</p>
+
+    <div class="note">
+      <span class="label">全链路串联：</span>第三节的本源公式 u = Ri + L·di/dt + E 是观测器的数学根基——观测器本质上就是用软件迭代求解这个方程里的 E。低速时 E ≈ 0（第三节 3.6），所以观测器必须等开环拖动到一定转速后才能收敛。收敛后，估算的 Ê 经 PLL 锁出角度 θ̂，直接喂给 FOC 的 Park 变换——这就是无感 FOC 的完整闭环。
+    </div>
+
+    <!-- ==================== 六、FOC 控制系统框图与三相逆变器 ==================== -->
+    <h2>六、FOC 控制系统框图与三相逆变器</h2>
+
+    <p>前面五节分别拆解了 FOC 的各个组成部分：电机模型（第二节）、等效电路（第三节）、坐标变换（第四节）和无感观测器（第五节）。本节将它们"拼装"成完整的控制系统，并下沉到硬件层——三相逆变器的电路拓扑和开关控制原理。</p>
+
+    <h3>6.1 FOC 控制系统总体架构</h3>
+
+    <p>FOC（Field-Oriented Control，磁场定向控制）的核心思想是：通过坐标变换将三相交流量"翻译"成直流量，然后用普通 PI 调节器控制——就像控制直流电机一样简单。完整的 FOC 系统由<b>双闭环</b>（速度环 + 电流环）、<b>坐标变换</b>（Clarke/Park 及其逆变换）、<b>SVPWM 调制</b>和<b>三相逆变器</b>四大部分组成 [$TRAE_REF](https://blog.csdn.net/ybhuangfugui/article/details/159556464)。</p>
+
+    <div class="fig-wrap">
+      <svg viewBox="0 0 840 490" xmlns="http://www.w3.org/2000/svg" font-family="Segoe UI, Microsoft YaHei, sans-serif">
+        <!-- 速度环背景 -->
+        <rect x="10" y="15" width="225" height="75" rx="8" fill="#fdf3ec" stroke="#b3541e" stroke-width="1.2" stroke-dasharray="5,3" opacity="0.6"/>
+        <text x="122" y="30" font-size="11" fill="#b3541e" font-weight="bold" text-anchor="middle">速度环（外环 · 1kHz）</text>
+
+        <!-- ω* 输入 -->
+        <text x="20" y="58" font-size="13" fill="#333" font-weight="bold">ω*</text>
+        <line x1="40" y1="55" x2="50" y2="55" stroke="#333" stroke-width="1.5"/>
+
+        <!-- 速度环 ⊕ -->
+        <circle cx="60" cy="55" r="10" fill="#fff" stroke="#333" stroke-width="1.5"/>
+        <line x1="54" y1="55" x2="66" y2="55" stroke="#333" stroke-width="1"/>
+        <line x1="60" y1="49" x2="60" y2="61" stroke="#333" stroke-width="1"/>
+        <text x="49" y="48" font-size="10" fill="#c0392b">−</text>
+
+        <!-- 速度 PI -->
+        <rect x="75" y="40" width="80" height="32" rx="5" fill="#fff" stroke="#b3541e" stroke-width="1.5"/>
+        <text x="115" y="56" font-size="11" fill="#333" text-anchor="middle">速度 PI</text>
+        <text x="115" y="68" font-size="9" fill="#777" text-anchor="middle">Kp, Ki</text>
+
+        <!-- iq* 输出 -->
+        <line x1="155" y1="56" x2="200" y2="56" stroke="#b3541e" stroke-width="2"/>
+        <polygon points="200,56 195,53 195,59" fill="#b3541e"/>
+        <text x="172" y="50" font-size="11" fill="#b3541e" font-weight="bold">iq*</text>
+
+        <!-- 电流环背景 -->
+        <rect x="10" y="100" width="225" height="110" rx="8" fill="#eef4fa" stroke="#1e5b8a" stroke-width="1.2" stroke-dasharray="5,3" opacity="0.6"/>
+        <text x="122" y="115" font-size="11" fill="#1e5b8a" font-weight="bold" text-anchor="middle">电流环（内环 · 16kHz）</text>
+
+        <!-- id*=0 -->
+        <text x="18" y="140" font-size="12" fill="#333" font-weight="bold">id*=0</text>
+
+        <!-- d轴 ⊕ -->
+        <circle cx="60" cy="137" r="10" fill="#fff" stroke="#333" stroke-width="1.5"/>
+        <line x1="54" y1="137" x2="66" y2="137" stroke="#333" stroke-width="1"/>
+        <line x1="60" y1="131" x2="60" y2="143" stroke="#333" stroke-width="1"/>
+
+        <!-- PI d轴 -->
+        <rect x="75" y="122" width="80" height="32" rx="5" fill="#fff" stroke="#1e5b8a" stroke-width="1.5"/>
+        <text x="115" y="138" font-size="11" fill="#333" text-anchor="middle">PI (d轴)</text>
+        <text x="115" y="150" font-size="9" fill="#777" text-anchor="middle">ud*</text>
+
+        <!-- q轴 ⊕ -->
+        <circle cx="60" cy="180" r="10" fill="#fff" stroke="#333" stroke-width="1.5"/>
+        <line x1="54" y1="180" x2="66" y2="180" stroke="#333" stroke-width="1"/>
+        <line x1="60" y1="174" x2="60" y2="186" stroke="#333" stroke-width="1"/>
+
+        <!-- PI q轴 -->
+        <rect x="75" y="165" width="80" height="32" rx="5" fill="#fff" stroke="#1e5b8a" stroke-width="1.5"/>
+        <text x="115" y="181" font-size="11" fill="#333" text-anchor="middle">PI (q轴)</text>
+        <text x="115" y="193" font-size="9" fill="#777" text-anchor="middle">uq*</text>
+
+        <!-- iq* 从速度环到 q轴⊕ -->
+        <path d="M 180,56 L 180,90 L 40,90 L 40,180 L 50,180" fill="none" stroke="#b3541e" stroke-width="1.5"/>
+        <text x="95" y="85" font-size="9" fill="#b3541e">iq*</text>
+
+        <!-- ud*, uq* 到 逆Park -->
+        <line x1="155" y1="138" x2="240" y2="155" stroke="#1e5b8a" stroke-width="1.5"/>
+        <line x1="155" y1="181" x2="240" y2="175" stroke="#1e5b8a" stroke-width="1.5"/>
+
+        <!-- 逆Park 变换 -->
+        <rect x="240" y="142" width="95" height="48" rx="6" fill="#eafaf1" stroke="#1e8449" stroke-width="1.5"/>
+        <text x="287" y="162" font-size="11" fill="#333" text-anchor="middle">逆 Park 变换</text>
+        <text x="287" y="178" font-size="9" fill="#777" text-anchor="middle">dq → αβ</text>
+
+        <!-- uαβ* -->
+        <line x1="335" y1="166" x2="375" y2="166" stroke="#1e8449" stroke-width="2"/>
+        <polygon points="375,166 370,163 370,169" fill="#1e8449"/>
+        <text x="345" y="160" font-size="10" fill="#1e8449">uαβ*</text>
+
+        <!-- SVPWM -->
+        <rect x="375" y="142" width="85" height="48" rx="6" fill="#f5eef8" stroke="#8e44ad" stroke-width="1.5"/>
+        <text x="417" y="162" font-size="11" fill="#333" text-anchor="middle">SVPWM</text>
+        <text x="417" y="178" font-size="9" fill="#777" text-anchor="middle">空间矢量调制</text>
+
+        <!-- PWM -->
+        <line x1="460" y1="166" x2="500" y2="166" stroke="#8e44ad" stroke-width="2"/>
+        <polygon points="500,166 495,163 495,169" fill="#8e44ad"/>
+        <text x="470" y="160" font-size="10" fill="#8e44ad">PWM</text>
+
+        <!-- 三相逆变器 -->
+        <rect x="500" y="142" width="90" height="48" rx="6" fill="#f5eef8" stroke="#8e44ad" stroke-width="1.5"/>
+        <text x="545" y="162" font-size="11" fill="#333" text-anchor="middle">三相逆变器</text>
+        <text x="545" y="178" font-size="9" fill="#777" text-anchor="middle">6×MOSFET</text>
+
+        <!-- 电机 -->
+        <circle cx="660" cy="166" r="36" fill="#fff" stroke="#333" stroke-width="2"/>
+        <text x="660" y="163" font-size="12" fill="#333" text-anchor="middle" font-weight="bold">PMSM</text>
+        <text x="660" y="178" font-size="9" fill="#777" text-anchor="middle">永磁同步电机</text>
+
+        <!-- 逆变器 → 电机 -->
+        <line x1="590" y1="166" x2="624" y2="166" stroke="#8e44ad" stroke-width="2.5"/>
+        <polygon points="624,166 619,163 619,169" fill="#8e44ad"/>
+
+        <!-- 电流采样 -->
+        <rect x="500" y="280" width="90" height="38" rx="5" fill="#fff" stroke="#666" stroke-width="1.5"/>
+        <text x="545" y="296" font-size="10" fill="#333" text-anchor="middle">电流采样</text>
+        <text x="545" y="310" font-size="9" fill="#777" text-anchor="middle">ADC: ia, ib</text>
+
+        <!-- Clarke 变换 -->
+        <rect x="375" y="280" width="85" height="38" rx="5" fill="#eafaf1" stroke="#1e8449" stroke-width="1.5"/>
+        <text x="417" y="296" font-size="10" fill="#333" text-anchor="middle">Clarke 变换</text>
+        <text x="417" y="310" font-size="9" fill="#777" text-anchor="middle">abc → αβ</text>
+
+        <!-- Park 变换 -->
+        <rect x="240" y="280" width="95" height="38" rx="5" fill="#eafaf1" stroke="#1e8449" stroke-width="1.5"/>
+        <text x="287" y="296" font-size="10" fill="#333" text-anchor="middle">Park 变换</text>
+        <text x="287" y="310" font-size="9" fill="#777" text-anchor="middle">αβ → dq</text>
+
+        <!-- 电机 → 电流采样 -->
+        <path d="M 660,202 L 660,255 L 545,255 L 545,280" fill="none" stroke="#666" stroke-width="1.5"/>
+        <polygon points="545,280 542,274 548,274" fill="#666"/>
+
+        <!-- 电流采样 → Clarke -->
+        <line x1="500" y1="299" x2="460" y2="299" stroke="#666" stroke-width="1.5"/>
+        <polygon points="460,299 466,296 466,302" fill="#666"/>
+        <text x="475" y="293" font-size="9" fill="#666">ia,ib</text>
+
+        <!-- Clarke → Park -->
+        <line x1="375" y1="299" x2="335" y2="299" stroke="#666" stroke-width="1.5"/>
+        <polygon points="335,299 341,296 341,302" fill="#666"/>
+        <text x="345" y="293" font-size="9" fill="#666">iαβ</text>
+
+        <!-- id, iq 反馈 -->
+        <path d="M 287,280 L 287,250 L 40,250 L 40,137 L 50,137" fill="none" stroke="#666" stroke-width="1.5" stroke-dasharray="4,3"/>
+        <polygon points="50,137 44,134 44,140" fill="#666"/>
+        <text x="135" y="244" font-size="9" fill="#666">id, iq（反馈到电流环）</text>
+        <path d="M 40,180 L 40,250" fill="none" stroke="#666" stroke-width="1.5" stroke-dasharray="4,3"/>
+
+        <!-- STO+PLL 观测器 -->
+        <rect x="370" y="365" width="200" height="55" rx="8" fill="#fdedec" stroke="#c0392b" stroke-width="1.5"/>
+        <text x="470" y="385" font-size="12" fill="#c0392b" text-anchor="middle" font-weight="bold">STO+PLL 观测器（第五节）</text>
+        <text x="470" y="402" font-size="9" fill="#777" text-anchor="middle">输入: Vαβ, Iαβ  →  输出: θ̂, ω̂</text>
+
+        <!-- 观测器输入 -->
+        <path d="M 417,318 L 417,365" fill="none" stroke="#c0392b" stroke-width="1.5" stroke-dasharray="4,3"/>
+        <text x="425" y="345" font-size="9" fill="#c0392b">iαβ, vαβ</text>
+
+        <!-- θ̂ → Park -->
+        <path d="M 370,395 L 200,395 L 200,299 L 240,299" fill="none" stroke="#c0392b" stroke-width="1.5"/>
+        <polygon points="240,299 234,296 234,302" fill="#c0392b"/>
+        <text x="210" y="388" font-size="11" fill="#c0392b" font-weight="bold">θ̂</text>
+
+        <!-- θ̂ → 逆Park -->
+        <path d="M 200,299 L 200,166 L 240,166" fill="none" stroke="#c0392b" stroke-width="1.5" stroke-dasharray="3,3"/>
+        <polygon points="240,166 234,163 234,169" fill="#c0392b"/>
+
+        <!-- ω̂ → 速度环 -->
+        <path d="M 570,395 L 730,395 L 730,55 L 72,55" fill="none" stroke="#c0392b" stroke-width="1.5"/>
+        <polygon points="72,55 78,52 78,58" fill="#c0392b"/>
+        <text x="738" y="225" font-size="11" fill="#c0392b" font-weight="bold">ω̂</text>
+
+        <!-- 底部说明 -->
+        <text x="420" y="450" font-size="11" fill="#555" text-anchor="middle">前向通道：ω* → 速度PI → iq* → 电流PI → ud*,uq* → 逆Park → SVPWM → 逆变器 → 电机</text>
+        <text x="420" y="468" font-size="11" fill="#555" text-anchor="middle">反馈通道：电机 → 电流采样 → Clarke → Park → id,iq → 电流PI ｜ 观测器 → θ̂(Park/逆Park), ω̂(速度PI)</text>
+        <text x="420" y="485" font-size="10" fill="#777" text-anchor="middle">速度环带宽 ≈ 1kHz，电流环带宽 ≈ 16kHz（内环比外环快约 10 倍）</text>
+      </svg>
+      <div class="fig-caption">图 18：FOC 控制系统完整框图——前向通道从左至右：速度参考 ω* 经速度 PI 得到 iq*，与 id*=0 一起进入电流环 PI 得到 ud*、uq*，经逆 Park 变换为 uαβ*，再经 SVPWM 调制为 PWM 信号驱动逆变器输出三相电压到电机。反馈通道从右至左：电流采样得到 ia、ib，经 Clarke→Park 变换得到 id、iq 反馈到电流环；STO+PLL 观测器从 Vαβ、Iαβ 估算出 θ̂、ω̂，分别供给坐标变换和速度环</div>
+    </div>
+
+    <p>对照框图，信号流可以概括为<b>两条通道</b>：</p>
+    <ul>
+      <li><b>前向通道</b>（控制指令 → 电机）：ω* → 速度 PI → iq* → 电流 PI → ud*, uq* → 逆 Park → uαβ* → SVPWM → PWM → 逆变器 → 电机</li>
+      <li><b>反馈通道</b>（电机 → 控制器）：电机 → 电流采样 → Clarke → Park → id, iq → 电流 PI；观测器 → θ̂（供给 Park 和逆 Park）、ω̂（供给速度 PI）</li>
+    </ul>
+
+    <div class="note">
+      <span class="label">与前面章节的对应：</span>速度 PI 和电流 PI 的被控对象就是第三节推导的电机方程 u = R·i + L·di/dt + E；Clarke/Park 变换是第四节的内容；STO+PLL 观测器是第五节的内容；id*=0 是表贴式 PMSM 的最优策略（转矩 Te ∝ iq，第四节 4.2 节推导）。本节框图把前面所有模块"焊"在了一起。
+    </div>
+
+    <h3>6.2 双闭环控制策略</h3>
+
+    <p>FOC 采用<b>串级控制</b>（Cascaded Control）结构——速度环嵌套电流环，电流环嵌套在速度环内部。两个环的分工明确：</p>
+
+    <table>
+      <tr>
+        <th>控制环</th>
+        <th>输入</th>
+        <th>输出</th>
+        <th>频率</th>
+        <th>代码对应</th>
+      </tr>
+      <tr>
+        <td>速度环（外环）</td>
+        <td>ω* − ω̂</td>
+        <td>iq*（转矩电流参考）</td>
+        <td>1 kHz</td>
+        <td><code>PIDSpeedHandle_M1</code></td>
+      </tr>
+      <tr>
+        <td>电流环（内环）</td>
+        <td>id*−id, iq*−iq</td>
+        <td>ud*, uq*（电压参考）</td>
+        <td>16 kHz</td>
+        <td><code>PIDIdHandle_M1</code>, <code>PIDIqHandle_M1</code></td>
+      </tr>
+    </table>
+
+    <p><b>为什么内环要比外环快？</b>这是串级控制的基本设计原则——内环必须能够"即时"响应外环的指令。如果电流环（16 kHz）比速度环（1 kHz）快约 16 倍，从速度环的视角看，电流环几乎是"无延迟"的 [$TRAE_REF](https://www.qeios.com/read/RY37U1)。反之，如果两个环速度接近，就会产生振荡。</p>
+
+    <p><b>id*=0 控制：</b>对于表贴式 PMSM（SPMSM），转矩公式 Te = 3/2·p·ψf·iq（第四节 4.2 节推导），转矩只与 iq 成正比，id 对转矩无贡献。因此设 id*=0，让全部电流都用于产生转矩，效率最高。本工程的 2804 云台电机就是 SPMSM。</p>
+
+    <div class="note">
+      <span class="label">代码视角：</span>速度环在中频任务（1 kHz）中执行 <code>SpeednTorqCtrl_ExecSpeedRamp</code>，输出 iq*；电流环在高频中断（16 kHz）中执行 <code>FOC_CurrControllerM1</code>，读取 id*（=0）和 iq*，输出 ud*、uq*。两个环的频率比对应第五节图 11 的"高频环 + 中频环"结构。
+    </div>
+
+    <h3>6.3 三相逆变器电路拓扑</h3>
+
+    <p>SVPWM 输出的三个占空比信号（SA, SB, SC）无法直接驱动电机——它们只是数字量。实际执行"直流变交流"的是<b>三相逆变器</b>（Three-Phase Inverter），它是 FOC 系统从软件到硬件的"最后一公里" [$TRAE_REF](https://www.researchgate.net/publication/366403356_Design_of_a_MOSFET_Circuit_Used_in_FOC_Driver_to_Reduce_the_Loss_and_Improve_the_Efficiency)。</p>
+
+    <div class="fig-wrap">
+      <img src="逆变器电路拓扑.png" alt="三相电压源型逆变器电路拓扑" style="width:100%;max-width:700px;height:auto;display:block;margin:1em auto;border:1px solid #ddd;border-radius:6px;padding:8px;background:#fff"/>
+      <div class="fig-caption">图 19：三相电压源型逆变器电路拓扑——直流电源 Udc 经限流电阻接入三个桥臂（U/V/W 相），每个桥臂由上管和下管两个 MOSFET 组成（共 6 个开关管），每个 MOSFET 反并联续流二极管为感性电流提供续流通路。三相输出端连接星形（Y）连接的三相电感负载（1mH×3），代表电机三相绕组</div>
+    </div>
+
+    <p><b>工作原理：</b>逆变器的本质是<b>三个半桥</b>（Half-Bridge）。每个半桥有两个开关管（上管和下管），输出端在两者之间：</p>
+    <ul>
+      <li><b>上管导通、下管关断</b>：输出接 Vdc+，相电压 ≈ +Vdc/2</li>
+      <li><b>下管导通、上管关断</b>：输出接 Vdc-，相电压 ≈ −Vdc/2</li>
+      <li><b>交替开关</b>：通过 PWM 控制占空比，输出<b>平均电压</b>可连续调节</li>
+    </ul>
+
+    <p>例如，A 相上管以 70% 占空比开关，下管以 30% 占空比开关（互补），则 A 相平均输出电压 ≈ 0.7×Vdc − 0.3×Vdc = 0.4×Vdc。三相各自不同的占空比就合成了所需的三相交流电压。</p>
+
+    <p><b>续流二极管：</b>电机绕组是感性负载（第三节 L_s），电流不能突变。当开关管关断时，绕组电流需要一条"续流"路径，否则会产生高压击穿开关管。续流二极管（D1-D6）反并联在每个 MOSFET 两端，为感性电流提供自然续流通道。</p>
+
+    <p><b>死区时间（Dead Time）：</b>同一桥臂的上下管绝不能同时导通（否则 Vdc 直接短路，称为"直通"Shoot-Through）。因此在上下管切换之间插入一段"两个都关"的死区时间（本工程 <code>HW_DEAD_TIME_NS</code> 通常为数百 ns），确保安全。</p>
+
+    <div class="note">
+      <span class="label">本工程硬件：</span>NUCLEO-F401RE + X-NUCLEO-IHM07M1 扩展板，使用 L6230 三相 DMOS 驱动器（集成 6 个功率 MOSFET + 续流二极管 + 门极驱动）。电流采样采用<b>三电阻方案</b>（R3 拓扑），代码中 <code>PWM_Handle_M1</code> 类型为 <code>PWMC_R3_1_Handle_t</code>，每个下桥臂串联一个采样电阻，ADC 在 PWM 周期特定时刻同步采样三相电流。
+    </div>
+
+    <h3>6.4 SVPWM 与开关控制</h3>
+
+    <p>SVPWM（Space Vector PWM，空间矢量脉宽调制）是连接控制算法和逆变器的桥梁——它把电流环输出的 uαβ*（两个电压参考值）转换为三个 PWM 占空比（SA, SB, SC）。</p>
+
+    <p><b>基本思想：</b>三个桥臂各有"上通"和"下通"两种状态，三个桥臂组合共 2³ = 8 种开关状态。每种状态在空间中对应一个电压矢量：</p>
+    <ul>
+      <li><b>6 个有效矢量</b>（V1-V6）：对应 6 种非零开关组合，在 αβ 平面上构成正六边形的 6 个顶点</li>
+      <li><b>2 个零矢量</b>（V0, V7）：全部下管通或全部上管通，输出电压为零</li>
+    </ul>
+
+    <p>任意方向的电压矢量可以用<b>相邻两个有效矢量 + 零矢量</b>的时间分配来合成——就像用两种颜色混合出第三种颜色。SVPWM 相比正弦 PWM（SPWM）的母线电压利用率高 15.5%（√3/2 ≈ 0.866 vs 1/√2 ≈ 0.707）。</p>
+
+    <div class="formula">
+      <b>占空比 → CCR 寄存器：</b><br>
+      SVPWM 输出三个占空比 d_A, d_B, d_C ∈ [0, 1]<br>
+      → CCR_A = d_A × (PWM_PERIOD / 2)<br>
+      → CCR_B = d_B × (PWM_PERIOD / 2)<br>
+      → CCR_C = d_C × (PWM_PERIOD / 2)<br>
+      定时器（TIM1）比较这些 CCR 值，自动生成 PWM 方波驱动 MOSFET 门极
+    </div>
+
+    <div class="note">
+      <span class="label">与第三节的联系：</span>第三节 3.7 节提到的 RC 低通滤波电路用于<b>采样端</b>（滤除 PWM 噪声后再 ADC 采样），而 SVPWM 是<b>驱动端</b>（生成 PWM 波形驱动逆变器）。两者分别在信号链的两端——一个在输入（反馈），一个在输出（驱动）。
+    </div>
+
+    <h3>6.5 全链路串联——从公式到硬件</h3>
+
+    <p>至此，FOC 的完整链条已经打通。从物理定律到硬件执行，整条链路可以概括为：</p>
+
+    <div class="formula" style="font-size:14px; line-height:2.4;">
+      <b>物理定律</b>：法拉第电磁感应 e = −dΦ/dt（第一节）<br>
+      → <b>电机方程</b>：u = R·i + L·di/dt + E（第三节 3.4）<br>
+      → <b>电流幅值</b>：Im = (Um − Em) / √(R² + (ωL)²)（第三节 3.8）<br>
+      → <b>坐标变换</b>：abc → αβ → dq（第四节）——把交流"翻译"成直流<br>
+      → <b>PI 控制</b>：速度环 + 电流环（本节 6.2）——在 dq 坐标系做直流调节<br>
+      → <b>逆变换</b>：dq → αβ → SVPWM（本节 6.4 + 第四节 4.5）——把控制量"翻译"回交流<br>
+      → <b>逆变器</b>：6×MOSFET 三相桥（本节 6.3）——PWM 开关执行"直流变交流"<br>
+      → <b>电机</b>：三相绕组通入电流 → 产生旋转磁场 → 转子转动<br>
+      → <b>反馈</b>：电流采样 + STO+PLL 观测器（第五节）→ θ̂, ω̂ → 回到坐标变换和速度环<br>
+      ↺ <b>闭环</b>
+    </div>
+
+    <div class="note">
+      <span class="label">全链路总结：</span>第一节的电磁感应定律是起点，第三节的 u = Ri + L·di/dt + E 是核心方程，第四节把它从 abc 翻译到 dq 使得 PI 控制成为可能，第五节的观测器在没有编码器的情况下"算"出转子角度，本节的逆变器和 SVPWM 把数字控制量变成真正的电压电流驱动电机。整条链路从法拉第定律出发，经过数学变换、控制理论、功率电子，最终回到电机转动——这就是 FOC 的完整闭环。
+    </div>
+
+    <h2>七、转写与修正说明</h2>
+    <ul class="correction">
+      <li>本页为手写笔记的电子化转写，文字与公式按原文整理；手绘图以 SVG 矢量图重新绘制，可无限缩放。</li>
+      <li><b>图 1 修正</b>：按交流发电机标准结构重绘——N/S 磁极、水平磁场 B、线圈绕轴旋转、中性面为垂直于 B 的平面（依据法拉第电磁感应定律，磁通 Φ=BS·cosθ 时 e=−dΦ/dt）。</li>
+      <li><b>图 2 修正</b>：三相波形改为精确正弦采样绘制，正序 A→B→C 依次达到峰值（90°→210°→330°），B 相滞后 120°、C 相超前 120°。</li>
+      <li><b>1.3-1.5 节 + 图 3-4 新增</b>（2026-08-11）：基于"感应电流大小与磁场中受力"的问题延伸，补充从电动势→电流→安培力→力矩的完整物理链条。图 3 为安培力示意图，图 4 为线圈力矩示意图。原图 3（电机模型）顺延为图 5，原图 4（RLC）顺延为图 6。</li>
+      <li><b>图 5 修正</b>：按笔记原图重绘为"电气模型 + 机械模型"结构——左侧 V_bus 电压源 → R_s 电阻 → L_s 电感 → 反电动势源 E 构成闭环回路（电流 I_max、反电动势常数 K_e，E = K_e·n），右侧横向圆柱形电机本体 + 转轴 + 摩擦/阻尼/最大转速参数，K_e 实现机电耦合。修正点：① 补回原图中遗漏的反电动势源 E（圆形电压源符号，位于回路右侧）；② K_e 由"转矩常数"更正为"反电动势常数"；③ 机械模型由椭圆转子改为横向圆柱体 + 转轴；④ 移除原"转矩"箭头，改为 K_e 耦合标注。</li>
+      <li><b>图 6 修正</b>：电容符号由矩形框改正为两条平行极板的标准符号；各元件压降 u_R、u_L、u_C 已标注。</li>
+      <li>RLC 串联公式中积分项补全为 ∫i·dt（原文省略了 i）。</li>
+      <li><b>第五节 + 图 9-11 新增</b>（2026-08-11）：基于工程代码 <code>sto_pll_speed_pos_fdbk.c</code> 和 <code>mc_config.c</code> 分析，新增 STO+PLL 无感观测器原理章节，涵盖 Luenberger 观测器数学模型、PLL 锁相环原理、工程参数对照表、FOC 系统调用流程、启动收敛与可靠性检查。图 9 为观测器总体结构图，图 10 为 PLL 原理图，图 11 为 FOC 系统执行流程图。</li>
+      <li><b>第四节 + 图 12-15 新增</b>（2026-08-11）：基于手写笔记电子化，新增 Clarke 与 Park 坐标变换章节。4.1 节以三坐标系全景图（图 12）入门，4.2-4.3 节分别从投影推导 Clarke/Park 矩阵并配投影图（图 13-14）。4.4 节为<b>矩阵与三相电公式的完整联立推导</b>——从三角恒等式证明出发，把三相正弦公式代进矩阵逐行展开，展示 cos 项抵消和 sin²+cos²=1 两个关键抵消点如何把交流"压平"成直流，配三阶段波形可视化图（图 15）。4.5 节为反变换简要说明，4.6 节串联 FOC 完整信号链。</li>
+      <li><b>3.8 节 + 图 16-17 新增</b>（2026-08-12）：针对"第一、二节未讲透 I<sub>m</sub> 来源、导致第四节应用时产生困惑"的问题，新增 I<sub>m</sub> 与 U<sub>m</sub> 的完整推导。从 3.4 节电机方程 u = R·i + L·di/dt + E 出发，经相量法化简为代数方程 Ũ − Ẽ = Z·Ī，推导出 I<sub>m</sub> = (U<sub>m</sub> − E<sub>m</sub>) / √(R² + (ωL)²) 和 U<sub>m</sub> = √((E<sub>m</sub> + R·I<sub>m</sub>)² + (ωL·I<sub>m</sub>)²)。第二步补充<b>di/dt → jω·Ī 的完整推导</b>（正弦求导→幅值乘ω、相位+90°→乘jω），并新增 φ = arctan(ωL/R) 的<b>三种证明方法</b>（复数辐角法、阻抗三角形几何法、时域推演法），配相量图（图 16）和阻抗三角形图（图 17）。含启动/稳态/FOC 三工况分析，并在 4.2 节首次使用 I<sub>m</sub> 处添加指回 3.8 的交叉引用。</li>
+      <li><b>第四节与第五节调换</b>（2026-08-12）：将 Clarke 与 Park 坐标变换（原第五节）调至第四节，STO+PLL 无感观测器（原第四节）调至第五节，遵循从易到难的顺序。全部小节编号（4.x↔5.x）和跨节交叉引用同步更新。</li>
+      <li><b>第六节 + 图 18-19 新增</b>（2026-08-12）：新增"FOC 控制系统框图与三相逆变器"章节，将前五节的模块"拼装"为完整 FOC 系统。6.1 节绘制 FOC 控制系统完整框图（图 18），展示双闭环结构、坐标变换、SVPWM、逆变器和反馈路径的全局视图；6.2 节解释串级控制策略（速度环 1kHz + 电流环 16kHz）及 id*=0 控制；6.3 节绘制三相桥式逆变器电路拓扑图（图 19），含 6 个 MOSFET、续流二极管、星形连接电机绕组和电流采样电阻；6.4 节解释 SVPWM 调制原理与开关控制；6.5 节串联从法拉第定律到硬件执行的完整链条。原"转写与修正说明"由第六节顺延为第七节。</li>
+      <li><b>章节顺序策略调整</b>（2026-08-12）：废除此前"从易到难顺序排列章节"的要求，改为先完整写完笔记打通整个链条，之后再依据旧笔记重新梳理章节顺序。</li>
+      <li>若需修改或增补，直接编辑本 HTML 即可，所有图形均为可编辑的 SVG 代码。</li>
+    </ul>
+
+  </main>
+  <footer>手写笔记电子化 ｜ docs/02-笔记/电机原理/ ｜ 2026-08-12</footer>
+</div>
+</body>
+</html>

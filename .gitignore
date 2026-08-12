@@ -15,6 +15,10 @@ NUCLEO-F401RE/build/
 NUCLEO-F401RE/cmake-build-*/
 NUCLEO-F401RE/Debug/
 NUCLEO-F401RE/Release/
+NUCLEO-F401RE/MDK-ARM/out/
+NUCLEO-F401RE/MDK-ARM/tmp/
+NUCLEO-F401RE/MDK-ARM/vcpkg-configuration.json
+NUCLEO-F401RE/MDK-ARM/.clangd
 
 # ---------- 通用编译产物（任意目录层级） ----------
 *.o
@@ -36,6 +40,13 @@ NUCLEO-F401RE/Release/
 *.log
 *.bak
 NUCLEO-F401RE/NUCLEO-F401RE.ioc.bak
+
+# ---------- VS Code 本地配置 ----------
+.vscode/
+
+# ---------- CMSIS-Toolbox 配置文件（IDE 生成，可能含本机路径） ----------
+NUCLEO-F401RE/MDK-ARM/*.yml
+NUCLEO-F401RE/MDK-ARM/RTE/
 
 # ---------- 本地敏感词表（含个人敏感词，禁止提交） ----------
 .git_sensitive_words.txt

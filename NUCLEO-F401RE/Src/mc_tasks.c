@@ -318,6 +318,8 @@ __weak uint8_t TSK_HighFrequencyTask(void)
   /* USER CODE BEGIN HighFrequencyTask 0 */
 
   /* USER CODE END HighFrequencyTask 0 */
+  /* 高频任务(16kHz): 由 ADC 注入完成中断调用,转发到 FOC 高频任务
+   * -> 观测器更新 + FOC_CurrControllerM1(Clarke/Park/PI/Rev_Park/SVPWM) */
   FOC_HighFrequencyTask(bMotorNbr);
 
   /* USER CODE BEGIN HighFrequencyTask 1 */

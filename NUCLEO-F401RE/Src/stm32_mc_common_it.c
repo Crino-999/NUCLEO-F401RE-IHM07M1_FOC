@@ -197,6 +197,9 @@ static uint8_t SystickDividerCounter = SYSTICK_DIVIDER;
 
   /* USER CODE END SysTick_IRQn 1 */
 
+  /* SysTick=2kHz,这里是中频任务入口 -> MC_RunMotorControlTasks
+   * 内部按 MF_TASK_OCCURENCE_TICKS 分频调用 TSK_MediumFrequencyTaskM1(1kHz)
+   * 执行:速度环 PI、状态机推进、保护检查、上位机通信处理 */
     MC_RunMotorControlTasks();
 
   /* USER CODE BEGIN SysTick_IRQn 2 */

@@ -121,9 +121,11 @@ __weak void FOC_Init(void)
 
   /* USER CODE END MCboot 0 */
 
+    /* ====== FOC 子系统初始化:依次建立各功能组件 ====== */
     /**********************************************************/
     /*    PWM and current sensing component initialization    */
     /**********************************************************/
+    /* PWM 与电流采样(R3_1 三电阻采样):配置 TIM1 中心对齐 PWM、ADC 注入触发 */
     pwmcHandle[M1] = &PWM_Handle_M1._Super;
     R3_1_Init(&PWM_Handle_M1);
 
@@ -134,26 +136,31 @@ __weak void FOC_Init(void)
     /******************************************************/
     /*   PID component initialization: speed regulation   */
     /******************************************************/
+    /* 速度环 PI(外环,1kHz) */
     PID_HandleInit(&PIDSpeedHandle_M1);
 
     /******************************************************/
     /*   Main speed sensor component initialization       */
     /******************************************************/
+    /* 反电势观测器 STO-PLL:无感方案的核心,由电流/电压估算转子角度与转速 */
     STO_PLL_Init (&STO_PLL_M1);
 
     /******************************************************/
     /*   Speed & torque component initialization          */
     /******************************************************/
+    /* 速度与转矩控制器:管理速度参考斜坡,并把速度误差送入速度 PI */
     STC_Init(pSTC[M1],&PIDSpeedHandle_M1, &STO_PLL_M1._Super);
 
     /**************************************/
     /*   Rev-up component initialization  */
     /**************************************/
+    /* 开环启动控制:管理 IDLE->RUN 的开环拖动阶段曲线 */
     RUC_Init(&RevUpControlM1, pSTC[M1], &VirtualSpeedSensorM1, &STO_M1, pwmcHandle[M1]);
 
     /********************************************************/
     /*   PID component initialization: current regulation   */
     /********************************************************/
+    /* 电流环 PI(内环,16kHz):Iq 控制转矩,Id 控制磁链 */
     PID_HandleInit(&PIDIqHandle_M1);
     PID_HandleInit(&PIDIdHandle_M1);
 
@@ -166,12 +173,14 @@ __weak void FOC_Init(void)
     /*******************************************************/
     /*   Flux weakening component initialization           */
     /*******************************************************/
+    /* 弱磁控制:高速时降低 Id 以削弱磁链,扩展调速范围 */
     PID_HandleInit(&PIDFluxWeakeningHandle_M1);
     FW_Init(pFW[M1],&PIDSpeedHandle_M1,&PIDFluxWeakeningHandle_M1);
 
     /*******************************************************/
     /*   Feed forward component initialization             */
     /*******************************************************/
+    /* 电压前馈:根据电机模型提前给出 Vd/Vq 前馈量,提升动态性能 */
     FF_Init(pFF[M1],&(BusVoltageSensor_M1._Super),pPIDId[M1],pPIDIq[M1]);
 
     pREMNG[M1] = &RampExtMngrHFParamsM1;
@@ -221,6 +230,8 @@ __weak void TSK_MediumFrequencyTaskM1(void)
   /* USER CODE END MediumFrequencyTask M1 0 */
 
   int16_t wAux = 0;
+  /* 中频任务入口: 在 SysTick 中以 1kHz 频率调用(SPEED_LOOP_FREQUENCY_HZ=1000)
+   * 这里先更新平均转速与电功率统计,再按状态机推进 */
   (void)STO_PLL_CalcAvrgMecSpeedUnit(&STO_PLL_M1, &wAux);
   PQD_CalcElMotorPower(pMPM[M1]);
 
@@ -228,9 +239,11 @@ __weak void TSK_MediumFrequencyTaskM1(void)
   {
     if (MCI_GetOccurredFaults(&Mci[M1]) == MC_NO_FAULTS)
     {
+      /* ====== 电机控制状态机 ====== */
       switch (Mci[M1].State)
       {
 
+        /* IDLE: 待机,等待启动命令。收到 MCI_START 后进入电流偏置校准/充电自举 */
         case IDLE:
         {
           if ((MCI_START == Mci[M1].DirectCommand) || (MCI_MEASURE_OFFSETS == Mci[M1].DirectCommand))
@@ -259,6 +272,8 @@ __weak void TSK_MediumFrequencyTaskM1(void)
           break;
         }
 
+        /* OFFSET_CALIB: 电流偏置校准。PWM 关断时采 ADC 零电流,得到三相偏置
+         * (用于消除运放/ADC 的零点漂移),完成后进入 CHARGE_BOOT_CAP */
         case OFFSET_CALIB:
         {
           if (MCI_STOP == Mci[M1].DirectCommand)
@@ -291,6 +306,8 @@ __weak void TSK_MediumFrequencyTaskM1(void)
           break;
         }
 
+        /* CHARGE_BOOT_CAP: 充自举电容。下桥臂常通给自举电容充电(~10ms),
+         * 充电完成后切换速度源为虚拟转速传感器,清零 FOC,然后开 PWM 进入 START */
         case CHARGE_BOOT_CAP:
         {
           if (MCI_STOP == Mci[M1].DirectCommand)
@@ -320,6 +337,8 @@ __weak void TSK_MediumFrequencyTaskM1(void)
           break;
         }
 
+        /* START: 开环启动。用 RevUp 流程按预设曲线强制施加电流/速度拖动电机旋转,
+         * 同时等待反电势观测器(STO-PLL)收敛;收敛后进入 SWITCH_OVER 平滑过渡到闭环 */
         case START:
         {
           if (MCI_STOP == Mci[M1].DirectCommand)
@@ -333,16 +352,18 @@ __weak void TSK_MediumFrequencyTaskM1(void)
             qd_t IqdRef;
             bool ObserverConverged;
 
-            /* Execute the Rev Up procedure */
+            /* 执行 RevUp 开环启动流程:按预设阶段曲线(电流/速度/加速度)强制拖动电机 */
             if(! RUC_Exec(&RevUpControlM1))
             {
             /* The time allowed for the startup sequence has expired */
+            /* 启动超时未完成 -> 启动失败故障 */
               MCI_FaultProcessing(&Mci[M1], MC_START_UP, 0);
             }
             else
             {
               /* Execute the torque open loop current start-up ramp:
                * Compute the Iq reference current as configured in the Rev Up sequence */
+              /* 开环阶段: 由 STC 算出 Iq 参考(此时速度环输出受 RevUp 钳位) */
               IqdRef.q = STC_CalcTorqueReference(pSTC[M1]);
               IqdRef.d = FOCVars[M1].UserIdref;
               /* Iqd reference current used by the High Frequency Loop to generate the PWM output */
@@ -352,6 +373,7 @@ __weak void TSK_MediumFrequencyTaskM1(void)
             (void)VSS_CalcAvrgMecSpeedUnit(&VirtualSpeedSensorM1, &hForcedMecSpeedUnit);
 
             /* Check that startup stage where the observer has to be used has been reached */
+            /* 启动到达第一加速阶段后,转速足够,反电势可观,开始检查观测器是否收敛 */
             if (true == RUC_FirstAccelerationStageReached(&RevUpControlM1))
             {
               ObserverConverged = STO_PLL_IsObserverConverged(&STO_PLL_M1, &hForcedMecSpeedUnit);
@@ -378,6 +400,8 @@ __weak void TSK_MediumFrequencyTaskM1(void)
           break;
         }
 
+        /* SWITCH_OVER: 切换过渡。把转速源从虚拟传感器切换到 STO-PLL 观测器,
+         * 用斜坡把 Iq 参考从开环值过渡到闭环值,过渡完成后进入 RUN 闭环运行 */
         case SWITCH_OVER:
         {
           if (MCI_STOP == Mci[M1].DirectCommand)
@@ -390,8 +414,10 @@ __weak void TSK_MediumFrequencyTaskM1(void)
 
             /* Compute the virtual speed and positions of the rotor.
                The function returns true if the virtual speed is in the reliability range */
+            /* 虚拟传感器计算转子虚拟转速/位置;返回 true 表示速度已进入可信范围 */
             bool FlagEnableClosedLoop = VSS_CalcAvrgMecSpeedUnit(&VirtualSpeedSensorM1, &hForcedMecSpeedUnit);
             /* Check if the transition ramp has completed. */
+            /* 切换斜坡是否已结束(即开环->闭环的过渡时间是否走完) */
             bool FlagTransitionPhaseCompleted = VSS_TransitionEnded(&VirtualSpeedSensorM1);
             FlagEnableClosedLoop = FlagEnableClosedLoop || FlagTransitionPhaseCompleted;
 
@@ -400,6 +426,7 @@ __weak void TSK_MediumFrequencyTaskM1(void)
             if (true == FlagEnableClosedLoop)
             {
 #if PID_SPEED_INTEGRAL_INIT_DIV == 0
+              /* 速度环积分项清零,避免切换瞬间残留积分造成电流冲击 */
               PID_SetIntegralTerm(&PIDSpeedHandle_M1, 0);
 #else
               PID_SetIntegralTerm(&PIDSpeedHandle_M1,
@@ -409,9 +436,11 @@ __weak void TSK_MediumFrequencyTaskM1(void)
               /* USER CODE BEGIN MediumFrequencyTask M1 1 */
 
               /* USER CODE END MediumFrequencyTask M1 1 */
+              /* 关键: 把转速源正式切换为 STO-PLL 观测器,完成无感闭环 */
               STC_SetSpeedSensor(pSTC[M1], &STO_PLL_M1._Super); /* Observer has converged */
               FOC_InitAdditionalMethods(M1);
               FOC_CalcCurrRef(M1);
+              /* 把速度参考对齐到当前实测转速,避免切换瞬间速度阶跃 */
               STC_ForceSpeedReferenceToCurrentSpeed(pSTC[M1]); /* Init the reference speed to current speed */
               MCI_ExecBufferedCommands(&Mci[M1]); /* Exec the speed ramp after changing of the speed sensor */
               Mci[M1].State = RUN;
@@ -419,12 +448,15 @@ __weak void TSK_MediumFrequencyTaskM1(void)
             else if ((FlagTransitionPhaseCompleted == true) && (FlagEnableClosedLoop == false))
             {
               /* The transition time from Open-Loop to Close-Loop allowed has expired */
+              /* 过渡时间已到但速度仍不可信 -> 启动失败 */
               MCI_FaultProcessing(&Mci[M1], MC_START_UP, 0);
             }
           }
           break;
         }
 
+        /* RUN: 闭环运行。执行速度斜坡、计算 Iqdref(含弱磁/MTPA)、转速反馈检查,
+         * 实际的电流环 PI 与 SVPWM 在 16kHz 高频任务中执行 */
         case RUN:
         {
           if (MCI_STOP == Mci[M1].DirectCommand)
@@ -452,6 +484,8 @@ __weak void TSK_MediumFrequencyTaskM1(void)
           break;
         }
 
+        /* STOP: 停机保持。等待一段保持时间(STOPPERMANENCY_TICKS)让电机彻底停转,
+         * 然后切回虚拟传感器、清零,回到 IDLE */
         case STOP:
         {
           if (TSK_StopPermanencyTimeHasElapsedM1())
@@ -607,6 +641,7 @@ __weak void FOC_CalcCurrRef(uint8_t bMotor)
   /* Enter critical section */
   /* Disable interrupts to avoid any interruption during Iqd reference latching */
   /* to avoid MF task writing them while HF task reading them */
+  /* 临界区保护: Iqdref 由中频(1kHz)写、高频(16kHz)读,须关中断避免竞争 */
   __disable_irq();
   IqdTmp = FOCVars[bMotor].Iqdref;
 
@@ -618,6 +653,8 @@ __weak void FOC_CalcCurrRef(uint8_t bMotor)
   /* USER CODE END FOC_CalcCurrRef 0 */
   if (INTERNAL == FOCVars[bMotor].bDriveInput)
   {
+    /* 内部驱动模式: 由速度环算出转矩(电流)参考
+     * STC_CalcTorqueReference 内部做:速度斜坡 + 速度PI -> 转矩电流参考 Iqref */
     FOCVars[bMotor].hTeref = STC_CalcTorqueReference(pSTC[bMotor]);
     IqdTmp.q = FOCVars[bMotor].hTeref;
 
@@ -627,6 +664,7 @@ __weak void FOC_CalcCurrRef(uint8_t bMotor)
     }
     else
     {
+      /* 弱磁/MTPA: 在高速或需要效率优化时,重新分配 Id/Iq 参考比例 */
       IqdTmp.d = FOCVars[bMotor].UserIdref;
       IqdTmp = FW_CalcCurrRef(pFW[bMotor], IqdTmp);
     }
@@ -636,6 +674,7 @@ __weak void FOC_CalcCurrRef(uint8_t bMotor)
     }
     else
     {
+      /* 前馈计算: 根据当前 Iqd 与转速,提前算出电压前馈量,减小 PI 负担 */
       FF_VqdffComputation(pFF[bMotor], IqdTmp, pSTC[bMotor]);
     }
   }
@@ -679,13 +718,18 @@ __weak uint8_t FOC_HighFrequencyTask(uint8_t bMotorNbr)
 
   /* USER CODE END HighFrequencyTask 0 */
 
+  /* 高频任务入口: 由 ADC 注入序列结束中断(JEOS)触发,频率=16kHz
+   * 这里先处理常规 ADC 转换(母线电压、温度、电位器等,由 RCM 调度) */
   RCM_ReadOngoingConv();
   RCM_ExecNextConv();
   Observer_Inputs_t STO_Inputs; /* Only if sensorless main */
 
+  /* 把上一次 FOC 算出的 Vαβ 作为观测器输入(反电势观测需要定子电压) */
   STO_Inputs.Valfa_beta = FOCVars[M1].Valphabeta;  /* Only if sensorless */
   if (SWITCH_OVER == Mci[M1].State)
   {
+    /* 切换过渡阶段: 用斜坡管理器把 Iq 参考从开环启动值平滑过渡到闭环值,
+     * 避免无感切换瞬间电流突变造成失步 */
     if (!REMNG_RampCompleted(pREMNG[M1]))
     {
       FOCVars[M1].Iqdref.q = (int16_t)REMNG_Calc(pREMNG[M1]);
@@ -702,19 +746,23 @@ __weak uint8_t FOC_HighFrequencyTask(uint8_t bMotorNbr)
   /* USER CODE BEGIN HighFrequencyTask SINGLEDRIVE_1 */
 
   /* USER CODE END HighFrequencyTask SINGLEDRIVE_1 */
+  /* 调用 FOC 电流环核心:Clarke->Park->PI->Rev_Park->SVPWM */
   hFOCreturn = FOC_CurrControllerM1();
   /* USER CODE BEGIN HighFrequencyTask SINGLEDRIVE_2 */
 
   /* USER CODE END HighFrequencyTask SINGLEDRIVE_2 */
   if(hFOCreturn == MC_DURATION)
   {
+    /* 占空比写入太晚,已赶不上当前 PWM 周期更新 -> 报错 */
     MCI_FaultProcessing(&Mci[M1], MC_DURATION, 0);
   }
   else
   {
     bool IsAccelerationStageReached = RUC_FirstAccelerationStageReached(&RevUpControlM1);
+    /* 根据状态机决定是否更新观测器(IDLE/FAULT/CHARGE_BOOT_CAP 等阶段不需要) */
     if (true == AngleSpeedEstimation[Mci[M1].State])
     {
+      /* 无感观测器输入: 当前定子电流 Iαβ 与母线电压,据此估算反电势 -> 角度/速度 */
       STO_Inputs.Ialfa_beta = FOCVars[M1].Ialphabeta; /* Only if sensorless */
       STO_Inputs.Vbus = VBS_GetAvBusVoltage_d(&(BusVoltageSensor_M1._Super)); /* Only for sensorless */
       (void)STO_PLL_CalcElAngle(&STO_PLL_M1, &STO_Inputs);
@@ -727,6 +775,7 @@ __weak uint8_t FOC_HighFrequencyTask(uint8_t bMotorNbr)
 
     if (false == IsAccelerationStageReached)
     {
+      /* 启动早期转速太低,观测器不可信 -> 复位 PLL,使用虚拟转速传感器强制拖动 */
       STO_ResetPLL(&STO_PLL_M1);
     }
     else
@@ -736,6 +785,7 @@ __weak uint8_t FOC_HighFrequencyTask(uint8_t bMotorNbr)
     /* Only for sensor-less */
     if((START == Mci[M1].State) || (SWITCH_OVER == Mci[M1].State))
     {
+      /* 把观测器角度融合进虚拟转速传感器,实现开环->闭环的平滑切换 */
       int16_t hObsAngle = SPD_GetElAngle(&STO_PLL_M1._Super);
       (void)VSS_CalcElAngle(&VirtualSpeedSensorM1, &hObsAngle);
     }
@@ -764,6 +814,12 @@ __attribute__((section (".ccmram")))
   * @retval int16_t It returns MC_NO_FAULTS if the FOC has been ended before
   *         next PWM Update event, MC_DURATION otherwise
   */
+/* ====== FOC 控制核心函数 ======
+ * 本函数是整个磁场定向控制(FOC)的心脏,在每次 ADC 注入采样完成中断中被调用。
+ * 完整执行链: 读取电流 -> Clarke 变换 -> Park 变换 -> 两个 PI 电流环 ->
+ *            圆限制 -> 反 Park 变换 -> SVPWM 输出
+ * 执行频率 = PWM 频率 / REGULATION_EXECUTION_RATE = 16000Hz / 1 = 16kHz
+ */
 inline uint16_t FOC_CurrControllerM1(void)
 {
   qd_t Iqd, Vqd;
@@ -772,29 +828,60 @@ inline uint16_t FOC_CurrControllerM1(void)
   int16_t hElAngle;
   uint16_t hCodeError = MC_NO_FAULTS;
   SpeednPosFdbk_Handle_t *speedHandle;
+
+  /* 获取当前激活的转速传感器(无感时为 STO-PLL 观测器,启动阶段为虚拟转速传感器)
+   * 之所以要从 STC 获取,是因为启动过程会在 VSS 与 STO 之间切换 */
   speedHandle = STC_GetSpeedSensor(pSTC[M1]);
+
+  /* 读取转子电角度 θ(用于后续 Park 旋转,把交流量"拉直"为直流量) */
   hElAngle = SPD_GetElAngle(speedHandle);
+  /* 角度前向补偿:补偿算法执行期间的转子位置变化(本工程系数为 0,即不补偿) */
   hElAngle += SPD_GetInstElSpeedDpp(speedHandle)*PARK_ANGLE_COMPENSATION_FACTOR;
+
+  /* 步骤1: 读取电机三相相电流(实际上由 R3_1_GetPhaseCurrents 读 ADC 注入寄存器) */
   PWMC_GetPhaseCurrents(pwmcHandle[M1], &Iab);
+
+  /* 步骤2: Clarke 变换 —— 把三相静止坐标系 (a,b) 变换到两相静止坐标系 (α,β)
+   * 公式: Iα = Ia ;  Iβ = (Ia + 2*Ib) / √3 */
   Ialphabeta = MCM_Clarke(Iab);
+
+  /* 步骤3: Park 变换 —— 把两相静止坐标系 (α,β) 旋转到转子磁链同步坐标系 (d,q)
+   * 这样 d 轴对准磁链方向、q 轴对准转矩方向,两轴电流都成为直流量,便于 PI 调节
+   * 公式: Id = Iα*sinθ + Iβ*cosθ ;  Iq = Iα*cosθ - Iβ*sinθ */
   Iqd = MCM_Park(Ialphabeta, hElAngle);
+
   if (PWMC_GetPWMState(pwmcHandle[M1]) == true)
   {
+    /* 步骤4: 两个独立的 PI 电流环(此时 Iqdref 与 Iqd 均为直流量,PI 易于调节)
+     * - q 轴电流环 -> 控制电磁转矩
+     * - d 轴电流环 -> 控制定子磁链(永磁同步电机一般把 Idref 设为 0,即最大转矩电流比) */
     Vqd.q = PI_Controller(pPIDIq[M1], (int32_t)(FOCVars[M1].Iqdref.q) - Iqd.q);
     Vqd.d = PI_Controller(pPIDId[M1], (int32_t)(FOCVars[M1].Iqdref.d) - Iqd.d);
   }
   else
   {
+    /* PWM 关闭时输出电压为零(避免在充电自举电容等阶段误输出) */
     Vqd.q = 0;
     Vqd.d = 0;
   }
+  /* 前馈补偿:叠加 d/q 轴电压前馈量,提升动态响应 */
   Vqd = FF_VqdConditioning(pFF[M1],Vqd);
+
+  /* 圆限制:把 Vqd 限制在电压矢量圆内,防止总输出超过逆变器的最大可输出电压
+   * (即不超调制定 SVPWM 的线性区,保证六边形/圆形内矢量幅值不越限) */
   Vqd = Circle_Limitation(&CircleLimitationM1, Vqd);
+
+  /* 反 Park 变换前再次角度补偿(系数为 0,不补偿),补偿从读角度到反变换期间的角度增量 */
   hElAngle += SPD_GetInstElSpeedDpp(speedHandle)*REV_PARK_ANGLE_COMPENSATION_FACTOR;
+
+  /* 步骤5: 反 Park 变换 —— 把同步坐标系下的电压指令 (Vd,Vq) 还原回两相静止坐标系 (Vα,Vβ)
+   * 公式: Vα = Vq*cosθ + Vd*sinθ ;  Vβ = -Vq*sinθ + Vd*cosθ */
   Valphabeta = MCM_Rev_Park(Vqd, hElAngle);
 
   if (PWMC_GetPWMState(pwmcHandle[M1]) == true)
   {
+    /* 步骤6: SVPWM —— 根据 (Vα,Vβ) 计算扇区与三相占空比,写入 TIM1 的 CCR1/2/3
+     * 同时根据扇区配置下一次 ADC 注入采样序列(决定下一次采哪两相) */
     hCodeError = PWMC_SetPhaseVoltage(pwmcHandle[M1], Valphabeta);
   }
   else
@@ -803,6 +890,7 @@ inline uint16_t FOC_CurrControllerM1(void)
 
   }
 
+  /* 保存本次循环的中间结果,供观测器、上位机监控、保护任务使用 */
   FOCVars[M1].Vqd = Vqd;
   FOCVars[M1].Iab = Iab;
   FOCVars[M1].Ialphabeta = Ialphabeta;
@@ -810,7 +898,9 @@ inline uint16_t FOC_CurrControllerM1(void)
   FOCVars[M1].Valphabeta = Valphabeta;
   FOCVars[M1].hElAngle = hElAngle;
 
+  /* 弱磁数据处理(在转速高于额定、需要弱磁运行时启用) */
   FW_DataProcess(pFW[M1], Vqd);
+  /* 前馈数据处理 */
   FF_DataProcess(pFF[M1]);
   return (hCodeError);
 }
