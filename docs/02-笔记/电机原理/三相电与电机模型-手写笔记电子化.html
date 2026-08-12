@@ -2318,24 +2318,243 @@
 
     <h3>6.4 SVPWM 与开关控制</h3>
 
-    <p>SVPWM（Space Vector PWM，空间矢量脉宽调制）是连接控制算法和逆变器的桥梁——它把电流环输出的 uαβ*（两个电压参考值）转换为三个 PWM 占空比（SA, SB, SC）。</p>
+    <p>SVPWM（Space Vector PWM，空间矢量脉宽调制）是连接控制算法和逆变器的桥梁——它把电流环输出的 uαβ*（两个电压参考值）转换为三个 PWM 占空比（SA, SB, SC）。与传统的正弦 PWM（SPWM）相比，SVPWM 不着眼于生成正弦相电压，而是以控制电机气隙中的<b>合成电压空间矢量轨迹</b>为目标，使其尽可能逼近圆形，从而获得更高的直流母线电压利用率和更优的谐波性能 [$TRAE_REF](https://blog.csdn.net/yhn456789/article/details/155763733)[$TRAE_REF](https://blog.csdn.net/lijigang100/article/details/155095444)。</p>
 
-    <p><b>基本思想：</b>三个桥臂各有"上通"和"下通"两种状态，三个桥臂组合共 2³ = 8 种开关状态。每种状态在空间中对应一个电压矢量：</p>
-    <ul>
-      <li><b>6 个有效矢量</b>（V1-V6）：对应 6 种非零开关组合，在 αβ 平面上构成正六边形的 6 个顶点</li>
-      <li><b>2 个零矢量</b>（V0, V7）：全部下管通或全部上管通，输出电压为零</li>
-    </ul>
+    <h4>6.4.1 从逆变器状态到电压空间矢量</h4>
 
-    <p>任意方向的电压矢量可以用<b>相邻两个有效矢量 + 零矢量</b>的时间分配来合成——就像用两种颜色混合出第三种颜色。SVPWM 相比正弦 PWM（SPWM）的母线电压利用率高 15.5%（√3/2 ≈ 0.866 vs 1/√2 ≈ 0.707）。</p>
+    <p>三相桥式逆变器有 3 个桥臂（A/B/C），每个桥臂有"上管通/下管断"（记为 1）和"上管断/下管通"（记为 0）两种状态。3 个桥臂组合共 2³ = 8 种开关状态，每种状态在 αβ 平面上对应一个电压空间矢量。</p>
+
+    <p>以开关状态 (1,0,0) 为例——A 相上管导通、B/C 相下管导通。根据基尔霍夫电压定律和星形连接等效模型，此时各相电压为 U<sub>AN</sub> = (2/3)U<sub>dc</sub>，U<sub>BN</sub> = U<sub>CN</sub> = -(1/3)U<sub>dc</sub>。将这三个相电压投影到 αβ 坐标系，合成矢量的幅值为 (2/3)U<sub>dc</sub>，方向沿 α 轴正方向——这就是矢量 U<sub>4</sub>。同理可推导全部 8 个矢量，其中 (0,0,0) 和 (1,1,1) 对应三相短接，合成矢量为零，称为<b>零矢量</b> U<sub>0</sub> 和 U<sub>7</sub>。其余 6 个非零矢量幅值均为 (2/3)U<sub>dc</sub>，每隔 60° 均匀分布，构成正六边形的 6 个顶点。</p>
+
+    <table style="width:100%; border-collapse:collapse; margin:12px 0; font-size:14px;">
+      <tr style="background:#e8e0d8;">
+        <th style="border:1px solid #aaa; padding:6px;">矢量</th>
+        <th style="border:1px solid #aaa; padding:6px;">开关状态 (A,B,C)</th>
+        <th style="border:1px solid #aaa; padding:6px;">角度</th>
+        <th style="border:1px solid #aaa; padding:6px;">类型</th>
+      </tr>
+      <tr><td style="border:1px solid #aaa; padding:6px; text-align:center;">U₀</td><td style="border:1px solid #aaa; padding:6px; text-align:center;">(0,0,0)</td><td style="border:1px solid #aaa; padding:6px; text-align:center;">—</td><td style="border:1px solid #aaa; padding:6px; text-align:center;">零矢量</td></tr>
+      <tr><td style="border:1px solid #aaa; padding:6px; text-align:center;">U₁</td><td style="border:1px solid #aaa; padding:6px; text-align:center;">(0,0,1)</td><td style="border:1px solid #aaa; padding:6px; text-align:center;">240°</td><td style="border:1px solid #aaa; padding:6px; text-align:center;">有效</td></tr>
+      <tr><td style="border:1px solid #aaa; padding:6px; text-align:center;">U₂</td><td style="border:1px solid #aaa; padding:6px; text-align:center;">(0,1,0)</td><td style="border:1px solid #aaa; padding:6px; text-align:center;">120°</td><td style="border:1px solid #aaa; padding:6px; text-align:center;">有效</td></tr>
+      <tr><td style="border:1px solid #aaa; padding:6px; text-align:center;">U₃</td><td style="border:1px solid #aaa; padding:6px; text-align:center;">(0,1,1)</td><td style="border:1px solid #aaa; padding:6px; text-align:center;">180°</td><td style="border:1px solid #aaa; padding:6px; text-align:center;">有效</td></tr>
+      <tr><td style="border:1px solid #aaa; padding:6px; text-align:center;">U₄</td><td style="border:1px solid #aaa; padding:6px; text-align:center;">(1,0,0)</td><td style="border:1px solid #aaa; padding:6px; text-align:center;">0°</td><td style="border:1px solid #aaa; padding:6px; text-align:center;">有效</td></tr>
+      <tr><td style="border:1px solid #aaa; padding:6px; text-align:center;">U₅</td><td style="border:1px solid #aaa; padding:6px; text-align:center;">(1,0,1)</td><td style="border:1px solid #aaa; padding:6px; text-align:center;">300°</td><td style="border:1px solid #aaa; padding:6px; text-align:center;">有效</td></tr>
+      <tr><td style="border:1px solid #aaa; padding:6px; text-align:center;">U₆</td><td style="border:1px solid #aaa; padding:6px; text-align:center;">(1,1,0)</td><td style="border:1px solid #aaa; padding:6px; text-align:center;">60°</td><td style="border:1px solid #aaa; padding:6px; text-align:center;">有效</td></tr>
+      <tr><td style="border:1px solid #aaa; padding:6px; text-align:center;">U₇</td><td style="border:1px solid #aaa; padding:6px; text-align:center;">(1,1,1)</td><td style="border:1px solid #aaa; padding:6px; text-align:center;">—</td><td style="border:1px solid #aaa; padding:6px; text-align:center;">零矢量</td></tr>
+    </table>
+
+    <p>6 个有效矢量将 αβ 平面划分为 6 个扇区（Sector I~VI），每个扇区跨 60°。扇区 I 由 U<sub>4</sub>（0°）和 U<sub>6</sub>（60°）张成，扇区 II 由 U<sub>6</sub>（60°）和 U<sub>2</sub>（120°）张成，以此类推。矢量编号与开关状态的二进制值一一对应（如 (1,1,0) = 6 → U<sub>6</sub>），这是工程代码中常用的命名约定。</p>
+
+    <div class="fig-wrap">
+      <svg viewBox="0 0 400 360" xmlns="http://www.w3.org/2000/svg" font-family="Segoe UI, Microsoft YaHei, sans-serif">
+        <line x1="200" y1="30" x2="200" y2="330" stroke="#ccc" stroke-width="1" stroke-dasharray="4,4"/>
+        <line x1="40" y1="180" x2="360" y2="180" stroke="#ccc" stroke-width="1" stroke-dasharray="4,4"/>
+        <text x="365" y="185" font-size="13" fill="#999">α</text>
+        <text x="205" y="25" font-size="13" fill="#999">β</text>
+        <polygon points="320,180 260,76 140,76 80,180 140,284 260,284" fill="none" stroke="#555" stroke-width="2"/>
+        <line x1="200" y1="180" x2="315" y2="180" stroke="#0066cc" stroke-width="1.5"/>
+        <line x1="200" y1="180" x2="260" y2="81" stroke="#0066cc" stroke-width="1.5"/>
+        <line x1="200" y1="180" x2="140" y2="81" stroke="#0066cc" stroke-width="1.5"/>
+        <line x1="200" y1="180" x2="85" y2="180" stroke="#0066cc" stroke-width="1.5"/>
+        <line x1="200" y1="180" x2="140" y2="279" stroke="#0066cc" stroke-width="1.5"/>
+        <line x1="200" y1="180" x2="260" y2="279" stroke="#0066cc" stroke-width="1.5"/>
+        <text x="325" y="175" font-size="13" font-weight="bold" fill="#0066cc">U₄(100)</text>
+        <text x="265" y="68" font-size="13" font-weight="bold" fill="#0066cc">U₆(110)</text>
+        <text x="80" y="68" font-size="13" font-weight="bold" fill="#0066cc">U₂(010)</text>
+        <text x="35" y="175" font-size="13" font-weight="bold" fill="#0066cc">U₃(011)</text>
+        <text x="80" y="300" font-size="13" font-weight="bold" fill="#0066cc">U₁(001)</text>
+        <text x="265" y="300" font-size="13" font-weight="bold" fill="#0066cc">U₅(101)</text>
+        <text x="270" y="145" font-size="14" fill="#aaa">I</text>
+        <text x="185" y="125" font-size="14" fill="#aaa">II</text>
+        <text x="130" y="145" font-size="14" fill="#aaa">III</text>
+        <text x="130" y="225" font-size="14" fill="#aaa">IV</text>
+        <text x="185" y="245" font-size="14" fill="#aaa">V</text>
+        <text x="270" y="225" font-size="14" fill="#aaa">VI</text>
+        <circle cx="200" cy="180" r="4" fill="#333"/>
+        <text x="210" y="200" font-size="11" fill="#666">U₀/U₇</text>
+        <text x="250" y="195" font-size="11" fill="#999">0°</text>
+        <text x="240" y="110" font-size="11" fill="#999">60°</text>
+      </svg>
+      <div class="fig-caption">图 20：八个基本电压空间矢量在 αβ 平面的分布——6 个有效矢量构成正六边形顶点（幅值 2U_dc/3），2 个零矢量位于原点。六个扇区 I~VI 每个跨 60°</div>
+    </div>
+
+    <h4>6.4.2 伏秒平衡原理</h4>
+
+    <p>SVPWM 的数学基础是<b>伏秒平衡</b>（Volt-Second Balance）原理，该原理源自电感的稳态特性。对于电感，电压与电流的关系为 u<sub>L</sub>(t) = L·di/dt。在一个开关周期 T<sub>S</sub> 内积分：</p>
 
     <div class="formula">
-      <b>占空比 → CCR 寄存器：</b><br>
-      SVPWM 输出三个占空比 d_A, d_B, d_C ∈ [0, 1]<br>
-      → CCR_A = d_A × (PWM_PERIOD / 2)<br>
-      → CCR_B = d_B × (PWM_PERIOD / 2)<br>
-      → CCR_C = d_C × (PWM_PERIOD / 2)<br>
-      定时器（TIM1）比较这些 CCR 值，自动生成 PWM 方波驱动 MOSFET 门极
+      ∫₀^Ts u<sub>L</sub>(t) dt = L·∫₀^Ts (di/dt) dt = L·[i<sub>L</sub>(T<sub>S</sub>) − i<sub>L</sub>(0)]
     </div>
+
+    <p>稳态要求周期结束时电感电流回到周期开始的值，即 i<sub>L</sub>(T<sub>S</sub>) = i<sub>L</sub>(0)，因此 ∫₀^Ts u<sub>L</sub>(t) dt = 0。这就是伏秒平衡——<b>一个周期内电感两端的正负伏秒值（电压×时间）必须相互抵消</b>。将这一原理推广到电压空间矢量：在一个 PWM 周期 T<sub>S</sub> 内，期望的参考电压矢量 U<sub>ref</sub> 产生的磁链增量，必须等于实际施加的各基本矢量在其作用时间内产生的磁链增量之和 [$TRAE_REF](https://blog.csdn.net/yhn456789/article/details/155763733)：</p>
+
+    <div class="formula" style="font-size:16px;">
+      <b>U<sub>ref</sub> · T<sub>S</sub> = U<sub>X</sub> · T<sub>X</sub> + U<sub>Y</sub> · T<sub>Y</sub> + U<sub>0</sub> · T<sub>0</sub></b>
+    </div>
+
+    <p>其中 U<sub>X</sub>、U<sub>Y</sub> 是 U<sub>ref</sub> 所在扇区的两个相邻有效矢量，T<sub>X</sub>、T<sub>Y</sub> 是它们的作用时间，T<sub>0</sub> 是零矢量作用时间，且 T<sub>X</sub> + T<sub>Y</sub> + T<sub>0</sub> = T<sub>S</sub>。由于零矢量幅值为零，对磁链无贡献，上式简化为 <b>U<sub>ref</sub> · T<sub>S</sub> = U<sub>X</sub> · T<sub>X</sub> + U<sub>Y</sub> · T<sub>Y</sub></b>。物理意义：只要合理配置两个相邻有效矢量和零矢量在一个周期中的占空比，就可以合成出任意方向的等效电压矢量。</p>
+
+    <h4>6.4.3 扇区判断</h4>
+
+    <p>计算作用时间之前，必须先确定 U<sub>ref</sub> 落在哪个扇区。为避免 MCU 中的浮点除法和三角函数运算，工程上普遍采用<b>中间变量法</b> [$TRAE_REF](https://blog.csdn.net/yhn456789/article/details/155763733)：</p>
+
+    <div class="formula">
+      X = U<sub>β</sub><br>
+      Y = (√3/2)·U<sub>α</sub> − (1/2)·U<sub>β</sub><br>
+      Z = −(√3/2)·U<sub>α</sub> − (1/2)·U<sub>β</sub>
+    </div>
+
+    <p>定义符号函数 Sign(x)（x > 0 时为 1，否则为 0），则扇区号 N = Sign(X) + 2·Sign(Y) + 4·Sign(Z)：</p>
+
+    <table style="border-collapse:collapse; margin:12px 0; font-size:14px;">
+      <tr style="background:#e8e0d8;">
+        <th style="border:1px solid #aaa; padding:6px;">N</th>
+        <th style="border:1px solid #aaa; padding:6px;">1</th>
+        <th style="border:1px solid #aaa; padding:6px;">2</th>
+        <th style="border:1px solid #aaa; padding:6px;">3</th>
+        <th style="border:1px solid #aaa; padding:6px;">4</th>
+        <th style="border:1px solid #aaa; padding:6px;">5</th>
+        <th style="border:1px solid #aaa; padding:6px;">6</th>
+      </tr>
+      <tr>
+        <td style="border:1px solid #aaa; padding:6px; text-align:center; font-weight:bold;">扇区</td>
+        <td style="border:1px solid #aaa; padding:6px; text-align:center;">II</td>
+        <td style="border:1px solid #aaa; padding:6px; text-align:center;">VI</td>
+        <td style="border:1px solid #aaa; padding:6px; text-align:center;">I</td>
+        <td style="border:1px solid #aaa; padding:6px; text-align:center;">IV</td>
+        <td style="border:1px solid #aaa; padding:6px; text-align:center;">III</td>
+        <td style="border:1px solid #aaa; padding:6px; text-align:center;">V</td>
+      </tr>
+    </table>
+
+    <p>该方法仅需 3 次乘法和 3 次比较，无需除法或三角函数，非常适合 MCU 实时计算。</p>
+
+    <h4>6.4.4 作用时间计算——以扇区 I 为例</h4>
+
+    <p>设 U<sub>ref</sub> 位于扇区 I（0° ≤ θ < 60°），相邻有效矢量为 U<sub>4</sub>（0°）和 U<sub>6</sub>（60°）。将伏秒平衡方程在 αβ 坐标系下投影展开：</p>
+
+    <div class="fig-wrap">
+      <div style="min-height:200px; display:flex; align-items:center; justify-content:center; background:#f9f9f9; color:#aaa; font-style:italic; font-size:14px;">
+        【图 21 占位：扇区 I 矢量合成图——U_ref 由 U₄ 和 U₆ 经平行四边形法则合成，θ 为 U_ref 与 α 轴夹角。后续由手绘参考图替换】
+      </div>
+      <div class="fig-caption">图 21：扇区 I 矢量合成示意图——U_ref 位于 U₄ 与 U₆ 之间，通过平行四边形法则分解为两个相邻矢量分量【SVG 待绘制，后续提供参考图】</div>
+    </div>
+
+    <div class="formula" style="font-size:15px; line-height:2.4;">
+      α 轴：U<sub>α</sub>·T<sub>S</sub> = (2/3)U<sub>dc</sub>·T<sub>4</sub> + (1/3)U<sub>dc</sub>·T<sub>6</sub><br>
+      β 轴：U<sub>β</sub>·T<sub>S</sub> = (√3/3)U<sub>dc</sub>·T<sub>6</sub>
+    </div>
+
+    <p>从 β 轴方程直接解出 T<sub>6</sub>，再代入 α 轴方程解出 T<sub>4</sub>：</p>
+
+    <div class="formula">
+      <b>T<sub>6</sub> = (√3·U<sub>β</sub>·T<sub>S</sub>) / U<sub>dc</sub></b><br><br>
+      <b>T<sub>4</sub> = (√3·T<sub>S</sub> / U<sub>dc</sub>) · [(√3/2)·U<sub>α</sub> − (1/2)·U<sub>β</sub>]</b>
+    </div>
+
+    <p>零矢量作用时间（7 段式中 T<sub>0</sub> 和 T<sub>7</sub> 对称分配）：</p>
+
+    <div class="formula">
+      <b>T<sub>0</sub> = T<sub>7</sub> = (T<sub>S</sub> − T<sub>4</sub> − T<sub>6</sub>) / 2</b>
+    </div>
+
+    <p>注意到 T<sub>4</sub> 表达式中恰好出现扇区判断的中间变量 Y = (√3/2)·U<sub>α</sub> − (1/2)·U<sub>β</sub>，而 T<sub>6</sub> 对应 X = U<sub>β</sub>——中间变量 X、Y、Z 的定义正是为了统一所有扇区的作用时间计算。令 K = √3·T<sub>S</sub>/U<sub>dc</sub>，则六扇区的通用查表为：</p>
+
+    <table style="width:100%; border-collapse:collapse; margin:12px 0; font-size:13px;">
+      <tr style="background:#e8e0d8;">
+        <th style="border:1px solid #aaa; padding:6px;">扇区</th>
+        <th style="border:1px solid #aaa; padding:6px;">相邻矢量</th>
+        <th style="border:1px solid #aaa; padding:6px;">T<sub>X</sub>（第一矢量）</th>
+        <th style="border:1px solid #aaa; padding:6px;">T<sub>Y</sub>（第二矢量）</th>
+      </tr>
+      <tr><td style="border:1px solid #aaa; padding:6px; text-align:center;">I</td><td style="border:1px solid #aaa; padding:6px; text-align:center;">U₄, U₆</td><td style="border:1px solid #aaa; padding:6px; text-align:center;">K·Y</td><td style="border:1px solid #aaa; padding:6px; text-align:center;">K·X</td></tr>
+      <tr><td style="border:1px solid #aaa; padding:6px; text-align:center;">II</td><td style="border:1px solid #aaa; padding:6px; text-align:center;">U₆, U₂</td><td style="border:1px solid #aaa; padding:6px; text-align:center;">K·Y</td><td style="border:1px solid #aaa; padding:6px; text-align:center;">K·Z</td></tr>
+      <tr><td style="border:1px solid #aaa; padding:6px; text-align:center;">III</td><td style="border:1px solid #aaa; padding:6px; text-align:center;">U₂, U₃</td><td style="border:1px solid #aaa; padding:6px; text-align:center;">K·Z</td><td style="border:1px solid #aaa; padding:6px; text-align:center;">K·(−X)</td></tr>
+      <tr><td style="border:1px solid #aaa; padding:6px; text-align:center;">IV</td><td style="border:1px solid #aaa; padding:6px; text-align:center;">U₃, U₁</td><td style="border:1px solid #aaa; padding:6px; text-align:center;">K·(−X)</td><td style="border:1px solid #aaa; padding:6px; text-align:center;">K·(−Y)</td></tr>
+      <tr><td style="border:1px solid #aaa; padding:6px; text-align:center;">V</td><td style="border:1px solid #aaa; padding:6px; text-align:center;">U₁, U₅</td><td style="border:1px solid #aaa; padding:6px; text-align:center;">K·(−Y)</td><td style="border:1px solid #aaa; padding:6px; text-align:center;">K·(−Z)</td></tr>
+      <tr><td style="border:1px solid #aaa; padding:6px; text-align:center;">VI</td><td style="border:1px solid #aaa; padding:6px; text-align:center;">U₅, U₄</td><td style="border:1px solid #aaa; padding:6px; text-align:center;">K·(−Z)</td><td style="border:1px solid #aaa; padding:6px; text-align:center;">K·X</td></tr>
+    </table>
+
+    <p>复杂的三角函数计算被完全封装在 X、Y、Z 的定义中，扇区内的时间计算简化为变量赋值或取反，大幅降低 MCU 计算负担 [$TRAE_REF](https://blog.csdn.net/yhn456789/article/details/155763733)。</p>
+
+    <h4>6.4.5 七段式 SVPWM 开关序列</h4>
+
+    <p>计算出 T<sub>X</sub>、T<sub>Y</sub>、T<sub>0</sub> 后，下一步是安排各矢量在一个周期内的施加顺序——即<b>开关序列</b>。最常用的是<b>七段式 SVPWM</b>，其核心思想是将零矢量 U<sub>0</sub> 和 U<sub>7</sub> 均匀分布在周期首尾和中央，形成对称的 7 段结构 [$TRAE_REF](https://blog.csdn.net/lijigang100/article/details/155095444)。以扇区 I 为例：</p>
+
+    <div class="formula" style="font-size:15px; line-height:2.4;">
+      <b>U₀(000) → U₄(100) → U₆(110) → U₇(111) → U₆(110) → U₄(100) → U₀(000)</b><br>
+      　T₀/4　　　　T₄/2　　　　T₆/2　　　　T₀/2　　　　T₆/2　　　　T₄/2　　　　T₀/4
+    </div>
+
+    <p>该序列具有两个关键优势：</p>
+    <ul>
+      <li><b>每次切换仅改变一相</b>：从 U₀(000) 到 U₄(100) 只有 A 相变化，从 U₄(100) 到 U₆(110) 只有 B 相变化，从 U₆(110) 到 U₇(111) 只有 C 相变化。这最大限度地减少开关次数，降低开关损耗和 EMI</li>
+      <li><b>波形关于周期中点严格对称</b>：前半段（U₀→U₄→U₆→U₇）与后半段（U₇→U₆→U₄→U₀）镜像，偶次谐波被自然抵消，有效降低电流谐波分量</li>
+    </ul>
+
+    <div class="fig-wrap">
+      <svg viewBox="0 0 600 260" xmlns="http://www.w3.org/2000/svg" font-family="Segoe UI, Microsoft YaHei, sans-serif">
+        <line x1="100" y1="35" x2="100" y2="240" stroke="#ddd" stroke-width="1"/>
+        <line x1="130" y1="35" x2="130" y2="240" stroke="#ddd" stroke-width="1"/>
+        <line x1="210" y1="35" x2="210" y2="240" stroke="#ddd" stroke-width="1"/>
+        <line x1="270" y1="35" x2="270" y2="240" stroke="#ddd" stroke-width="1"/>
+        <line x1="330" y1="35" x2="330" y2="240" stroke="#ddd" stroke-width="1"/>
+        <line x1="390" y1="35" x2="390" y2="240" stroke="#ddd" stroke-width="1"/>
+        <line x1="470" y1="35" x2="470" y2="240" stroke="#ddd" stroke-width="1"/>
+        <line x1="500" y1="35" x2="500" y2="240" stroke="#ddd" stroke-width="1"/>
+        <text x="115" y="30" font-size="10" text-anchor="middle" fill="#888">T₀/4</text>
+        <text x="170" y="30" font-size="10" text-anchor="middle" fill="#888">T₄/2</text>
+        <text x="240" y="30" font-size="10" text-anchor="middle" fill="#888">T₆/2</text>
+        <text x="300" y="30" font-size="10" text-anchor="middle" fill="#888">T₀/2</text>
+        <text x="360" y="30" font-size="10" text-anchor="middle" fill="#888">T₆/2</text>
+        <text x="430" y="30" font-size="10" text-anchor="middle" fill="#888">T₄/2</text>
+        <text x="485" y="30" font-size="10" text-anchor="middle" fill="#888">T₀/4</text>
+        <text x="115" y="50" font-size="9" text-anchor="middle" fill="#aaa">U₀(000)</text>
+        <text x="170" y="50" font-size="9" text-anchor="middle" fill="#aaa">U₄(100)</text>
+        <text x="240" y="50" font-size="9" text-anchor="middle" fill="#aaa">U₆(110)</text>
+        <text x="300" y="50" font-size="9" text-anchor="middle" fill="#aaa">U₇(111)</text>
+        <text x="360" y="50" font-size="9" text-anchor="middle" fill="#aaa">U₆(110)</text>
+        <text x="430" y="50" font-size="9" text-anchor="middle" fill="#aaa">U₄(100)</text>
+        <text x="485" y="50" font-size="9" text-anchor="middle" fill="#aaa">U₀(000)</text>
+        <text x="75" y="95" font-size="14" font-weight="bold" fill="#333">A</text>
+        <polyline points="100,105 130,105 130,75 470,75 470,105 500,105" fill="none" stroke="#e74c3c" stroke-width="2"/>
+        <text x="75" y="155" font-size="14" font-weight="bold" fill="#333">B</text>
+        <polyline points="100,165 210,165 210,135 390,135 390,165 500,165" fill="none" stroke="#27ae60" stroke-width="2"/>
+        <text x="75" y="215" font-size="14" font-weight="bold" fill="#333">C</text>
+        <polyline points="100,225 270,225 270,195 330,195 330,225 500,225" fill="none" stroke="#2980b9" stroke-width="2"/>
+        <line x1="100" y1="245" x2="500" y2="245" stroke="#666" stroke-width="1"/>
+        <line x1="100" y1="242" x2="100" y2="248" stroke="#666" stroke-width="1"/>
+        <line x1="500" y1="242" x2="500" y2="248" stroke="#666" stroke-width="1"/>
+        <text x="300" y="258" font-size="11" text-anchor="middle" fill="#666">T_S</text>
+      </svg>
+      <div class="fig-caption">图 22：扇区 I 七段式 SVPWM 三相 PWM 波形——A/B/C 三相在 7 个时间段内的开关状态。每相仅切换两次（一升一降），且切换时刻依次错开。A 相高电平时间最长（T₄+T₆+T₀/2），C 相最短（T₀/2）</div>
+    </div>
+
+    <div class="note">
+      <span class="label">与手写笔记的对照：</span>笔记中的序列为 U₀ → U₄ → U₆ → U₀ → U₆ → U₄ → U₀（仅使用 U₀，不使用 U₇），此时 C 相在整个周期内始终为 0。标准七段式将中间的 U₀ 替换为 U₇(111)，使三相均参与切换，进一步优化谐波性能。笔记中提到的两个优点——"每次只一相转变降低开关损耗"和"零矢量平均分配使 PWM 对称降低谐波"——与上述分析完全一致。
+    </div>
+
+    <h4>6.4.6 过调制与电压利用率</h4>
+
+    <p>SVPWM 的线性调制区有明确边界。当参考矢量 U<sub>ref</sub> 的幅值不超过六边形内切圆半径时，T<sub>X</sub> + T<sub>Y</sub> ≤ T<sub>S</sub> 恒成立，矢量可精确合成。内切圆半径即为线性调制最大相电压幅值：</p>
+
+    <div class="formula">
+      <b>|U<sub>ref</sub>|<sub>max</sub> = (2/3)U<sub>dc</sub> × cos(30°) = U<sub>dc</sub> / √3 ≈ 0.577·U<sub>dc</sub></b>
+    </div>
+
+    <p>作为对比，传统 SPWM 的最大线性基波相电压幅值为 U<sub>dc</sub>/2 = 0.5·U<sub>dc</sub>。SVPWM 的直流母线电压利用率比 SPWM 高出 (U<sub>dc</sub>/√3) / (U<sub>dc</sub>/2) = 2/√3 ≈ <b>15.47%</b>。当 |U<sub>ref</sub>| 超过内切圆半径时，T<sub>X</sub> + T<sub>Y</sub> > T<sub>S</sub>，进入<b>过调制区</b>，需按比例缩放 T<sub>X</sub> 和 T<sub>Y</sub>（限幅），使 T<sub>0</sub> = 0。虽然波形失真，但这是电机高速弱磁区域维持可控性的必要手段 [$TRAE_REF](https://blog.csdn.net/yhn456789/article/details/155763733)。</p>
+
+    <h4>6.4.7 从作用时间到 CCR 寄存器</h4>
+
+    <p>七段式序列中，三相 PWM 信号的切换时刻（矢量切换点 T<sub>P</sub>）可直接映射到 STM32 TIM1 的比较寄存器（CCR）。以扇区 I 为例：</p>
+
+    <div class="formula" style="font-size:15px; line-height:2.4;">
+      T<sub>P,A</sub> = T<sub>0</sub>/4　　　　　　　　　　　（A 相 0→1 时刻）<br>
+      T<sub>P,B</sub> = T<sub>0</sub>/4 + T<sub>4</sub>/2　　　　　　（B 相 0→1 时刻）<br>
+      T<sub>P,C</sub> = T<sub>0</sub>/4 + T<sub>4</sub>/2 + T<sub>6</sub>/2　　（C 相 0→1 时刻）
+    </div>
+
+    <p>在<b>中心对齐模式</b>（Center-Aligned Mode）下，TIM1 计数器先从 0 上计到 ARR，再下计回 0，构成一个完整周期。将 T<sub>P,A</sub>、T<sub>P,B</sub>、T<sub>P,C</sub> 分别写入 CCR1、CCR2、CCR3，定时器硬件自动在对应时刻翻转输出电平，生成对称 PWM 波形。死区时间由 BDTR 寄存器硬件自动插入，无需软件干预 [$TRAE_REF](https://blog.csdn.net/yhn456789/article/details/155763733)。</p>
 
     <div class="note">
       <span class="label">与第三节的联系：</span>第三节 3.7 节提到的 RC 低通滤波电路用于<b>采样端</b>（滤除 PWM 噪声后再 ADC 采样），而 SVPWM 是<b>驱动端</b>（生成 PWM 波形驱动逆变器）。两者分别在信号链的两端——一个在输入（反馈），一个在输出（驱动）。
@@ -2378,6 +2597,7 @@
       <li><b>第六节 + 图 18-19 新增</b>（2026-08-12）：新增"FOC 控制系统框图与三相逆变器"章节，将前五节的模块"拼装"为完整 FOC 系统。6.1 节绘制 FOC 控制系统完整框图（图 18），展示双闭环结构、坐标变换、SVPWM、逆变器和反馈路径的全局视图；6.2 节解释串级控制策略（速度环 1kHz + 电流环 16kHz）及 id*=0 控制；6.3 节绘制三相桥式逆变器电路拓扑图（图 19），含 6 个 MOSFET、续流二极管、星形连接电机绕组和电流采样电阻；6.4 节解释 SVPWM 调制原理与开关控制；6.5 节串联从法拉第定律到硬件执行的完整链条。原"转写与修正说明"由第六节顺延为第七节。</li>
       <li><b>章节顺序策略调整</b>（2026-08-12）：废除此前"从易到难顺序排列章节"的要求，改为先完整写完笔记打通整个链条，之后再依据旧笔记重新梳理章节顺序。</li>
       <li><b>图 19B 新增</b>（2026-08-12）：在 6.3 节原有 PNG 电路截图（图 19）之后，新增同名内容的 SVG 矢量备案版（图 19B）。该 SVG 采用 IGBT 符号绘制六个开关管（A/B/C 三相 × 上/下桥臂），含反并联续流二极管与星形（Y）连接三相电感负载，可直接在 HTML 源码中编辑修改，作为图 19 位图版本的可编辑备选方案。</li>
+      <li><b>6.4 节 SVPWM 推导大幅扩展 + 图 20/22 新增 + 图 21 占位</b>（2026-08-12）：以手写笔记为引子，结合互联网资料，将原 6.4 节从概述扩展为 7 个子章节的完整推导：6.4.1 从逆变器状态到电压空间矢量（含 8 矢量开关状态表、图 20 空间矢量六边形 SVG）；6.4.2 伏秒平衡原理（从电感稳态积分推导到 SVPWM 核心方程）；6.4.3 扇区判断（X/Y/Z 中间变量法 + N 值查表）；6.4.4 作用时间计算（扇区 I 的 αβ 投影推导 + 六扇区通用查表，图 21 矢量合成图留占位待绘制）；6.4.5 七段式 SVPWM 开关序列（图 22 三相 PWM 波形 SVG，含与手写笔记的对照说明）；6.4.6 过调制与电压利用率（SVPWM vs SPWM 15.47% 提升）；6.4.7 从作用时间到 CCR 寄存器（矢量切换点→CCR 映射）。</li>
       <li>若需修改或增补，直接编辑本 HTML 即可，所有图形均为可编辑的 SVG 代码。<b>每次修改后须在本节追加修订记录</b>，格式为「<b>修改摘要</b>（日期）：详细说明」。</li>
     </ul>
 
