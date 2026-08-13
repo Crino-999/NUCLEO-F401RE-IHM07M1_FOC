@@ -168,7 +168,461 @@
   <tr><td>—</td><td>—</td><td>—</td><td>D15</td><td>PB8</td><td>I2C1_SCL</td></tr>
 </table>
 
-<p><b>ST Morpho 连接器</b>（CN7/CN10）——将 STM32 全部 64 引脚引出，是 X-NUCLEO 扩展板的主要连接方式。CN7 和 CN10 各为双排 2×19 = 38 pin，共 76 pin（含 VCC/GND 等电源引脚）。IHM07M1 即通过 Morpho 连接器与 Nucleo 叠加。</p>
+<p><b>ST Morpho 连接器</b>（CN7/CN10）——将 STM32 全部 64 引脚引出，是 X-NUCLEO 扩展板的主要连接方式。CN7 和 CN10 各为双排 2×19 = 38 pin，共 76 pin（含 VCC/GND 等电源引脚）。IHM07M1 即通过 Morpho 连接器与 Nucleo 叠加 [$TRAE_REF](https://www.st.com/resource/en/user_manual/dm00105828-stm32-nucleo64-boards-mb1136-stmicroelectronics.pdf)。</p>
+
+<h4>2.3.1 Morpho 排针物理编号规则</h4>
+
+<p>每个 Morpho 排针（CN7/CN10）为标准 2×19 双排排针，共 38 pin。引脚编号规则如下：</p>
+
+<div class="note">
+  <span class="label">编号规则：</span>
+  <b>奇数 pin</b>（1, 3, 5, …, 37）排在同一列，<b>偶数 pin</b>（2, 4, 6, …, 38）排在相邻列。Pin 1 与 Pin 2 位于排针的同一端（顶端，靠近 ST-LINK/USB 一侧），从上往下依次递增。在 PCB 上，<b>Pin 1 通过方形焊盘</b>（其余为圆形）或丝印"1"标记来识别。
+</div>
+
+<div class="fig-wrap">
+  <svg viewBox="0 0 640 460" xmlns="http://www.w3.org/2000/svg" font-family="Segoe UI, Microsoft YaHei, sans-serif">
+    <!-- Board outline -->
+    <rect x="120" y="20" width="400" height="420" rx="8" fill="#f8f9fa" stroke="#ccc" stroke-width="1.5"/>
+    <text x="320" y="40" font-size="12" fill="#888" text-anchor="middle">NUCLEO-F401RE（俯视，USB 在上方）</text>
+
+    <!-- USB -->
+    <rect x="285" y="25" width="70" height="18" rx="2" fill="#ddd" stroke="#999"/>
+    <text x="320" y="38" font-size="9" fill="#555" text-anchor="middle">USB CN1</text>
+
+    <!-- ST-LINK label -->
+    <text x="320" y="60" font-size="10" fill="#2980b9" text-anchor="middle">ST-LINK 区域</text>
+
+    <!-- MCU -->
+    <rect x="270" y="180" width="100" height="60" rx="4" fill="#e8f4f8" stroke="#2980b9" stroke-width="1.5"/>
+    <text x="320" y="205" font-size="10" fill="#2980b9" text-anchor="middle" font-weight="bold">STM32F401RE</text>
+    <text x="320" y="220" font-size="8" fill="#888" text-anchor="middle">LQFP-64</text>
+
+    <!-- CN7 (left) -->
+    <text x="70" y="85" font-size="11" fill="#c0392b" text-anchor="middle" font-weight="bold">CN7</text>
+    <text x="70" y="99" font-size="8" fill="#888" text-anchor="middle">ST Morpho</text>
+    <!-- CN7 odd column (left/outer) -->
+    <rect x="55" y="105" width="30" height="280" rx="2" fill="#fdf2f2" stroke="#e74c3c" stroke-width="1"/>
+    <text x="70" y="120" font-size="7" fill="#c0392b" text-anchor="middle" font-weight="bold">1</text>
+    <text x="70" y="148" font-size="7" fill="#c0392b" text-anchor="middle">3</text>
+    <text x="70" y="176" font-size="7" fill="#c0392b" text-anchor="middle">5</text>
+    <text x="70" y="204" font-size="7" fill="#c0392b" text-anchor="middle">7</text>
+    <text x="70" y="232" font-size="7" fill="#c0392b" text-anchor="middle">9</text>
+    <text x="70" y="260" font-size="7" fill="#c0392b" text-anchor="middle">11</text>
+    <text x="70" y="288" font-size="7" fill="#c0392b" text-anchor="middle">13</text>
+    <text x="70" y="316" font-size="7" fill="#c0392b" text-anchor="middle">15</text>
+    <text x="70" y="344" font-size="7" fill="#c0392b" text-anchor="middle">17</text>
+    <text x="70" y="372" font-size="7" fill="#c0392b" text-anchor="middle">⋮</text>
+    <!-- CN7 even column (right/inner) -->
+    <rect x="90" y="105" width="30" height="280" rx="2" fill="#eaf2f8" stroke="#2980b9" stroke-width="1"/>
+    <text x="105" y="120" font-size="7" fill="#2980b9" text-anchor="middle" font-weight="bold">2</text>
+    <text x="105" y="148" font-size="7" fill="#2980b9" text-anchor="middle">4</text>
+    <text x="105" y="176" font-size="7" fill="#2980b9" text-anchor="middle">6</text>
+    <text x="105" y="204" font-size="7" fill="#2980b9" text-anchor="middle">8</text>
+    <text x="105" y="232" font-size="7" fill="#2980b9" text-anchor="middle">10</text>
+    <text x="105" y="260" font-size="7" fill="#2980b9" text-anchor="middle">12</text>
+    <text x="105" y="288" font-size="7" fill="#2980b9" text-anchor="middle">14</text>
+    <text x="105" y="316" font-size="7" fill="#2980b9" text-anchor="middle">16</text>
+    <text x="105" y="344" font-size="7" fill="#2980b9" text-anchor="middle">18</text>
+    <text x="105" y="372" font-size="7" fill="#2980b9" text-anchor="middle">⋮</text>
+
+    <!-- Pin 1 marker for CN7 -->
+    <rect x="52" y="110" width="6" height="6" fill="none" stroke="#e74c3c" stroke-width="1.5"/>
+    <text x="38" y="118" font-size="7" fill="#e74c3c" text-anchor="end">■</text>
+    <text x="38" y="128" font-size="6" fill="#e74c3c" text-anchor="end">方焊盘</text>
+
+    <!-- Column labels for CN7 -->
+    <text x="70" y="400" font-size="7" fill="#c0392b" text-anchor="middle">奇数列</text>
+    <text x="70" y="410" font-size="7" fill="#c0392b" text-anchor="middle">(外侧)</text>
+    <text x="105" y="400" font-size="7" fill="#2980b9" text-anchor="middle">偶数列</text>
+    <text x="105" y="410" font-size="7" fill="#2980b9" text-anchor="middle">(靠MCU)</text>
+
+    <!-- CN10 (right) -->
+    <text x="570" y="85" font-size="11" fill="#27ae60" text-anchor="middle" font-weight="bold">CN10</text>
+    <text x="570" y="99" font-size="8" fill="#888" text-anchor="middle">ST Morpho</text>
+    <!-- CN10 odd column (left/inner) -->
+    <rect x="520" y="105" width="30" height="280" rx="2" fill="#eafaf1" stroke="#27ae60" stroke-width="1"/>
+    <text x="535" y="120" font-size="7" fill="#27ae60" text-anchor="middle" font-weight="bold">1</text>
+    <text x="535" y="148" font-size="7" fill="#27ae60" text-anchor="middle">3</text>
+    <text x="535" y="176" font-size="7" fill="#27ae60" text-anchor="middle">5</text>
+    <text x="535" y="204" font-size="7" fill="#27ae60" text-anchor="middle">7</text>
+    <text x="535" y="232" font-size="7" fill="#27ae60" text-anchor="middle">9</text>
+    <text x="535" y="260" font-size="7" fill="#27ae60" text-anchor="middle">11</text>
+    <text x="535" y="288" font-size="7" fill="#27ae60" text-anchor="middle">13</text>
+    <text x="535" y="316" font-size="7" fill="#27ae60" text-anchor="middle">15</text>
+    <text x="535" y="344" font-size="7" fill="#27ae60" text-anchor="middle">17</text>
+    <text x="535" y="372" font-size="7" fill="#27ae60" text-anchor="middle">⋮</text>
+    <!-- CN10 even column (right/outer) -->
+    <rect x="555" y="105" width="30" height="280" rx="2" fill="#fef9e7" stroke="#f39c12" stroke-width="1"/>
+    <text x="570" y="120" font-size="7" fill="#f39c12" text-anchor="middle" font-weight="bold">2</text>
+    <text x="570" y="148" font-size="7" fill="#f39c12" text-anchor="middle">4</text>
+    <text x="570" y="176" font-size="7" fill="#f39c12" text-anchor="middle">6</text>
+    <text x="570" y="204" font-size="7" fill="#f39c12" text-anchor="middle">8</text>
+    <text x="570" y="232" font-size="7" fill="#f39c12" text-anchor="middle">10</text>
+    <text x="570" y="260" font-size="7" fill="#f39c12" text-anchor="middle">12</text>
+    <text x="570" y="288" font-size="7" fill="#f39c12" text-anchor="middle">14</text>
+    <text x="570" y="316" font-size="7" fill="#f39c12" text-anchor="middle">16</text>
+    <text x="570" y="344" font-size="7" fill="#f39c12" text-anchor="middle">18</text>
+    <text x="570" y="372" font-size="7" fill="#f39c12" text-anchor="middle">⋮</text>
+
+    <!-- Pin 1 marker for CN10 -->
+    <rect x="517" y="110" width="6" height="6" fill="none" stroke="#27ae60" stroke-width="1.5"/>
+    <text x="602" y="118" font-size="7" fill="#27ae60">■</text>
+    <text x="602" y="128" font-size="6" fill="#27ae60">方焊盘</text>
+
+    <!-- Column labels for CN10 -->
+    <text x="535" y="400" font-size="7" fill="#27ae60" text-anchor="middle">奇数列</text>
+    <text x="535" y="410" font-size="7" fill="#27ae60" text-anchor="middle">(靠MCU)</text>
+    <text x="570" y="400" font-size="7" fill="#f39c12" text-anchor="middle">偶数列</text>
+    <text x="570" y="410" font-size="7" fill="#f39c12" text-anchor="middle">(外侧)</text>
+
+    <!-- Counting direction arrows -->
+    <line x1="40" y1="115" x2="40" y2="370" stroke="#e74c3c" stroke-width="1" stroke-dasharray="3,2"/>
+    <polygon points="40,375 37,368 43,368" fill="#e74c3c"/>
+    <text x="28" y="250" font-size="7" fill="#e74c3c" text-anchor="middle" transform="rotate(-90 28 250)">1→3→5→…→37</text>
+
+    <line x1="600" y1="115" x2="600" y2="370" stroke="#27ae60" stroke-width="1" stroke-dasharray="3,2"/>
+    <polygon points="600,375 597,368 603,368" fill="#27ae60"/>
+    <text x="612" y="250" font-size="7" fill="#27ae60" text-anchor="middle" transform="rotate(90 612 250)">1→3→5→…→37</text>
+
+    <!-- Top direction indicator -->
+    <text x="320" y="80" font-size="8" fill="#888" text-anchor="middle">↓ Pin 1 在顶端（靠近 ST-LINK）</text>
+  </svg>
+  <div class="fig-caption">图 3A：Morpho 排针物理编号示意图——CN7（左侧）和 CN10（右侧）各为 2×19 双排排针；奇数 pin 和偶数 pin 分列两列，Pin 1 位于顶端（靠近 ST-LINK/USB 一侧），通过方形焊盘识别；编号从上往下递增（1→3→5→…→37，2→4→6→…→38）。CN7 的奇数列在外侧、偶数列靠 MCU；CN10 的奇数列靠 MCU、偶数列在外侧</div>
+</div>
+
+<h4>2.3.2 CN7 引脚映射（左排 Morpho，38 pin）</h4>
+
+<p>下表来自 UM1724 Table 29（适用于 NUCLEO-F401RE / F411RE / F446RE），列出 CN7 每个 pin 对应的 STM32F401RE 引脚 [$TRAE_REF](https://www.st.com/resource/en/user_manual/dm00105828-stm32-nucleo64-boards-mb1136-stmicroelectronics.pdf)：</p>
+
+<table style="font-size:11px;">
+  <tr style="background:#e8f4f8;"><th colspan="6">CN7（左侧 Morpho 排针）</th></tr>
+  <tr><th>Pin</th><th>信号名</th><th>MCU 引脚</th><th>类型</th><th>功能 / 备注</th><th>本工程使用</th></tr>
+  <tr><td>1</td><td>PC10</td><td>PC10</td><td>GPIO</td><td>—</td><td>✓ M1_PWM_EN_U</td></tr>
+  <tr><td>2</td><td>PC11</td><td>PC11</td><td>GPIO</td><td>—</td><td>✓ M1_PWM_EN_V</td></tr>
+  <tr><td>3</td><td>PC12</td><td>PC12</td><td>GPIO</td><td>—</td><td>✓ M1_PWM_EN_W</td></tr>
+  <tr><td>4</td><td>PD2</td><td>PD2</td><td>GPIO</td><td>—</td><td>—</td></tr>
+  <tr><td>5</td><td>VDD</td><td>—</td><td>电源</td><td>3.3V</td><td>—</td></tr>
+  <tr><td>6</td><td>E5V</td><td>—</td><td>电源</td><td>外部 5V 输入（JP5 选 E5V 时使用）</td><td>✓ IHM07M1 回供</td></tr>
+  <tr><td>7</td><td>BOOT0</td><td>—</td><td>系统</td><td>启动模式选择，默认 LOW¹</td><td>—</td></tr>
+  <tr><td>8</td><td>GND</td><td>—</td><td>电源</td><td>地</td><td>—</td></tr>
+  <tr><td>9</td><td>—</td><td>NC</td><td>—</td><td>未连接</td><td>—</td></tr>
+  <tr><td>10</td><td>—</td><td>NC</td><td>—</td><td>未连接</td><td>—</td></tr>
+  <tr><td>11</td><td>—</td><td>NC</td><td>—</td><td>未连接</td><td>—</td></tr>
+  <tr><td>12</td><td>IOREF</td><td>—</td><td>电源</td><td>I/O 电平参考（3.3V）</td><td>—</td></tr>
+  <tr><td>13</td><td>PA13</td><td>PA13</td><td>调试</td><td>SWDIO（与 ST-LINK 共享）³</td><td>—</td></tr>
+  <tr><td>14</td><td>RESET</td><td>NRST</td><td>系统</td><td>复位信号</td><td>—</td></tr>
+  <tr><td>15</td><td>PA14</td><td>PA14</td><td>调试</td><td>SWCLK（与 ST-LINK 共享）³</td><td>—</td></tr>
+  <tr><td>16</td><td>+3.3V</td><td>—</td><td>电源</td><td>3.3V 输出</td><td>—</td></tr>
+  <tr><td>17</td><td>PA15</td><td>PA15</td><td>GPIO</td><td>—</td><td>—</td></tr>
+  <tr><td>18</td><td>+5V</td><td>—</td><td>电源</td><td>5V 输出</td><td>—</td></tr>
+  <tr><td>19</td><td>GND</td><td>—</td><td>电源</td><td>地</td><td>—</td></tr>
+  <tr><td>20</td><td>GND</td><td>—</td><td>电源</td><td>地</td><td>—</td></tr>
+  <tr><td>21</td><td>PB7</td><td>PB7</td><td>GPIO</td><td>—</td><td>—</td></tr>
+  <tr><td>22</td><td>GND</td><td>—</td><td>电源</td><td>地</td><td>—</td></tr>
+  <tr><td>23</td><td>PC13</td><td>PC13</td><td>GPIO</td><td>—</td><td>✓ Start_Stop（用户按键）</td></tr>
+  <tr><td>24</td><td>VIN</td><td>—</td><td>电源</td><td>外部电源输入（7-12V）</td><td>—</td></tr>
+  <tr><td>25</td><td>PC14</td><td>PC14</td><td>GPIO</td><td>OSC32_IN</td><td>—</td></tr>
+  <tr><td>26</td><td>—</td><td>NC</td><td>—</td><td>未连接</td><td>—</td></tr>
+  <tr><td>27</td><td>PC15</td><td>PC15</td><td>GPIO</td><td>OSC32_OUT</td><td>—</td></tr>
+  <tr><td>28</td><td>PA0</td><td>PA0</td><td>ADC</td><td>Arduino A0</td><td>✓ M1_CURR_AMPL_U</td></tr>
+  <tr><td>29</td><td>PH0</td><td>PH0</td><td>GPIO</td><td>OSC_IN（HSE 晶振）</td><td>—</td></tr>
+  <tr><td>30</td><td>PA1</td><td>PA1</td><td>ADC</td><td>Arduino A1</td><td>✓ M1_BUS_VOLTAGE</td></tr>
+  <tr><td>31</td><td>PH1</td><td>PH1</td><td>GPIO</td><td>OSC_OUT（HSE 晶振）</td><td>—</td></tr>
+  <tr><td>32</td><td>PA4</td><td>PA4</td><td>GPIO</td><td>Arduino A2</td><td>—</td></tr>
+  <tr><td>33</td><td>VBAT</td><td>—</td><td>电源</td><td>RTC 电池供电</td><td>—</td></tr>
+  <tr><td>34</td><td>PB0</td><td>PB0</td><td>ADC</td><td>Arduino A3</td><td>—</td></tr>
+  <tr><td>35</td><td>PC2</td><td>PC2</td><td>ADC</td><td>—</td><td>✓ M1_TEMPERATURE</td></tr>
+  <tr><td>36</td><td>PC1 / PB9</td><td>PC1 或 PB9⁴</td><td>ADC/I2C</td><td>Arduino A4（可切换 I2C1_SDA）</td><td>✓ M1_CURR_AMPL_V</td></tr>
+  <tr><td>37</td><td>PC3</td><td>PC3</td><td>GPIO</td><td>—</td><td>—</td></tr>
+  <tr><td>38</td><td>PC0 / PB8</td><td>PC0 或 PB8⁴</td><td>ADC/I2C</td><td>Arduino A5（可切换 I2C1_SCL）</td><td>—</td></tr>
+</table>
+
+<h4>2.3.3 CN10 引脚映射（右排 Morpho，38 pin）</h4>
+
+<table style="font-size:11px;">
+  <tr style="background:#eafaf1;"><th colspan="6">CN10（右侧 Morpho 排针）</th></tr>
+  <tr><th>Pin</th><th>信号名</th><th>MCU 引脚</th><th>类型</th><th>功能 / 备注</th><th>本工程使用</th></tr>
+  <tr><td>1</td><td>PC9</td><td>PC9</td><td>GPIO</td><td>—</td><td>—</td></tr>
+  <tr><td>2</td><td>PC8</td><td>PC8</td><td>GPIO</td><td>—</td><td>—</td></tr>
+  <tr><td>3</td><td>PB8</td><td>PB8</td><td>GPIO/I2C</td><td>I2C1_SCL / Arduino D15</td><td>—</td></tr>
+  <tr><td>4</td><td>PC6</td><td>PC6</td><td>GPIO</td><td>—</td><td>—</td></tr>
+  <tr><td>5</td><td>PB9</td><td>PB9</td><td>GPIO/I2C</td><td>I2C1_SDA / Arduino D14</td><td>—</td></tr>
+  <tr><td>6</td><td>PC5</td><td>PC5</td><td>GPIO</td><td>—</td><td>—</td></tr>
+  <tr><td>7</td><td>AVDD</td><td>—</td><td>电源</td><td>模拟电源</td><td>—</td></tr>
+  <tr><td>8</td><td>U5V</td><td>—</td><td>电源</td><td>ST-LINK USB 5V²</td><td>—</td></tr>
+  <tr><td>9</td><td>GND</td><td>—</td><td>电源</td><td>地</td><td>—</td></tr>
+  <tr><td>10</td><td>—</td><td>NC</td><td>—</td><td>未连接</td><td>—</td></tr>
+  <tr><td>11</td><td>PA5</td><td>PA5</td><td>SPI/ADC</td><td>SPI1_SCK / Arduino D13 / LED</td><td>—</td></tr>
+  <tr><td>12</td><td>PA12</td><td>PA12</td><td>USB</td><td>USB_DP</td><td>—</td></tr>
+  <tr><td>13</td><td>PA6</td><td>PA6</td><td>SPI/ADC</td><td>SPI1_MISO / Arduino D12</td><td>—</td></tr>
+  <tr><td>14</td><td>PA11</td><td>PA11</td><td>USB</td><td>USB_DM</td><td>—</td></tr>
+  <tr><td>15</td><td>PA7</td><td>PA7</td><td>SPI/TIM</td><td>TIM1_CH1N / SPI1_MOSI / Arduino D11</td><td>—</td></tr>
+  <tr><td>16</td><td>PB12</td><td>PB12</td><td>GPIO</td><td>—</td><td>—</td></tr>
+  <tr><td>17</td><td>PB6</td><td>PB6</td><td>TIM/SPI</td><td>TIM4_CH1 / SPI1_CS / Arduino D10</td><td>—</td></tr>
+  <tr><td>18</td><td>—</td><td>NC</td><td>—</td><td>未连接</td><td>—</td></tr>
+  <tr><td>19</td><td>PC7</td><td>PC7</td><td>TIM</td><td>TIM3_CH2 / Arduino D9</td><td>—</td></tr>
+  <tr><td>20</td><td>GND</td><td>—</td><td>电源</td><td>地</td><td>—</td></tr>
+  <tr><td>21</td><td>PA9</td><td>PA9</td><td>GPIO</td><td>Arduino D8</td><td>—</td></tr>
+  <tr><td>22</td><td>PB2</td><td>PB2</td><td>GPIO</td><td>BOOT1</td><td>—</td></tr>
+  <tr><td>23</td><td>PA8</td><td>PA8</td><td>TIM</td><td>Arduino D7</td><td>✓ M1_PWM_UH</td></tr>
+  <tr><td>24</td><td>PB1</td><td>PB1</td><td>ADC</td><td>—</td><td>✓ M1_POTENTIOMETER</td></tr>
+  <tr><td>25</td><td>PB10</td><td>PB10</td><td>TIM</td><td>TIM2_CH3 / Arduino D6</td><td>—</td></tr>
+  <tr><td>26</td><td>PB15</td><td>PB15</td><td>GPIO</td><td>—</td><td>—</td></tr>
+  <tr><td>27</td><td>PB4</td><td>PB4</td><td>TIM</td><td>TIM3_CH1 / Arduino D5</td><td>—</td></tr>
+  <tr><td>28</td><td>PB14</td><td>PB14</td><td>GPIO</td><td>—</td><td>—</td></tr>
+  <tr><td>29</td><td>PB5</td><td>PB5</td><td>GPIO</td><td>Arduino D4</td><td>—</td></tr>
+  <tr><td>30</td><td>PB13</td><td>PB13</td><td>GPIO</td><td>—</td><td>—</td></tr>
+  <tr><td>31</td><td>PB3</td><td>PB3</td><td>TIM</td><td>TIM2_CH2 / Arduino D3</td><td>—</td></tr>
+  <tr><td>32</td><td>AGND</td><td>—</td><td>电源</td><td>模拟地</td><td>—</td></tr>
+  <tr><td>33</td><td>PA10</td><td>PA10</td><td>GPIO</td><td>Arduino D2</td><td>—</td></tr>
+  <tr><td>34</td><td>PC4</td><td>PC4</td><td>GPIO</td><td>—</td><td>—</td></tr>
+  <tr><td>35</td><td>PA2</td><td>PA2</td><td>USART</td><td>USART2_TX / Arduino D1</td><td>✓ UART_TX</td></tr>
+  <tr><td>36</td><td>—</td><td>NC</td><td>—</td><td>未连接</td><td>—</td></tr>
+  <tr><td>37</td><td>PA3</td><td>PA3</td><td>USART</td><td>USART2_RX / Arduino D0</td><td>✓ UART_RX</td></tr>
+  <tr><td>38</td><td>—</td><td>NC</td><td>—</td><td>未连接</td><td>—</td></tr>
+</table>
+
+<div class="note">
+  <span class="label">脚注：</span><br>
+  ¹ BOOT0 默认为 LOW。在 CN7 的 pin5-pin7 之间放置跳线可设为 HIGH，板背面 CN11/CN12 有备用跳线。<br>
+  ² U5V 是来自 ST-LINK/V2-1 USB 连接器的 5V 电源，先于 +5V 上电。<br>
+  ³ PA13/PA14 与连接到 ST-LINK/V2-1 的 SWD 信号共享，若未切除 ST-LINK 部分，不建议作为 IO 使用。<br>
+  ⁴ PC1/PB9 和 PC0/PB8 可通过焊桥（SB46/SB52/SB51/SB56）切换，详见 UM1724 Table 10。
+</div>
+
+<div class="note">
+  <span class="label">与 main.h 的交叉验证：</span>本工程实际使用的 13 个引脚均可在上表中定位——例如 <code>M1_PWM_UH → PA8</code> 在 CN10 pin 23、<code>M1_CURR_AMPL_U → PA0</code> 在 CN7 pin 28、<code>M1_PWM_EN_U → PC10</code> 在 CN7 pin 1。这意味着 IHM07M1 正是通过这些 Morpho 引脚与 Nucleo 通信，物理上两板叠加后排针一一对应。
+</div>
+
+<h4>2.3.4 ST-LINK / 调试连接器（CN1–CN4）</h4>
+
+<p>除 Morpho 和 Arduino 连接器外，NUCLEO-F401RE 板载还有 4 个与 ST-LINK 调试相关的连接器，位于板卡上半部分（ST-LINK 区域）[$TRAE_REF](https://www.st.com/resource/en/user_manual/dm00105828-stm32-nucleo64-boards-mb1136-stmicroelectronics.pdf)：</p>
+
+<table style="font-size:12px;">
+  <tr style="background:#eee;"><th>连接器</th><th>类型</th><th>引脚数</th><th>功能</th><th>位置</th></tr>
+  <tr><td><b>CN1</b></td><td>Mini-B USB</td><td>5 pin</td><td>ST-LINK USB 接口——供电、调试、虚拟串口（VCP）、大容量存储</td><td>板顶端中央</td></tr>
+  <tr><td><b>CN2</b></td><td>跳线（2 个）</td><td>2 × 1 pin</td><td>ST-LINK/Nucleo 选择器——ON：调试板上 MCU；OFF：通过 CN4 调试外部 MCU</td><td>ST-LINK 区域</td></tr>
+  <tr><td><b>CN3</b></td><td>排针</td><td>2 pin</td><td>UART 接口——连接 ST-LINK VCP 的 TX/RX，用于将其他 USART 路由到虚拟串口</td><td>ST-LINK 区域</td></tr>
+  <tr><td><b>CN4</b></td><td>SWD 排针</td><td>6 pin</td><td>SWD 调试接口——用于连接外部调试器或调试外部 STM32</td><td>ST-LINK 区域</td></tr>
+</table>
+
+<p><b>CN4（SWD 调试接口）引脚定义</b>——来自 UM1724 Table 5：</p>
+
+<table style="font-size:11px;">
+  <tr style="background:#f5eef8;"><th colspan="3">CN4（SWD 调试连接器，6 pin）</th></tr>
+  <tr><th>Pin</th><th>信号名</th><th>功能 / 备注</th></tr>
+  <tr><td>1</td><td>VDD_TARGET</td><td>目标 MCU 的 VDD（由应用板提供）</td></tr>
+  <tr><td>2</td><td>SWCLK</td><td>SWD 时钟</td></tr>
+  <tr><td>3</td><td>GND</td><td>地</td></tr>
+  <tr><td>4</td><td>SWDIO</td><td>SWD 数据输入/输出</td></tr>
+  <tr><td>5</td><td>NRST</td><td>目标 STM32 复位信号（SB12 控制是否连通）</td></tr>
+  <tr><td>6</td><td>SWO</td><td>保留（SB15 控制是否连接到 PB3）</td></tr>
+</table>
+
+<div class="note">
+  <span class="label">CN2 跳线配置：</span>两个跳线均 ON（默认）= ST-LINK 调试板上 STM32；两个跳线均 OFF = ST-LINK 通过 CN4 调试外部 MCU。使用 CN4 调试外部 MCU 时，若使用 pin 5（NRST），需断开 SB12。
+</div>
+
+<div class="note">
+  <span class="label">CN3 UART 路由：</span>默认情况下 PA2/PA3（USART2）通过 SB13/SB14 连接到 ST-LINK 实现虚拟串口。若需要将其他 USART 路由到 ST-LINK VCP，需断开 SB13/SB14，再用飞线从 Morpho 排针接到 CN3 的 TX/RX 引脚。
+</div>
+
+<h4>2.3.5 Arduino Uno R3 连接器引脚映射（CN5/CN6/CN8/CN9）</h4>
+
+<p>以下来自 UM1724 Table 16（适用于 NUCLEO-F401RE / F411RE），列出每个 Arduino 连接器引脚对应的 STM32F401RE 引脚 [$TRAE_REF](https://www.st.com/resource/en/user_manual/dm00105828-stm32-nucleo64-boards-mb1136-stmicroelectronics.pdf)：</p>
+
+<p><b>CN6（电源排针，8 pin）</b>——位于板卡左下角，提供电源和复位信号：</p>
+
+<table style="font-size:11px;">
+  <tr style="background:#e8f4f8;"><th colspan="4">CN6（Arduino 电源连接器，8 pin）</th></tr>
+  <tr><th>Pin</th><th>信号名</th><th>STM32 引脚</th><th>功能 / 备注</th></tr>
+  <tr><td>1</td><td>NC</td><td>—</td><td>未连接</td></tr>
+  <tr><td>2</td><td>IOREF</td><td>—</td><td>I/O 电平参考（3.3V）</td></tr>
+  <tr><td>3</td><td>RESET</td><td>NRST</td><td>复位信号</td></tr>
+  <tr><td>4</td><td>+3.3V</td><td>—</td><td>3.3V 输入/输出</td></tr>
+  <tr><td>5</td><td>+5V</td><td>—</td><td>5V 输出</td></tr>
+  <tr><td>6</td><td>GND</td><td>—</td><td>地</td></tr>
+  <tr><td>7</td><td>GND</td><td>—</td><td>地</td></tr>
+  <tr><td>8</td><td>VIN</td><td>—</td><td>外部电源输入（7-12V）</td></tr>
+</table>
+
+<p><b>CN8（模拟排针，6 pin）</b>——位于板卡左下角，CN6 上方，提供模拟输入：</p>
+
+<table style="font-size:11px;">
+  <tr style="background:#e8f4f8;"><th colspan="4">CN8（Arduino 模拟连接器，6 pin）</th></tr>
+  <tr><th>Pin</th><th>信号名</th><th>STM32 引脚</th><th>功能 / 备注</th></tr>
+  <tr><td>1</td><td>A0</td><td>PA0</td><td>ADC1_IN0 ✓ M1_CURR_AMPL_U</td></tr>
+  <tr><td>2</td><td>A1</td><td>PA1</td><td>ADC1_IN1 ✓ M1_BUS_VOLTAGE</td></tr>
+  <tr><td>3</td><td>A2</td><td>PA4</td><td>ADC1_IN4</td></tr>
+  <tr><td>4</td><td>A3</td><td>PB0</td><td>ADC1_IN8</td></tr>
+  <tr><td>5</td><td>A4</td><td>PC1 或 PB9¹</td><td>ADC1_IN11（PC1）或 I2C1_SDA（PB9）✓ M1_CURR_AMPL_V</td></tr>
+  <tr><td>6</td><td>A5</td><td>PC0 或 PB8¹</td><td>ADC1_IN10（PC0）或 I2C1_SCL（PB8）</td></tr>
+</table>
+
+<p><b>CN5（数字排针，10 pin）</b>——位于板卡右下角，提供 SPI 和 I2C 接口：</p>
+
+<table style="font-size:11px;">
+  <tr style="background:#eafaf1;"><th colspan="4">CN5（Arduino 数字连接器，10 pin）</th></tr>
+  <tr><th>Pin</th><th>信号名</th><th>STM32 引脚</th><th>功能 / 备注</th></tr>
+  <tr><td>1</td><td>D8</td><td>PA9</td><td>GPIO</td></tr>
+  <tr><td>2</td><td>D9</td><td>PC7</td><td>TIM3_CH2</td></tr>
+  <tr><td>3</td><td>D10</td><td>PB6</td><td>TIM4_CH1 / SPI1_CS</td></tr>
+  <tr><td>4</td><td>D11</td><td>PA7</td><td>TIM1_CH1N / SPI1_MOSI</td></tr>
+  <tr><td>5</td><td>D12</td><td>PA6</td><td>SPI1_MISO</td></tr>
+  <tr><td>6</td><td>D13</td><td>PA5</td><td>SPI1_SCK / LED LD2</td></tr>
+  <tr><td>7</td><td>GND</td><td>—</td><td>地</td></tr>
+  <tr><td>8</td><td>AREF</td><td>—</td><td>模拟参考（AVDD）</td></tr>
+  <tr><td>9</td><td>D14</td><td>PB9</td><td>I2C1_SDA</td></tr>
+  <tr><td>10</td><td>D15</td><td>PB8</td><td>I2C1_SCL</td></tr>
+</table>
+
+<p><b>CN9（数字排针，8 pin）</b>——位于板卡右下角，CN5 上方，提供 UART 和 PWM 接口：</p>
+
+<table style="font-size:11px;">
+  <tr style="background:#eafaf1;"><th colspan="4">CN9（Arduino 数字连接器，8 pin）</th></tr>
+  <tr><th>Pin</th><th>信号名</th><th>STM32 引脚</th><th>功能 / 备注</th></tr>
+  <tr><td>1</td><td>D0</td><td>PA3</td><td>USART2_RX ✓ UART_RX</td></tr>
+  <tr><td>2</td><td>D1</td><td>PA2</td><td>USART2_TX ✓ UART_TX</td></tr>
+  <tr><td>3</td><td>D2</td><td>PA10</td><td>GPIO</td></tr>
+  <tr><td>4</td><td>D3</td><td>PB3</td><td>TIM2_CH2（PWM）</td></tr>
+  <tr><td>5</td><td>D4</td><td>PB5</td><td>GPIO</td></tr>
+  <tr><td>6</td><td>D5</td><td>PB4</td><td>TIM3_CH1（PWM）</td></tr>
+  <tr><td>7</td><td>D6</td><td>PB10</td><td>TIM2_CH3（PWM）</td></tr>
+  <tr><td>8</td><td>D7</td><td>PA8</td><td>GPIO ✓ M1_PWM_UH</td></tr>
+</table>
+
+<div class="note">
+  <span class="label">脚注：</span><br>
+  ¹ A4/A5 引脚可通过焊桥切换：SB56/SB51 ON 时使用 PC1/PC0（ADC），SB46/SB52 ON 时使用 PB9/PB8（I2C），详见 UM1724 Table 10。<br>
+  ² Arduino 排针与 Morpho 排针共享同一 MCU 引脚——例如 A0 = CN8 pin1 = CN7 pin28 = PA0，D7 = CN9 pin8 = CN10 pin23 = PA8。
+</div>
+
+<h4>2.3.6 X-NUCLEO-IHM07M1 功率板连接器总览</h4>
+
+<p>X-NUCLEO-IHM07M1 板载连接器可分为三类：功率端子（J1/J2）、传感器/调试排针（J3/J7）和配置跳线（J5/J6/J9/JP1-3）。CN7/CN10 为 Morpho 排母，与 Nucleo 的 Morpho 排针一一对应，是两板通信的物理通道 [$TRAE_REF](https://www.st.com/resource/en/user_manual/dm00105828-stm32-nucleo64-boards-mb1136-stmicroelectronics.pdf)。</p>
+
+<table style="font-size:11px;">
+  <tr style="background:#fff3e0;"><th colspan="5">X-NUCLEO-IHM07M1 连接器总览</th></tr>
+  <tr><th>连接器</th><th>类型</th><th>引脚数</th><th>功能</th><th>默认状态</th></tr>
+  <tr><td><b>J1</b></td><td>接线端子（3.81mm）</td><td>2 pin</td><td>电机电源输入（8-48V DC）</td><td>—</td></tr>
+  <tr><td><b>J2</b></td><td>接线端子（3.81mm）</td><td>3 pin</td><td>三相电机连接（OUT1/OUT2/OUT3）</td><td>—</td></tr>
+  <tr><td><b>J3</b></td><td>排针（2.54mm）</td><td>5 pin</td><td>Hall/Encoder 传感器接口（A+/B+/Z+/5V/GND）</td><td>—</td></tr>
+  <tr><td><b>J5</b></td><td>排针跳线（2.54mm）</td><td>3 pin</td><td>单/三分流电阻配置</td><td>2-3 CLOSED（单分流）</td></tr>
+  <tr><td><b>J6</b></td><td>排针跳线（2.54mm）</td><td>3 pin</td><td>单/三分流电阻配置</td><td>2-3 CLOSED（单分流）</td></tr>
+  <tr><td><b>J7</b></td><td>排针（2.54mm）</td><td>3 pin</td><td>DAC 调试接口</td><td>OPEN</td></tr>
+  <tr><td><b>J9</b></td><td>跳线（2.54mm）</td><td>2 pin</td><td>选择是否由 IHM07M1 向 Nucleo 供电</td><td>OPEN（默认不供电）</td></tr>
+  <tr><td><b>JP1</b></td><td>跳线（2.54mm）</td><td>2 pin</td><td>电流检测电路 BIAS 上拉</td><td>OPEN</td></tr>
+  <tr><td><b>JP2</b></td><td>跳线（2.54mm）</td><td>2 pin</td><td>电流检测电路运放增益调整</td><td>OPEN</td></tr>
+  <tr><td><b>JP3</b></td><td>跳线（2.54mm）</td><td>2 pin</td><td>Hall/Encoder 检测电路上拉使能</td><td>CLOSED</td></tr>
+  <tr><td><b>CN7</b></td><td>Morpho 排母</td><td>2×19 = 38 pin</td><td>与 Nucleo CN7 对接（左排）</td><td>—</td></tr>
+  <tr><td><b>CN10</b></td><td>Morpho 排母</td><td>2×19 = 38 pin</td><td>与 Nucleo CN10 对接（右排）</td><td>—</td></tr>
+  <tr><td><b>CN5/CN6/<br>CN8/CN9</b></td><td>Arduino 排母</td><td>—</td><td>Arduino Uno R3 兼容（未焊接）</td><td>未安装（N.M.）</td></tr>
+</table>
+
+<h4>2.3.7 J1 / J2——功率端子</h4>
+
+<table style="font-size:11px;">
+  <tr style="background:#fff3e0;"><th colspan="4">J1（电源输入端子，2 pin，3.81mm 螺钉端子）</th></tr>
+  <tr><th>Pin</th><th>信号</th><th>说明</th><th>范围</th></tr>
+  <tr><td>1</td><td>VIN+</td><td>电机电源正极</td><td>8-48V DC</td></tr>
+  <tr><td>2</td><td>GND</td><td>电机电源地</td><td>—</td></tr>
+</table>
+
+<table style="font-size:11px;">
+  <tr style="background:#fff3e0;"><th colspan="4">J2（三相电机端子，3 pin，3.81mm 螺钉端子）</th></tr>
+  <tr><th>Pin</th><th>信号</th><th>L6230 输出</th><th>对应相</th></tr>
+  <tr><td>1</td><td>OUT3</td><td>L6230 OUT3</td><td>W 相</td></tr>
+  <tr><td>2</td><td>OUT2</td><td>L6230 OUT2</td><td>V 相</td></tr>
+  <tr><td>3</td><td>OUT1</td><td>L6230 OUT1</td><td>U 相</td></tr>
+</table>
+
+<div class="note">
+  <span class="label">J9 供电跳线注意：</span>断开 J9 后再给 J1 上电。J9 闭合时，IHM07M1 会通过 Morpho 排针向 Nucleo 供电，此时 J1 电压<b>不得超过 12V</b>，否则会损坏 Nucleo 板。Nucleo 板上的 JP5 跳线需置于 pin 2-3（外部供电模式）。
+</div>
+
+<h4>2.3.8 J3——Hall/Encoder 传感器接口</h4>
+
+<table style="font-size:11px;">
+  <tr style="background:#fff3e0;"><th colspan="4">J3（Hall/Encoder 传感器，5 pin，2.54mm 排针）</th></tr>
+  <tr><th>Pin</th><th>信号</th><th>功能</th><th>走向</th></tr>
+  <tr><td>1</td><td>A+ / H1</td><td>编码器 A 相 / Hall 传感器 H1</td><td>→ Nucleo CN7 pin 17 (PA15)</td></tr>
+  <tr><td>2</td><td>B+ / H2</td><td>编码器 B 相 / Hall 传感器 H2</td><td>→ Nucleo CN10 pin 31 (PB3)</td></tr>
+  <tr><td>3</td><td>Z+ / H3</td><td>编码器 Z 相 / Hall 传感器 H3</td><td>→ Nucleo CN10 pin 25 (PB10)</td></tr>
+  <tr><td>4</td><td>5V</td><td>传感器电源（5V）</td><td>← Nucleo +5V</td></tr>
+  <tr><td>5</td><td>GND</td><td>传感器地</td><td>← GND</td></tr>
+</table>
+
+<div class="note">
+  <span class="label">JP3 跳线：</span>默认 CLOSED，为 Hall/Encoder 信号提供上拉电阻（1.8kΩ）。若传感器自带上拉，可断开 JP3。
+</div>
+
+<h4>2.3.9 CN7——IHM07M1 侧 Morpho 引脚映射（左排，38 pin）</h4>
+
+<p>下表来自 UM1943 Table 3，列出 IHM07M1 侧 CN7 排母每个 pin 的信号定义，并交叉对照 NUCLEO-F401RE 侧的 MCU 引脚 [$TRAE_REF](https://www.st.com/resource/en/user_manual/dm00105828-stm32-nucleo64-boards-mb1136-stmicroelectronics.pdf)：</p>
+
+<table style="font-size:10px;">
+  <tr style="background:#fff3e0;"><th colspan="6">CN7（IHM07M1 侧 Morpho 排母）</th></tr>
+  <tr><th>Pin</th><th>IHM07M1 信号</th><th>焊桥/电阻</th><th>Nucleo MCU 引脚</th><th>main.h 定义</th><th>功能说明</th></tr>
+  <tr><td>1</td><td>Enable_CH1-L6230</td><td>R58</td><td>PC10</td><td>✓ M1_PWM_EN_U</td><td>L6230 使能 CH1（U 相）</td></tr>
+  <tr><td>2</td><td>Enable_CH2-L6230</td><td>R67</td><td>PC11</td><td>✓ M1_PWM_EN_V</td><td>L6230 使能 CH2（V 相）</td></tr>
+  <tr><td>3</td><td>Enable_CH3-L6230</td><td>R72</td><td>PC12</td><td>✓ M1_PWM_EN_W</td><td>L6230 使能 CH3（W 相）</td></tr>
+  <tr><td>4</td><td>—</td><td>—</td><td>PD2</td><td>—</td><td>未使用</td></tr>
+  <tr><td>5-16</td><td>—</td><td>—</td><td>电源/调试/NC</td><td>—</td><td>电源和 SWD 引脚，IHM07M1 未连接信号</td></tr>
+  <tr><td>17</td><td>Encoder A / Hall H1</td><td>R79</td><td>PA15</td><td>—</td><td>编码器 A / Hall H1 输入</td></tr>
+  <tr><td>18</td><td>Encoder/Hall PS voltage</td><td>—</td><td>+5V</td><td>—</td><td>向传感器供电（5V）</td></tr>
+  <tr><td>19-22</td><td>—</td><td>—</td><td>GND/电源</td><td>—</td><td>电源和地</td></tr>
+  <tr><td>23</td><td>Blue button</td><td>—</td><td>PC13</td><td>✓ Start_Stop</td><td>Nucleo 用户按键（启停电机）</td></tr>
+  <tr><td>24</td><td>J9</td><td>—</td><td>VIN</td><td>—</td><td>J9 跳线通路（向 Nucleo 供电）</td></tr>
+  <tr><td>25-27</td><td>—</td><td>—</td><td>晶振/NC</td><td>—</td><td>未使用</td></tr>
+  <tr><td>28</td><td>Curr_fdbk_PhA</td><td>R47</td><td>PA0</td><td>✓ M1_CURR_AMPL_U</td><td>U 相电流反馈（ADC）</td></tr>
+  <tr><td>29</td><td>—</td><td>—</td><td>PH0</td><td>—</td><td>HSE 晶振，未使用</td></tr>
+  <tr><td>30</td><td>VBUS_sensing</td><td>R51</td><td>PA1</td><td>✓ M1_BUS_VOLTAGE</td><td>母线电压检测（ADC）</td></tr>
+  <tr><td>31</td><td>—</td><td>—</td><td>PH1</td><td>—</td><td>HSE 晶振，未使用</td></tr>
+  <tr><td>32</td><td>DAC_Ch</td><td>R76 (N.M.)</td><td>PA4</td><td>—</td><td>DAC 调试通道（未安装电阻）</td></tr>
+  <tr><td>33</td><td>—</td><td>—</td><td>VBAT</td><td>—</td><td>电池供电，未使用</td></tr>
+  <tr><td>34</td><td>BEMF2_sensing</td><td>R60</td><td>PB0</td><td>—</td><td>V 相反电动势检测（六步换相用）</td></tr>
+  <tr><td>35</td><td>Temperature feedback</td><td>R54</td><td>PC2</td><td>✓ M1_TEMPERATURE</td><td>温度反馈（NTC 热敏电阻）</td></tr>
+  <tr><td>36</td><td>Curr_fdbk_PhB</td><td>R48</td><td>PC1 / PB9</td><td>✓ M1_CURR_AMPL_V</td><td>V 相电流反馈（ADC）</td></tr>
+  <tr><td>37</td><td>BEMF1_sensing</td><td>R59</td><td>PC3</td><td>—</td><td>U 相反电动势检测（六步换相用）</td></tr>
+  <tr><td>38</td><td>Curr_fdbk_PhC</td><td>R50</td><td>PC0 / PB8</td><td>—</td><td>W 相电流反馈（ADC）</td></tr>
+</table>
+
+<h4>2.3.10 CN10——IHM07M1 侧 Morpho 引脚映射（右排，38 pin）</h4>
+
+<table style="font-size:10px;">
+  <tr style="background:#e8f5e9;"><th colspan="6">CN10（IHM07M1 侧 Morpho 排母）</th></tr>
+  <tr><th>Pin</th><th>IHM07M1 信号</th><th>焊桥/电阻</th><th>Nucleo MCU 引脚</th><th>main.h 定义</th><th>功能说明</th></tr>
+  <tr><td>1-6</td><td>—</td><td>—</td><td>GPIO/电源</td><td>—</td><td>未使用</td></tr>
+  <tr><td>7-10</td><td>—</td><td>—</td><td>AVDD/U5V/GND/NC</td><td>—</td><td>电源和地</td></tr>
+  <tr><td>11</td><td>GPIO/DAC/PWM</td><td>R80</td><td>PA5</td><td>—</td><td>通用 GPIO/DAC/PWM（可配置）</td></tr>
+  <tr><td>12</td><td>CPOUT</td><td>R52</td><td>PA12</td><td>—</td><td>L6230 电荷泵输出监测</td></tr>
+  <tr><td>13</td><td>DIAG/ENABLE/BKIN1</td><td>R53</td><td>PA11</td><td>—</td><td>L6230 诊断/使能/刹车输入 1</td></tr>
+  <tr><td>14</td><td>DIAG/ENABLE/BKIN2</td><td>R46</td><td>PB12</td><td>—</td><td>L6230 诊断/使能/刹车输入 2</td></tr>
+  <tr><td>15</td><td>BEMF3_sensing</td><td>R63</td><td>PA7</td><td>—</td><td>W 相反电动势检测（六步换相用）</td></tr>
+  <tr><td>16-20</td><td>—</td><td>—</td><td>GPIO/GND</td><td>—</td><td>未使用</td></tr>
+  <tr><td>21</td><td>VH_PWM</td><td>R64</td><td>PA9</td><td>✓ M1_PWM_VH</td><td>V 相高侧 PWM</td></tr>
+  <tr><td>22</td><td>LED RED</td><td>R83</td><td>PB2</td><td>—</td><td>红色 LED 指示（故障指示）</td></tr>
+  <tr><td>23</td><td>UH_PWM</td><td>R56</td><td>PA8</td><td>✓ M1_PWM_UH</td><td>U 相高侧 PWM</td></tr>
+  <tr><td>24</td><td>POTENTIOMETER</td><td>R78</td><td>PB1</td><td>✓ M1_POTENTIOMETER</td><td>速度调节电位器（ADC）</td></tr>
+  <tr><td>25</td><td>Encoder Z / Hall H3</td><td>R84</td><td>PB10</td><td>—</td><td>编码器 Z / Hall H3 输入</td></tr>
+  <tr><td>26</td><td>BEMF3_sensing</td><td>R66</td><td>PB15</td><td>—</td><td>W 相反电动势（另一路检测）</td></tr>
+  <tr><td>27</td><td>CURRENT REF</td><td>R77</td><td>PB4</td><td>—</td><td>电流参考信号</td></tr>
+  <tr><td>28</td><td>DIAG/ENABLE/BKIN1</td><td>R49</td><td>PB14</td><td>—</td><td>L6230 诊断/使能/刹车输入 1（另一路）</td></tr>
+  <tr><td>29</td><td>GPIO/DAC/PWM</td><td>R85</td><td>PB5</td><td>—</td><td>通用 GPIO/DAC/PWM（可配置）</td></tr>
+  <tr><td>30</td><td>GPIO/DAC/PWM</td><td>R82</td><td>PB13</td><td>—</td><td>通用 GPIO/DAC/PWM（可配置）</td></tr>
+  <tr><td>31</td><td>Encoder B / Hall H2</td><td>R81</td><td>PB3</td><td>—</td><td>编码器 B / Hall H2 输入</td></tr>
+  <tr><td>32</td><td>—</td><td>—</td><td>AGND</td><td>—</td><td>模拟地</td></tr>
+  <tr><td>33</td><td>WH_PWM</td><td>R70</td><td>PA10</td><td>✓ M1_PWM_WH</td><td>W 相高侧 PWM</td></tr>
+  <tr><td>34-38</td><td>—</td><td>—</td><td>GPIO/NC</td><td>—</td><td>未使用</td></tr>
+</table>
+
+<div class="note">
+  <span class="label">信号完整性说明：</span>IHM07M1 的 Morpho 信号通过 0Ω 电阻（R47-R85）连接到排母，便于硬件调试时断开特定信号。"焊桥/电阻"列中的 N.M. 表示未安装（Not Mounted）。本工程（FOC）实际使用了 13 个 Morpho 引脚——3 路 PWM 使能 + 3 路 PWM 高侧 + 3 路电流反馈 + 1 路母线电压 + 1 路温度 + 1 路电位器 + 1 路启停按键，均已在上表中用 ✓ 标出。
+</div>
+
+<div class="note">
+  <span class="label">六步换相 vs FOC 引脚差异：</span>BEMF1/2/3_sensing、CURRENT REF、DIAG/ENABLE/BKIN 等引脚是六步换相（Six-Step）算法专用的——FOC 算法不需要反电动势检测，但需要 3 路电流反馈（Curr_fdbk_PhA/B/C）。J5/J6 跳线在 FOC 模式下设为三分流（1-2），在六步模式下设为单分流（2-3）。
+</div>
 
 <h3>2.4 电源架构</h3>
 
@@ -449,61 +903,80 @@
 
 <h3>5.1 机械与电气连接</h3>
 
-<p>IHM07M1 通过两组 Morpho 排母（CN7/CN10）直接插接在 NUCLEO-F401RE 的 Morpho 排针之上，形成"三明治"结构 [$TRAE_REF](https://www.st.com/resource/en/user_manual/dm00226187-getting-started-with-the-x-nucleo-ihm07m1-motor-driver-expansion-board-based-on-the-l6230-for-stm32-nucleo-stmicroelectronics.pdf)：</p>
+<p>IHM07M1 通过两组 Morpho 排母（CN7/CN10）直接插接在 NUCLEO-F401RE 的 Morpho 排针之上，形成<b>两板叠加</b>结构——NUCLEO-F401RE（控制板）在上，X-NUCLEO-IHM07M1（功率板）在下。电机通过导线连接到 IHM07M1 的 J2 三相端子台，不参与物理叠层 [$TRAE_REF](https://www.st.com/resource/en/user_manual/dm00226187-getting-started-with-the-x-nucleo-ihm07m1-motor-driver-expansion-board-based-on-the-l6230-for-stm32-nucleo-stmicroelectronics.pdf)：</p>
 
 <div class="fig-wrap">
-  <svg viewBox="0 0 500 320" xmlns="http://www.w3.org/2000/svg" font-family="Segoe UI, Microsoft YaHei, sans-serif">
-    <!-- Motor layer -->
-    <rect x="180" y="10" width="140" height="50" rx="6" fill="#f0fdf4" stroke="#27ae60" stroke-width="2"/>
-    <text x="250" y="35" font-size="13" fill="#27ae60" text-anchor="middle" font-weight="bold">2804 云台电机</text>
-    <text x="250" y="50" font-size="10" fill="#888" text-anchor="middle">7极对 / 3相</text>
-    <line x1="250" y1="60" x2="250" y2="80" stroke="#8e44ad" stroke-width="2"/>
-    <text x="260" y="74" font-size="9" fill="#8e44ad">U/V/W 三相线</text>
+  <svg viewBox="0 0 500 340" xmlns="http://www.w3.org/2000/svg" font-family="Segoe UI, Microsoft YaHei, sans-serif">
+    <!-- Nucleo layer (top) -->
+    <rect x="80" y="40" width="340" height="80" rx="6" fill="#e8f4f8" stroke="#2980b9" stroke-width="2"/>
+    <text x="250" y="65" font-size="14" fill="#2980b9" text-anchor="middle" font-weight="bold">NUCLEO-F401RE（控制板·上层）</text>
+    <text x="250" y="82" font-size="10" fill="#888" text-anchor="middle">STM32F401RE + ST-LINK/V2-1</text>
+    <text x="120" y="105" font-size="9" fill="#888">USB ↓ PC</text>
+    <text x="380" y="105" font-size="9" fill="#888">JP5: E5V ←</text>
 
-    <!-- IHM07M1 layer -->
-    <rect x="80" y="80" width="340" height="80" rx="6" fill="#fdf2f2" stroke="#c0392b" stroke-width="2"/>
-    <text x="250" y="105" font-size="14" fill="#c0392b" text-anchor="middle" font-weight="bold">X-NUCLEO-IHM07M1（功率板）</text>
-    <text x="250" y="122" font-size="10" fill="#888" text-anchor="middle">L6230 + 检流电阻 + 运放 + 保护电路</text>
-    <text x="120" y="145" font-size="9" fill="#888">J1: 8-48V</text>
-    <text x="380" y="145" font-size="9" fill="#888">J2: 电机</text>
-    <line x1="250" y1="160" x2="250" y2="180" stroke="#555" stroke-width="2"/>
-    <text x="260" y="174" font-size="9" fill="#555">Morpho 排母</text>
+    <line x1="250" y1="120" x2="250" y2="140" stroke="#555" stroke-width="2"/>
+    <text x="260" y="134" font-size="9" fill="#555">Morpho 排针/排母</text>
 
-    <!-- Nucleo layer -->
-    <rect x="80" y="180" width="340" height="80" rx="6" fill="#e8f4f8" stroke="#2980b9" stroke-width="2"/>
-    <text x="250" y="205" font-size="14" fill="#2980b9" text-anchor="middle" font-weight="bold">NUCLEO-F401RE（控制板）</text>
-    <text x="250" y="222" font-size="10" fill="#888" text-anchor="middle">STM32F401RE + ST-LINK/V2-1</text>
-    <text x="120" y="245" font-size="9" fill="#888">USB</text>
-    <text x="380" y="245" font-size="9" fill="#888">JP5: E5V</text>
+    <!-- IHM07M1 layer (bottom) -->
+    <rect x="80" y="140" width="340" height="80" rx="6" fill="#fdf2f2" stroke="#c0392b" stroke-width="2"/>
+    <text x="250" y="165" font-size="14" fill="#c0392b" text-anchor="middle" font-weight="bold">X-NUCLEO-IHM07M1（功率板·下层）</text>
+    <text x="250" y="182" font-size="10" fill="#888" text-anchor="middle">L6230 + 检流电阻 + 运放 + 保护电路</text>
+    <text x="120" y="205" font-size="9" fill="#888">J1: 8-48V ←</text>
+    <text x="380" y="205" font-size="9" fill="#888">J2: U/V/W →</text>
 
-    <!-- PC layer -->
-    <line x1="120" y1="260" x2="120" y2="290" stroke="#888" stroke-width="1.5" stroke-dasharray="4,3"/>
-    <rect x="60" y="290" width="120" height="25" rx="4" fill="#eee" stroke="#888"/>
-    <text x="120" y="307" font-size="11" fill="#555" text-anchor="middle">PC（IDE / Monitor）</text>
+    <!-- Wires to motor -->
+    <line x1="380" y1="220" x2="420" y2="220" stroke="#8e44ad" stroke-width="2"/>
+    <line x1="420" y1="220" x2="420" y2="270" stroke="#8e44ad" stroke-width="2"/>
+    <line x1="420" y1="270" x2="340" y2="270" stroke="#8e44ad" stroke-width="2"/>
+    <text x="430" y="248" font-size="9" fill="#8e44ad">三相导线</text>
+
+    <!-- Motor (not stacked, connected via wires) -->
+    <rect x="180" y="250" width="160" height="50" rx="6" fill="#f0fdf4" stroke="#27ae60" stroke-width="2"/>
+    <text x="260" y="272" font-size="13" fill="#27ae60" text-anchor="middle" font-weight="bold">2804 云台电机</text>
+    <text x="260" y="288" font-size="9" fill="#888" text-anchor="middle">7极对 / 通过导线连接（非叠层）</text>
 
     <!-- Power -->
-    <line x1="380" y1="145" x2="430" y2="145" stroke="#8e44ad" stroke-width="2"/>
-    <line x1="430" y1="145" x2="430" y2="290" stroke="#8e44ad" stroke-width="2"/>
-    <rect x="370" y="290" width="120" height="25" rx="4" fill="#f5eef8" stroke="#8e44ad"/>
-    <text x="430" y="307" font-size="11" fill="#8e44ad" text-anchor="middle">外部电源 12V</text>
+    <line x1="120" y1="220" x2="60" y2="220" stroke="#8e44ad" stroke-width="2"/>
+    <line x1="60" y1="220" x2="60" y2="270" stroke="#8e44ad" stroke-width="2"/>
+    <rect x="10" y="270" width="100" height="25" rx="4" fill="#f5eef8" stroke="#8e44ad"/>
+    <text x="60" y="287" font-size="10" fill="#8e44ad" text-anchor="middle">外部电源 12V</text>
+
+    <!-- PC -->
+    <line x1="120" y1="105" x2="60" y2="105" stroke="#888" stroke-width="1.5" stroke-dasharray="4,3"/>
+    <line x1="60" y1="105" x2="60" y2="60" stroke="#888" stroke-width="1.5" stroke-dasharray="4,3"/>
+    <rect x="10" y="35" width="100" height="25" rx="4" fill="#eee" stroke="#888"/>
+    <text x="60" y="52" font-size="10" fill="#555" text-anchor="middle">PC（IDE / Monitor）</text>
   </svg>
-  <div class="fig-caption">图 4：开发板叠层结构——电机→IHM07M1（功率板）→NUCLEO-F401RE（控制板）→PC。外部 12V 电源通过 IHM07M1 的 J1 输入，经板载 LDO 降至 5V 后回供 Nucleo（JP5 置于 E5V），Nucleo 通过 USB 连接 PC 进行调试</div>
+  <div class="fig-caption">图 4：开发板叠层结构——NUCLEO-F401RE（上层）通过 Morpho 连接器插在 X-NUCLEO-IHM07M1（下层）之上；电机通过导线连接到 J2 端子台，不参与物理叠层；外部 12V 电源通过 J1 输入功率板，经 LDO 降至 5V 后经 Morpho E5V 回供控制板（JP5 置于 E5V），控制板通过 USB 连接 PC</div>
 </div>
 
-<h3>5.2 [实物图占位]</h3>
+<h3>5.2 实物图</h3>
 
-<div class="photo-placeholder">📷 待拍摄：NUCLEO-F401RE 单板正面（标注 LD2/B1/USB/Morpho/Arduino 接口位置）</div>
-<div class="photo-placeholder">📷 待拍摄：X-NUCLEO-IHM07M1 单板正面（标注 L6230/J1/J2/运放/NTC 位置）</div>
-<div class="photo-placeholder">📷 待拍摄：两板叠加后的整体外观（侧面拍摄，可见三层结构）</div>
-<div class="photo-placeholder">📷 待拍摄：接线完成后的完整系统（含电机、电源、USB 线）</div>
+<p>以下三张实物照片分别展示了 NUCLEO-F401RE 单板、两板叠加系统以及接线完成后的完整系统。需特别说明：本系统为<b>两板叠加</b>结构（NUCLEO-F401RE + X-NUCLEO-IHM07M1），不存在第三层物理叠板——电机通过导线连接到 IHM07M1 的 J2 三相端子台，独立于板卡叠层之外。</p>
+
+<div class="fig-wrap">
+  <img src="NUCLEO-F401RE实物图.jpg" alt="NUCLEO-F401RE 单板特写" style="max-width:100%; border:1px solid #ddd; border-radius:4px;">
+  <div class="fig-caption">图 5：NUCLEO-F401RE 单板特写——上半部分为 ST-LINK/V2-1 调试器区域（含 USB 接口 CN1、ST-Link 芯片 U2、8MHz 晶振 X1）；下半部分为主 MCU 区域，中央可见 STM32F401RET6（LQFP-64 封装），左侧为蓝色用户按键 B1（USER）、右侧为黑色复位按键 B2（RESET）及用户 LED LD2；板卡型号为 MB1136 rev C，两侧排列 Arduino Uno R3 兼容排针与 ST Morpho 扩展排针</div>
+</div>
+
+<div class="fig-wrap">
+  <img src="两板叠加系统.jpg" alt="两板叠加系统" style="max-width:100%; border:1px solid #ddd; border-radius:4px;">
+  <div class="fig-caption">图 6：两板叠加系统——NUCLEO-F401RE（上层，白色 PCB）通过 Morpho 排针/排母插接在 X-NUCLEO-IHM07M1（下层，蓝色 PCB）之上。下层板清晰可见 L6230PD 三相电机驱动芯片（PowerSO-36 封装）、蓝色速度调节电位器、绿色三相输出端子 J2（OUT1/OUT2/OUT3）及电源输入端子 J1，以及 100μF/16V 电解电容等功率级元件。注意：此为两板叠加，非三层结构</div>
+</div>
+
+<div class="fig-wrap">
+  <img src="完整系统接线图.jpg" alt="完整系统接线" style="max-width:100%; border:1px solid #ddd; border-radius:4px;">
+  <div class="fig-caption">图 7：完整系统接线——两板叠加后的系统通过导线连接 2804 云台电机（右侧）至 IHM07M1 的 J2 三相端子台，USB 线连接 NUCLEO-F401RE 至 PC 用于编程调试与串口监控。外部电源通过 J1 端子输入 IHM07M1 功率级（8-48V），经板载 LDO 降压后经 Morpho E5V 回供控制板</div>
+</div>
 
 <!-- ========== 附录 ========== -->
 <h2>附录：参考资料</h2>
 
 <table style="font-size:12px;">
   <tr><th>资料名称</th><th>来源</th><th>用途</th></tr>
-  <tr><td>UM1844 - STM32 Nucleo-64 board User Manual</td><td>ST 官网</td><td>Nucleo 板载资源、连接器、电源架构</td></tr>
-  <tr><td>UM1943 - X-NUCLEO-IHM07M1 User Manual (Rev 2)</td><td>ST 官网</td><td>IHM07M1 电路描述、引脚映射、原理图</td></tr>
+  <tr><td>UM1724 Rev 17 - STM32 Nucleo-64 boards User Manual</td><td>ST 官网 / 本地 PDF</td><td>Nucleo 板载资源、Morpho 排针引脚映射（Table 29）、电源架构、焊桥配置</td></tr>
+  <tr><td>UM1943 Rev 4 - X-NUCLEO-IHM07M1 User Manual</td><td>ST 官网 / 本地 PDF</td><td>IHM07M1 Morpho 连接器引脚映射（Table 3）、跳线配置、BOM</td></tr>
+  <tr><td>UM2124 Rev 2 - Getting started with the Six-Step firmware library</td><td>ST 官网 / 本地 PDF</td><td>六步换相固件库 API、调试方法、引脚映射参考</td></tr>
   <tr><td>L6230 Datasheet (Production Data)</td><td>ST 官网</td><td>L6230 芯片规格、引脚定义、保护功能</td></tr>
   <tr><td>STM32F401 Reference Manual (RM0368)</td><td>ST 官网</td><td>STM32F401 寄存器、外设描述</td></tr>
   <tr><td>mbed-os 6.17.0 - TARGET_NUCLEO_F401RE</td><td>本地仓库</td><td>PinNames.h 引脚定义、PeripheralPins.c 外设映射</td></tr>
