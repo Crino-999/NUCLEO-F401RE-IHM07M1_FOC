@@ -2118,6 +2118,299 @@
       <span class="label">代码视角：</span>速度环在中频任务（1 kHz）中执行 <code>SpeednTorqCtrl_ExecSpeedRamp</code>，输出 iq*；电流环在高频中断（16 kHz）中执行 <code>FOC_CurrControllerM1</code>，读取 id*（=0）和 iq*，输出 ud*、uq*。两个环的频率比对应第五节图 11 的"高频环 + 中频环"结构。
     </div>
 
+    <h3>6.2a PID 控制器原理与工程实现</h3>
+
+    <p>6.2 节介绍了 FOC 的双闭环<b>结构</b>，但未涉及环路内部的核心算法——PID 控制器。本节从 PID 的基本原理出发，推导离散化实现，解释 FOC 为何选用 PI 而非完整 PID，并介绍抗积分饱和技术和参数整定方法 [$TRAE_REF](https://blog.csdn.net/wangjiaweiwei/article/details/147903344)。</p>
+
+    <h4>6.2a.1 PID 控制器基本原理</h4>
+
+    <p>PID（Proportional-Integral-Derivative）是工业控制中最广泛的反馈控制算法。其核心思想是：根据误差 e(t) = r(t) − y(t)（参考值 − 实际值）的<b>当前值</b>、<b>历史积分</b>和<b>变化趋势</b>，三个维度综合计算控制量 u(t)。连续域公式为：</p>
+
+    <div class="formula" style="font-size:16px;">
+      <b>u(t) = K<sub>p</sub>·e(t) + K<sub>i</sub>·∫₀ᵗ e(τ)dτ + K<sub>d</sub>·de(t)/dt</b>
+    </div>
+
+    <p>三个分量各自承担不同角色：</p>
+
+    <table style="width:100%; border-collapse:collapse; margin:12px 0; font-size:13px;">
+      <tr style="background:#e8e0d8;">
+        <th style="border:1px solid #aaa; padding:6px;">分量</th>
+        <th style="border:1px solid #aaa; padding:6px;">物理含义</th>
+        <th style="border:1px solid #aaa; padding:6px;">作用</th>
+        <th style="border:1px solid #aaa; padding:6px;">过大的后果</th>
+      </tr>
+      <tr>
+        <td style="border:1px solid #aaa; padding:6px; text-align:center;"><b>P</b>（比例）</td>
+        <td style="border:1px solid #aaa; padding:6px;">与当前误差成正比</td>
+        <td style="border:1px solid #aaa; padding:6px;">提供即时响应，减小误差</td>
+        <td style="border:1px solid #aaa; padding:6px;">振荡、不稳定</td>
+      </tr>
+      <tr>
+        <td style="border:1px solid #aaa; padding:6px; text-align:center;"><b>I</b>（积分）</td>
+        <td style="border:1px solid #aaa; padding:6px;">累积历史误差</td>
+        <td style="border:1px solid #aaa; padding:6px;">消除稳态误差（无静差）</td>
+        <td style="border:1px solid #aaa; padding:6px;">积分饱和、超调、响应迟滞</td>
+      </tr>
+      <tr>
+        <td style="border:1px solid #aaa; padding:6px; text-align:center;"><b>D</b>（微分）</td>
+        <td style="border:1px solid #aaa; padding:6px;">预测误差变化趋势</td>
+        <td style="border:1px solid #aaa; padding:6px;">提供阻尼，抑制超调</td>
+        <td style="border:1px solid #aaa; padding:6px;">放大噪声、输出抖动</td>
+      </tr>
+    </table>
+
+    <div class="fig-wrap">
+      <svg viewBox="0 0 620 280" xmlns="http://www.w3.org/2000/svg" font-family="Segoe UI, Microsoft YaHei, sans-serif">
+        <text x="20" y="145" font-size="14" fill="#333">r(t)</text>
+        <circle cx="55" cy="140" r="5" fill="none" stroke="#333" stroke-width="1.5"/>
+        <line x1="55" y1="125" x2="55" y2="155" stroke="#333" stroke-width="1.5"/>
+        <line x1="40" y1="140" x2="50" y2="140" stroke="#333" stroke-width="1.5"/>
+        <text x="35" y="115" font-size="11" fill="#888">+</text>
+        <line x1="60" y1="140" x2="90" y2="140" stroke="#333" stroke-width="1.5"/>
+        <text x="62" y="132" font-size="10" fill="#888">−</text>
+        <line x1="590" y1="140" x2="590" y2="80" stroke="#333" stroke-width="1" stroke-dasharray="4,3"/>
+        <line x1="590" y1="80" x2="55" y2="80" stroke="#333" stroke-width="1" stroke-dasharray="4,3"/>
+        <line x1="55" y1="80" x2="55" y2="135" stroke="#333" stroke-width="1" stroke-dasharray="4,3"/>
+        <text x="300" y="72" font-size="10" fill="#888">y(t)（反馈）</text>
+        <line x1="90" y1="140" x2="120" y2="140" stroke="#333" stroke-width="1.5"/>
+        <text x="95" y="132" font-size="11" fill="#c0392b" font-weight="bold">e(t)</text>
+        <line x1="120" y1="140" x2="120" y2="50" stroke="#333" stroke-width="1.5"/>
+        <line x1="120" y1="140" x2="120" y2="230" stroke="#333" stroke-width="1.5"/>
+        <line x1="120" y1="140" x2="155" y2="140" stroke="#333" stroke-width="1.5"/>
+        <rect x="155" y="120" width="60" height="40" rx="4" fill="#fdf2f2" stroke="#c0392b" stroke-width="1.5"/>
+        <text x="185" y="145" font-size="13" fill="#c0392b" text-anchor="middle" font-weight="bold">Kp</text>
+        <line x1="120" y1="50" x2="155" y2="50" stroke="#333" stroke-width="1.5"/>
+        <rect x="155" y="30" width="60" height="40" rx="4" fill="#f0f7fd" stroke="#2980b9" stroke-width="1.5"/>
+        <text x="185" y="48" font-size="12" fill="#2980b9" text-anchor="middle">Ki/s</text>
+        <text x="185" y="62" font-size="9" fill="#2980b9" text-anchor="middle">积分</text>
+        <line x1="120" y1="230" x2="155" y2="230" stroke="#333" stroke-width="1.5"/>
+        <rect x="155" y="210" width="60" height="40" rx="4" fill="#f0fdf4" stroke="#27ae60" stroke-width="1.5"/>
+        <text x="185" y="228" font-size="12" fill="#27ae60" text-anchor="middle">Kd·s</text>
+        <text x="185" y="242" font-size="9" fill="#27ae60" text-anchor="middle">微分</text>
+        <line x1="215" y1="50" x2="250" y2="50" stroke="#333" stroke-width="1.5"/>
+        <line x1="215" y1="140" x2="250" y2="140" stroke="#333" stroke-width="1.5"/>
+        <line x1="215" y1="230" x2="250" y2="230" stroke="#333" stroke-width="1.5"/>
+        <line x1="250" y1="50" x2="250" y2="230" stroke="#333" stroke-width="1.5"/>
+        <circle cx="250" cy="140" r="6" fill="none" stroke="#333" stroke-width="1.5"/>
+        <line x1="244" y1="140" x2="256" y2="140" stroke="#333" stroke-width="1.5"/>
+        <line x1="250" y1="134" x2="250" y2="146" stroke="#333" stroke-width="1.5"/>
+        <text x="258" y="115" font-size="9" fill="#888">+</text>
+        <text x="258" y="165" font-size="9" fill="#888">+</text>
+        <line x1="256" y1="140" x2="330" y2="140" stroke="#333" stroke-width="1.5"/>
+        <rect x="330" y="115" width="80" height="50" rx="4" fill="#fff" stroke="#555" stroke-width="1.5"/>
+        <text x="370" y="138" font-size="12" fill="#333" text-anchor="middle">被控对象</text>
+        <text x="370" y="153" font-size="10" fill="#888" text-anchor="middle">（电机/逆变器）</text>
+        <line x1="410" y1="140" x2="590" y2="140" stroke="#333" stroke-width="1.5"/>
+        <text x="500" y="132" font-size="13" fill="#333" font-weight="bold">u(t)</text>
+        <text x="500" y="155" font-size="10" fill="#888">控制量</text>
+        <text x="595" y="145" font-size="14" fill="#333">y(t)</text>
+      </svg>
+      <div class="fig-caption">图 24：PID 控制器框图——误差 e(t) 分三路：比例路径（Kp，红色）、积分路径（Ki/s，蓝色）、微分路径（Kd·s，绿色），三者相加后得到控制量 u(t)，驱动被控对象（电机+逆变器），输出 y(t) 经反馈回路与参考值 r(t) 比较</div>
+    </div>
+
+    <p><b>P 的本质——"即时反应"</b>：比例项 K<sub>p</sub>·e(t) 直接反映当前误差大小。K<sub>p</sub> 越大，系统响应越快，但纯 P 控制无法消除稳态误差——因为若 e=0 则 u=0，而在有摩擦或负载时 u=0 意味着没有驱动力，电机必然减速，产生新的误差。因此 P 总是留下一个残余误差（稳态误差），其大小与 K<sub>p</sub> 成反比 [$TRAE_REF](https://wenku.csdn.net/answer/7ti2dqj5ykf1)。</p>
+
+    <p><b>I 的本质——"记忆与消除"</b>：积分项 K<sub>i</sub>·∫e(t)dt 累积历史误差。即使 e 很小，只要持续存在，积分就会不断增长，直到驱使误差归零。这就是"无静差控制"的来源。但积分也是双刃剑——当执行器饱和（如电压达到上限）时，误差无法消除但积分仍在累积（"windup"），一旦饱和解除，过大的积分值会导致严重超调。</p>
+
+    <p><b>D 的本质——"预测与阻尼"</b>：微分项 K<sub>d</sub>·de/dt 检测误差的变化率。当误差快速增大时，D 项提前"刹车"，提供阻尼效应，抑制超调。但微分对噪声极度敏感——高频噪声被求导后幅值放大 ω 倍（d/dt → jω），这使得 D 项在噪声环境中反而成为干扰源。</p>
+
+    <h4>6.2a.2 离散化实现——位置式与增量式</h4>
+
+    <p>MCU 是数字系统，只能在离散时刻采样和计算。将连续 PID 公式用差分近似离散化（采样周期 T<sub>S</sub>，积分用累加代替，微分用差分代替），得到两种工程实现 [$TRAE_REF](https://wenku.csdn.net/answer/345unipurnoz)。</p>
+
+    <p><b>位置式 PID</b>（Positional PID）——直接输出控制量的绝对值：</p>
+
+    <div class="formula" style="font-size:14px; line-height:2.2;">
+      u(k) = K<sub>p</sub>·e(k) + K<sub>i</sub>·T<sub>S</sub>·Σ<sub>j=0</sub><sup>k</sup> e(j) + (K<sub>d</sub>/T<sub>S</sub>)·[e(k) − e(k−1)]
+    </div>
+
+    <p>位置式的积分项需要从 t=0 累加到当前时刻，存储量大且容易发生积分饱和。每次计算输出的是绝对控制量，故障时输出可能突变。</p>
+
+    <p><b>增量式 PID</b>（Incremental PID）——输出控制量的<b>增量</b> Δu(k)：</p>
+
+    <div class="formula" style="font-size:14px; line-height:2.2;">
+      Δu(k) = K<sub>p</sub>·[e(k)−e(k−1)] + K<sub>i</sub>·T<sub>S</sub>·e(k) + (K<sub>d</sub>/T<sub>S</sub>)·[e(k)−2e(k−1)+e(k−2)]<br>
+      u(k) = u(k−1) + Δu(k)
+    </div>
+
+    <p>增量式仅需保存最近三次误差 e(k)、e(k−1)、e(k−2)，无需积分累加，天然抗饱和，且故障时输出保持上一拍值（无突变），特别适合嵌入式系统 [$TRAE_REF](https://wenku.csdn.net/answer/4x1o7uzj5ono)。</p>
+
+    <table style="width:100%; border-collapse:collapse; margin:12px 0; font-size:13px;">
+      <tr style="background:#e8e0d8;">
+        <th style="border:1px solid #aaa; padding:6px;">对比项</th>
+        <th style="border:1px solid #aaa; padding:6px;">位置式</th>
+        <th style="border:1px solid #aaa; padding:6px;">增量式</th>
+      </tr>
+      <tr><td style="border:1px solid #aaa; padding:6px;">输出</td><td style="border:1px solid #aaa; padding:6px;">绝对值 u(k)</td><td style="border:1px solid #aaa; padding:6px;">增量 Δu(k)</td></tr>
+      <tr><td style="border:1px solid #aaa; padding:6px;">积分</td><td style="border:1px solid #aaa; padding:6px;">需累加 Σe(j)</td><td style="border:1px solid #aaa; padding:6px;">隐含在 e(k) 中，无需累加</td></tr>
+      <tr><td style="border:1px solid #aaa; padding:6px;">抗饱和</td><td style="border:1px solid #aaa; padding:6px;">需额外抗饱和措施</td><td style="border:1px solid #aaa; padding:6px;">天然抗饱和（增量可限幅）</td></tr>
+      <tr><td style="border:1px solid #aaa; padding:6px;">故障安全性</td><td style="border:1px solid #aaa; padding:6px;">输出可能突变</td><td style="border:1px solid #aaa; padding:6px;">输出保持上一拍值</td></tr>
+      <tr><td style="border:1px solid #aaa; padding:6px;">适用场景</td><td style="border:1px solid #aaa; padding:6px;">需绝对位置输出（如伺服位置）</td><td style="border:1px solid #aaa; padding:6px;">PWM 调速、步进电机等</td></tr>
+    </table>
+
+    <p>以下为两种实现的 C 伪代码（电机控制风格，采用定点数或浮点数均可）：</p>
+
+    <div class="formula" style="font-size:12px; line-height:1.8; background:#f5f5f0; padding:12px; border-radius:4px; font-family:Consolas, monospace;">
+      <span style="color:#888;">// 位置式 PID</span><br>
+      <span style="color:#0066cc;">typedef struct</span> {<br>
+      &nbsp;&nbsp;<span style="color:#0066cc;">float</span> Kp, Ki, Kd;<br>
+      &nbsp;&nbsp;<span style="color:#0066cc;">float</span> integral;<br>
+      &nbsp;&nbsp;<span style="color:#0066cc;">float</span> prev_error;<br>
+      &nbsp;&nbsp;<span style="color:#0066cc;">float</span> out_max, out_min;<br>
+      } PID_Pos_t;<br><br>
+      <span style="color:#0066cc;">float</span> PID_Pos_Calc(PID_Pos_t *pid, <span style="color:#0066cc;">float</span> ref, <span style="color:#0066cc;">float</span> fdb) {<br>
+      &nbsp;&nbsp;<span style="color:#0066cc;">float</span> e = ref - fdb;<br>
+      &nbsp;&nbsp;pid->integral += e * TS;<br>
+      &nbsp;&nbsp;<span style="color:#888;">/* 抗饱和：积分限幅 */</span><br>
+      &nbsp;&nbsp;pid->integral = CLAMP(pid->integral, pid->out_min, pid->out_max);<br>
+      &nbsp;&nbsp;<span style="color:#0066cc;">float</span> u = pid->Kp * e + pid->Ki * pid->integral<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;+ pid->Kd * (e - pid->prev_error) / TS;<br>
+      &nbsp;&nbsp;pid->prev_error = e;<br>
+      &nbsp;&nbsp;<span style="color:#0066cc;">return</span> CLAMP(u, pid->out_min, pid->out_max);<br>
+      }<br><br>
+      <span style="color:#888;">// 增量式 PID</span><br>
+      <span style="color:#0066cc;">typedef struct</span> {<br>
+      &nbsp;&nbsp;<span style="color:#0066cc;">float</span> Kp, Ki, Kd;<br>
+      &nbsp;&nbsp;<span style="color:#0066cc;">float</span> e[3];&nbsp;&nbsp;<span style="color:#888;">// e[k], e[k-1], e[k-2]</span><br>
+      &nbsp;&nbsp;<span style="color:#0066cc;">float</span> u_prev;<br>
+      &nbsp;&nbsp;<span style="color:#0066cc;">float</span> out_max, out_min;<br>
+      } PID_Inc_t;<br><br>
+      <span style="color:#0066cc;">float</span> PID_Inc_Calc(PID_Inc_t *pid, <span style="color:#0066cc;">float</span> ref, <span style="color:#0066cc;">float</span> fdb) {<br>
+      &nbsp;&nbsp;pid->e[2] = pid->e[1];<br>
+      &nbsp;&nbsp;pid->e[1] = pid->e[0];<br>
+      &nbsp;&nbsp;pid->e[0] = ref - fdb;<br>
+      &nbsp;&nbsp;<span style="color:#0066cc;">float</span> du = pid->Kp * (pid->e[0] - pid->e[1])<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;+ pid->Ki * pid->e[0] * TS<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;+ pid->Kd * (pid->e[0] - 2*pid->e[1] + pid->e[2]) / TS;<br>
+      &nbsp;&nbsp;<span style="color:#0066cc;">float</span> u = pid->u_prev + du;<br>
+      &nbsp;&nbsp;pid->u_prev = CLAMP(u, pid->out_min, pid->out_max);<br>
+      &nbsp;&nbsp;<span style="color:#0066cc;">return</span> pid->u_prev;<br>
+      }
+    </div>
+
+    <h4>6.2a.3 为什么 FOC 用 PI 而非 PID？</h4>
+
+    <p>在 FOC 电机控制中，速度环和电流环几乎都采用 <b>PI 控制器</b>（不含 D 项），这是由电机物理特性和噪声环境共同决定的 [$TRAE_REF](https://wenku.csdn.net/answer/7ti2dqj5ykf1)[$TRAE_REF](https://wenku.csdn.net/wangjiaweiwei/article/details/147903344)。</p>
+
+    <p><b>原因一：D 项放大噪声。</b>电机控制系统中，电流采样噪声（ADC 量化噪声、PWM 干扰）、速度估计噪声（STO 观测器纹波、编码器抖动）广泛存在。微分操作 d/dt 在频域等价于乘 jω，噪声频率越高，被放大的倍数越大。16 kHz 采样下的电流噪声经微分后可能淹没控制信号。</p>
+
+    <p><b>原因二：电流环本身是一阶系统。</b>电机绕组的电气方程为 u = R·i + L·di/dt + e（第三节 3.4 节），整理后 di/dt = (u − e − R·i)/L，这是一个一阶惯性环节。PI 控制器的零点可以精确对消该极点（零极点对消），使闭环成为纯一阶系统，响应快且无振荡。加入 D 项不仅无益，反而因引入高频零点而降低相位裕度。</p>
+
+    <p><b>原因三：速度环的"微分"已隐含在反馈中。</b>速度环的输入是速度误差 ω* − ω̂，而 ω̂ 本身已经是位置的微分（dθ/dt）。如果再加 D 项，等价于对加速度做反馈，而加速度信号的信噪比远低于速度信号——尤其在无感控制中，ω̂ 来自 STO+PLL 观测器（第五节），其高频噪声本就显著。</p>
+
+    <p><b>D 项在什么场景下有用？</b>当系统存在大惯性延迟（如温度控制、化工过程），或者需要精确位置跟踪（伺服位置环，第三环路）时，D 项的预测作用不可替代。FOC 的电流环和速度环属于快速控制场景，PI 已足够 [$TRAE_REF](https://blog.csdn.net/wangjiaweiwei/article/details/147903344)。</p>
+
+    <h4>6.2a.4 抗积分饱和（Anti-Windup）</h4>
+
+    <p><b>积分饱和</b>（Integral Windup）是 PI/PID 控制中最常见的工程问题。当执行器达到物理极限（如电压被限幅在 ±U<sub>dc</sub>/2、电流被限幅在 ±I<sub>max</sub>）时，输出无法继续增大，但误差仍然存在，积分项会持续累积。一旦误差反向或饱和解除，过大的积分值会导致输出长时间停留在极限值，造成严重超调和振荡 [$TRAE_REF](https://blog.csdn.net/xingsongyu/article/details/102519547)[$TRAE_REF](https://docs.simplefoc.com/pid_implementation)。</p>
+
+    <div class="fig-wrap">
+      <svg viewBox="0 0 580 200" xmlns="http://www.w3.org/2000/svg" font-family="Segoe UI, Microsoft YaHei, sans-serif">
+        <line x1="40" y1="170" x2="560" y2="170" stroke="#999" stroke-width="1"/>
+        <line x1="40" y1="20" x2="40" y2="180" stroke="#999" stroke-width="1"/>
+        <line x1="40" y1="60" x2="560" y2="60" stroke="#e74c3c" stroke-width="1" stroke-dasharray="4,3"/>
+        <text x="48" y="56" font-size="9" fill="#e74c3c">+极限</text>
+        <line x1="40" y1="130" x2="560" y2="130" stroke="#e74c3c" stroke-width="1" stroke-dasharray="4,3"/>
+        <text x="48" y="126" font-size="9" fill="#e74c3c">−极限</text>
+        <path d="M 40,170 Q 80,40 120,60 L 200,60 L 240,130 Q 280,170 320,130 L 400,130 L 440,60 Q 480,40 520,60" fill="none" stroke="#e74c3c" stroke-width="2"/>
+        <path d="M 40,170 Q 80,50 120,62 L 200,62 Q 240,100 280,130 Q 320,160 360,130 Q 400,100 440,62 L 520,62" fill="none" stroke="#2980b9" stroke-width="2" stroke-dasharray="5,3"/>
+        <text x="150" y="50" font-size="10" fill="#e74c3c">无抗饱和（严重超调）</text>
+        <text x="280" y="110" font-size="10" fill="#2980b9">有抗饱和（快速恢复）</text>
+        <text x="565" y="175" font-size="10" fill="#999">t</text>
+      </svg>
+      <div class="fig-caption">图 25：积分饱和效应示意——红色实线无抗饱和措施，输出长时间锁定在极限值，退饱和后严重超调；蓝色虚线有抗饱和，积分被及时抑制，退饱和后快速稳定</div>
+    </div>
+
+    <p>工程上常用的抗饱和方法有两种：</p>
+
+    <p><b>方法一：条件积分禁用（Clamping）</b>——当输出已达到极限，且误差方向与饱和方向一致时，停止积分。例如输出达到 +max 且 e > 0 时，积分不再增大（但可以减小）。该方法实现简单、效果可靠，是 MCSDK 等电机库的默认方案 [$TRAE_REF](https://blog.csdn.net/weixin_35752645/article/details/153256606)：</p>
+
+    <div class="formula" style="font-size:12px; line-height:1.8; background:#f5f5f0; padding:12px; border-radius:4px; font-family:Consolas, monospace;">
+      <span style="color:#888;">// Clamping 抗饱和</span><br>
+      <span style="color:#0066cc;">float</span> u_raw = Kp * e + Ki * integral;<br>
+      <span style="color:#0066cc;">float</span> u_sat = CLAMP(u_raw, out_min, out_max);<br>
+      <span style="color:#0066cc;">if</span> (u_sat == u_raw) {&nbsp;&nbsp;<span style="color:#888;">// 未饱和，正常积分</span><br>
+      &nbsp;&nbsp;integral += e * TS;<br>
+      } <span style="color:#0066cc;">else if</span> ((u_raw > out_max && e < 0)<br>
+      &nbsp;&nbsp;|| (u_raw < out_min && e > 0)) {&nbsp;&nbsp;<span style="color:#888;">// 饱和但误差反向，允许积分</span><br>
+      &nbsp;&nbsp;integral += e * TS;<br>
+      }<br>
+      <span style="color:#888;">// 否则：饱和且误差同向，积分冻结</span>
+    </div>
+
+    <p><b>方法二：反算法（Back-Calculation）</b>——将输出饱和前后的差值 e<sub>sat</sub> = u<sub>raw</sub> − u<sub>sat</sub> 乘以抗饱和增益 K<sub>t</sub> 后反馈到积分器输入，主动"排空"积分 [$TRAE_REF](https://ask.csdn.net/questions/9469242)：</p>
+
+    <div class="formula" style="font-size:14px;">
+      integral += (e − K<sub>t</sub>·e<sub>sat</sub>) · T<sub>S</sub>，其中 e<sub>sat</sub> = u<sub>raw</sub> − u<sub>sat</sub>
+    </div>
+
+    <p>K<sub>t</sub> 通常取 K<sub>i</sub> 的 0.5~2.0 倍。反算法的退饱和过渡更平滑，但需要额外调参。在串级控制中，还需注意<b>跨级抗饱和</b>——当电流环（内环）饱和时，速度环（外环）的积分也应冻结，否则外环输出 iq* 会持续增长而内环无法跟踪 [$TRAE_REF](https://industrialmonitordirect.com/blogs/knowledgebase/anti-windup-strategy-for-cascaded-pi-servo-loops-in-pmsm-control)。</p>
+
+    <h4>6.2a.5 参数整定方法</h4>
+
+    <p>PI 参数的整定是电机控制调试的核心环节。工程上常用三种方法，按实用程度递增排列 [$TRAE_REF](https://blog.csdn.net/wangjiaweiwei/article/details/147903344)。</p>
+
+    <p><b>方法一：试凑法</b>（Manual Tuning）——最直觉但最依赖经验。步骤：① 设 K<sub>i</sub> = 0，逐步增大 K<sub>p</sub> 直到系统出现轻微振荡，然后回退 30%；② 加入 K<sub>i</sub>（从 K<sub>p</sub> 的 1/10~1/5 开始），增大到稳态误差消除但不过冲。优点是无需数学模型，缺点是耗时且难以复现。</p>
+
+    <p><b>方法二：Ziegler-Nichols 法</b>——经典的半自动整定方法。步骤：① 关闭 I 和 D，仅保留 P；② 逐步增大 K<sub>p</sub> 直到系统出现等幅振荡，记录临界增益 K<sub>u</sub> 和振荡周期 T<sub>u</sub>；③ 按经验公式计算参数：</p>
+
+    <table style="border-collapse:collapse; margin:12px 0; font-size:13px;">
+      <tr style="background:#e8e0d8;">
+        <th style="border:1px solid #aaa; padding:6px;">控制器类型</th>
+        <th style="border:1px solid #aaa; padding:6px;">K<sub>p</sub></th>
+        <th style="border:1px solid #aaa; padding:6px;">K<sub>i</sub></th>
+        <th style="border:1px solid #aaa; padding:6px;">K<sub>d</sub></th>
+      </tr>
+      <tr><td style="border:1px solid #aaa; padding:6px;">P</td><td style="border:1px solid #aaa; padding:6px;">0.5·K<sub>u</sub></td><td style="border:1px solid #aaa; padding:6px;">—</td><td style="border:1px solid #aaa; padding:6px;">—</td></tr>
+      <tr><td style="border:1px solid #aaa; padding:6px;">PI</td><td style="border:1px solid #aaa; padding:6px;">0.45·K<sub>u</sub></td><td style="border:1px solid #aaa; padding:6px;">0.54·K<sub>u</sub>/T<sub>u</sub></td><td style="border:1px solid #aaa; padding:6px;">—</td></tr>
+      <tr><td style="border:1px solid #aaa; padding:6px;">PID</td><td style="border:1px solid #aaa; padding:6px;">0.6·K<sub>u</sub></td><td style="border:1px solid #aaa; padding:6px;">1.2·K<sub>u</sub>/T<sub>u</sub></td><td style="border:1px solid #aaa; padding:6px;">0.075·K<sub>u</sub>·T<sub>u</sub></td></tr>
+    </table>
+
+    <p>Z-N 法适用于大多数工业过程，但在电机控制中存在风险——等幅振荡可能损坏功率器件，且得到的参数通常偏激进（超调大）[$TRAE_REF](https://blog.csdn.net/weixin_42583683/article/details/151261528)。</p>
+
+    <p><b>方法三：带宽法</b>（Bandwidth-based）——电机控制<b>最推荐</b>的方法。核心思想是：根据电机物理参数和期望闭环带宽，直接计算 PI 参数，使 PI 控制器的零点对消被控对象的极点 [$TRAE_REF](https://blog.csdn.net/weixin_29188997/article/details/158680043)[$TRAE_REF](https://docs.simplefoc.com/tuning_current_loop)。</p>
+
+    <p><b>电流环</b>（被控对象为一阶 RL 惯性环节）：</p>
+
+    <div class="formula">
+      <b>K<sub>p</sub> = L · ω<sub>c</sub></b>，<b>K<sub>i</sub> = R · ω<sub>c</sub></b>
+    </div>
+
+    <p>其中 L 为相电感、R 为相电阻、ω<sub>c</sub> = 2π·f<sub>bw</sub> 为期望电流环带宽（rad/s）。物理含义：K<sub>p</sub> 补偿电感（主导瞬态），K<sub>i</sub> 补偿电阻（主导稳态），PI 零点 s = −K<sub>i</sub>/K<sub>p</sub> = −R/L 恰好对消电机极点。电流环带宽通常取采样频率的 1/10~1/5（如 16 kHz 采样取 1~2 kHz）[$TRAE_REF](https://wenku.csdn.net/answer/1j8699j7eg)。</p>
+
+    <p><b>速度环</b>（被控对象为一阶机械惯性环节）：</p>
+
+    <div class="formula">
+      <b>K<sub>p</sub> = J · ω<sub>c</sub></b>，<b>K<sub>i</sub> = B · ω<sub>c</sub></b>
+    </div>
+
+    <p>其中 J 为转动惯量、B 为阻尼系数、ω<sub>c</sub> 为期望速度环带宽。速度环带宽通常取电流环带宽的 1/10（如 100~200 Hz），保证内环远快于外环 [$TRAE_REF](https://blog.csdn.net/wangjiaweiwei/article/details/147903344)。</p>
+
+    <p><b>整定顺序</b>：始终从内环到外环——先调电流环（闭合 id、iq 两个 PI），确认电流跟踪快速且无振荡；再调速度环（闭合速度 PI），确认转速响应平滑。如果电流环未调好，速度环不可能稳定。</p>
+
+    <h4>6.2a.6 与本工程 MCSDK 代码的对照</h4>
+
+    <p>本工程使用 ST MCSDK v6.4.2，PID 控制器封装在 <code>PID_Handle_t</code> 结构体中，配置在 <code>mc_config.c</code>。三个环路各对应一个 PID 句柄：</p>
+
+    <table style="width:100%; border-collapse:collapse; margin:12px 0; font-size:13px;">
+      <tr style="background:#e8e0d8;">
+        <th style="border:1px solid #aaa; padding:6px;">环路</th>
+        <th style="border:1px solid #aaa; padding:6px;">句柄名</th>
+        <th style="border:1px solid #aaa; padding:6px;">输入</th>
+        <th style="border:1px solid #aaa; padding:6px;">输出</th>
+        <th style="border:1px solid #aaa; padding:6px;">Kd 是否使用</th>
+      </tr>
+      <tr><td style="border:1px solid #aaa; padding:6px;">速度环</td><td style="border:1px solid #aaa; padding:6px;"><code>PIDSpeedHandle_M1</code></td><td style="border:1px solid #aaa; padding:6px;">ω* − ω̂</td><td style="border:1px solid #aaa; padding:6px;">iq*</td><td style="border:1px solid #aaa; padding:6px;">通常 Kd=0（PI）</td></tr>
+      <tr><td style="border:1px solid #aaa; padding:6px;">d 轴电流环</td><td style="border:1px solid #aaa; padding:6px;"><code>PIDIdHandle_M1</code></td><td style="border:1px solid #aaa; padding:6px;">id* − id</td><td style="border:1px solid #aaa; padding:6px;">ud*</td><td style="border:1px solid #aaa; padding:6px;">Kd=0（PI）</td></tr>
+      <tr><td style="border:1px solid #aaa; padding:6px;">q 轴电流环</td><td style="border:1px solid #aaa; padding:6px;"><code>PIDIqHandle_M1</code></td><td style="border:1px solid #aaa; padding:6px;">iq* − iq</td><td style="border:1px solid #aaa; padding:6px;">uq*</td><td style="border:1px solid #aaa; padding:6px;">Kd=0（PI）</td></tr>
+    </table>
+
+    <p>MCSDK 的 PID 实现采用<b>位置式</b>结构，内置 <b>Clamping 抗饱和</b>——结构体中的 <code>hOutMax</code>/<code>hOutMin</code> 字段定义输出限幅，当输出达到限幅值时自动冻结积分。参数以<b>标幺值</b>（Q15 格式）存储，Kp/Ki 的物理量纲已被归一化，调试时通过 MotorControl Workbench 的 PID Tuning 面板在线修改 [$TRAE_REF](https://blog.csdn.net/wangjiaweiwei/article/details/147903344)。</p>
+
+    <div class="note">
+      <span class="label">与 6.2 节的联系：</span>6.2 节描述了双闭环的<b>架构</b>（谁嵌套谁、频率比多少），本节回答了环路内部的<b>算法</b>——PI 控制器如何计算输出、如何避免积分饱和、如何整定参数。6.2 节的 <code>PIDSpeedHandle_M1</code> 等句柄正是本节 PI 控制器的代码实例。
+    </div>
+
     <h3>6.3 三相逆变器电路拓扑</h3>
 
     <p>SVPWM 输出的三个占空比信号（SA, SB, SC）无法直接驱动电机——它们只是数字量。实际执行"直流变交流"的是<b>三相逆变器</b>（Three-Phase Inverter），它是 FOC 系统从软件到硬件的"最后一公里" [$TRAE_REF](https://www.researchgate.net/publication/366403356_Design_of_a_MOSFET_Circuit_Used_in_FOC_Driver_to_Reduce_the_Loss_and_Improve_the_Efficiency)。</p>
@@ -2670,7 +2963,7 @@
       → <b>电机方程</b>：u = R·i + L·di/dt + E（第三节 3.4）<br>
       → <b>电流幅值</b>：Im = (Um − Em) / √(R² + (ωL)²)（第三节 3.8）<br>
       → <b>坐标变换</b>：abc → αβ → dq（第四节）——把交流"翻译"成直流<br>
-      → <b>PI 控制</b>：速度环 + 电流环（本节 6.2）——在 dq 坐标系做直流调节<br>
+      → <b>PI 控制</b>：速度环 + 电流环（本节 6.2 架构 + 6.2a 算法）——在 dq 坐标系做直流调节<br>
       → <b>逆变换</b>：dq → αβ → SVPWM（本节 6.4 + 第四节 4.5）——把控制量"翻译"回交流<br>
       → <b>逆变器</b>：6×MOSFET 三相桥（本节 6.3）——PWM 开关执行"直流变交流"<br>
       → <b>电机</b>：三相绕组通入电流 → 产生旋转磁场 → 转子转动<br>
@@ -2700,6 +2993,7 @@
       <li><b>图 19B 新增</b>（2026-08-12）：在 6.3 节原有 PNG 电路截图（图 19）之后，新增同名内容的 SVG 矢量备案版（图 19B）。该 SVG 采用 IGBT 符号绘制六个开关管（A/B/C 三相 × 上/下桥臂），含反并联续流二极管与星形（Y）连接三相电感负载，可直接在 HTML 源码中编辑修改，作为图 19 位图版本的可编辑备选方案。</li>
       <li><b>6.4 节 SVPWM 推导大幅扩展 + 图 20/22 新增 + 图 21 占位</b>（2026-08-12）：以手写笔记为引子，结合互联网资料，将原 6.4 节从概述扩展为 7 个子章节的完整推导：6.4.1 从逆变器状态到电压空间矢量（含 8 矢量开关状态表、图 20 空间矢量六边形 SVG）；6.4.2 伏秒平衡原理（从电感稳态积分推导到 SVPWM 核心方程）；6.4.3 扇区判断（X/Y/Z 中间变量法 + N 值查表）；6.4.4 作用时间计算（扇区 I 的 αβ 投影推导 + 六扇区通用查表，图 21 矢量合成图留占位待绘制）；6.4.5 七段式 SVPWM 开关序列（图 22 三相 PWM 波形 SVG，含与手写笔记的对照说明）；6.4.6 过调制与电压利用率（SVPWM vs SPWM 15.47% 提升）；6.4.7 从作用时间到 CCR 寄存器（矢量切换点→CCR 映射）。</li>
       <li><b>6.4 节 SVPWM 校对与补充 + 图 23 新增</b>（2026-08-13）：根据 SVPWM 技术原理 PDF 参考资料（浙江海得新能源，23 页）进行系统校对，修正与补充内容如下：①<b>修正 T₀ 定义歧义</b>——原公式 T₀=T₇=(Ts−T₄−T₆)/2 将 T₀ 定义为单个零矢量时间，与七段式序列中 T₀/4、T₀/2 的用法（T₀ 为总零矢量时间）矛盾；统一为 T₀=Ts−Tx−Ty（总零矢量时间），并补充记法说明 note 框。②<b>修正六扇区查表</b>——扇区 II-VI 的 Tx/Ty 公式和矢量顺序有误（部分扇区会产生负值），已逐一重新推导修正，并添加扇区 II（θ=90°）验证示例。③<b>补充调制比 m 定义</b>——m = √3·|Uref|/Udc，m=1 为线性调制极限。④<b>补充平均值等效原理别名</b>——伏秒平衡原理也称平均值等效原理。⑤<b>新增六扇区完整开关序列表</b>——列出 I-VI 全部扇区的七段式矢量序列和时间分配。⑥<b>新增零矢量选择原则</b>——论证 U₀ 必须在首尾、U₇ 必须在中央，由"单相切换"约束唯一确定。⑦<b>新增 6.4.5a 五段式 SVPWM 简介</b>——仅用一个零矢量，切换次数从 6 降至 4，损耗减少 1/3，牺牲半波对称性。⑧<b>新增 6.4.8 SVPWM 物理含义——马鞍波与零序注入</b>——推导相电压调制波为马鞍形分段函数，线电压为正弦；证明 SVPWM 本质是注入零序分量的变形 SPWM，零序注入是 15.47% 电压利用率提升的根源；配图 23（马鞍波 vs 正弦波 SVG 对比图）。</li>
+      <li><b>6.2a 节 PID 控制器原理与工程实现新增 + 图 24/25 新增</b>（2026-08-13）：新增完整的 PID 章节共 6 个子节，填补了 6.2 节双闭环架构与环路内部算法之间的空白。6.2a.1 PID 基本原理（连续域公式 + P/I/D 三分量物理含义对比表 + 图 24 PID 框图 SVG）；6.2a.2 离散化实现（位置式 vs 增量式公式推导 + 对比表 + C 伪代码）；6.2a.3 为什么 FOC 用 PI 而非 PID（D 项噪声放大、电流环一阶零极点对消、速度环隐含微分三重论证）；6.2a.4 抗积分饱和（Clamping 条件积分禁用 + Back-Calculation 反算法 + 图 25 积分饱和效应 SVG + 跨级抗饱和）；6.2a.5 参数整定方法（试凑法 + Ziegler-Nichols 临界振荡法 + 带宽法 Kp=L·ωc/Ki=R·ωc 电流环、Kp=J·ωc/Ki=B·ωc 速度环）；6.2a.6 与本工程 MCSDK 代码对照（PID_Handle_t 句柄表 + 位置式+Clamping+标幺值实现说明）。全部内容基于互联网资料检索整理，含 8 条 CSDN/SimpleFOC 文献引用。</li>
       <li>若需修改或增补，直接编辑本 HTML 即可，所有图形均为可编辑的 SVG 代码。<b>每次修改后须在本节追加修订记录</b>，格式为「<b>修改摘要</b>（日期）：详细说明」。</li>
     </ul>
 
