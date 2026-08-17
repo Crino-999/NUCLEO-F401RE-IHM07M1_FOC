@@ -48,5 +48,11 @@ NUCLEO-F401RE/NUCLEO-F401RE.ioc.bak
 NUCLEO-F401RE/MDK-ARM/*.yml
 NUCLEO-F401RE/MDK-ARM/RTE/
 
+# ---------- Office 临时锁文件 ----------
+~$*
+
+# ---------- CMSIS 工具产物（Keil 生成，含本机路径） ----------
+NUCLEO-F401RE/MDK-ARM/.cmsis/
+
 # ---------- 本地敏感词表（含个人敏感词，禁止提交） ----------
 .git_sensitive_words.txt
