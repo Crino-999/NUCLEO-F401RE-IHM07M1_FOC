@@ -94,7 +94,6 @@ __weak void R3_1_Init(PWMC_R3_1_Handle_t *pHandle)
 
     /* disable IT and flags in case of LL driver usage
      * workaround for unwanted interrupt enabling done by LL driver */
-    /* 先关闭 ADC 的 EOC/JEOS 中断与标志,避免 LL 驱动误开 */
     LL_ADC_DisableIT_EOCS(ADCx);
     LL_ADC_ClearFlag_EOCS(ADCx);
     LL_ADC_DisableIT_JEOS(ADCx);
@@ -102,12 +101,10 @@ __weak void R3_1_Init(PWMC_R3_1_Handle_t *pHandle)
 
     /* disable main TIM counter to ensure
      * a synchronous start by TIM2 trigger */
-    /* 先停 TIM1 计数,等 startTimers() 用 TIM2 触发同步启动,保证多电机同步 */
     LL_TIM_DisableCounter(TIMx);
     if ( TIMx == TIM1 )
     {
       /* TIM1 Counter Clock stopped when the core is halted */
-      /* 调试时内核停下,TIM1 也停(便于单步调试 PWM) */
       LL_DBGMCU_APB2_GRP1_FreezePeriph( LL_DBGMCU_APB2_GRP1_TIM1_STOP );
     }
 #if defined(TIM8)
@@ -118,7 +115,6 @@ __weak void R3_1_Init(PWMC_R3_1_Handle_t *pHandle)
     }
 #endif
 
-    /* 使能刹车(BRK)中断:硬件过流/过压时 TIM1 BRK 立即封锁 PWM 输出 */
     LL_TIM_ClearFlag_BRK(TIMx);
     LL_TIM_EnableIT_BRK( TIMx );
 
@@ -126,7 +122,6 @@ __weak void R3_1_Init(PWMC_R3_1_Handle_t *pHandle)
     LL_TIM_CC_DisableChannel( TIMx, TIMxCCER_MASK_CH123 );
 
     /* Main PWM Output Enable */
-    /* 使能 MOE(BDTR),允许 PWM 输出(OSSR/OSSI 模式) */
     TIMx->BDTR |= LL_TIM_OSSI_ENABLE;
     LL_TIM_EnableAllOutputs( TIMx );
 
@@ -135,13 +130,12 @@ __weak void R3_1_Init(PWMC_R3_1_Handle_t *pHandle)
 
     /* reset regular conversion sequencer length set by cubeMX */
     LL_ADC_REG_SetSequencerLength( ADCx, LL_ADC_REG_SEQ_SCAN_DISABLE );
-
+    
     pHandle->ADCTriggerEdge = LL_ADC_INJ_TRIG_EXT_RISING;
     /* reset injected conversion sequencer length set by cubeMX */
     LL_ADC_INJ_SetSequencerLength( ADCx, LL_ADC_INJ_SEQ_SCAN_DISABLE );
-
+    
     /* Enable Update IRQ */
-    /* 使能 TIM1 更新中断:每个 PWM 周期(16kHz)触发一次,用于重配 ADC 注入序列 */
     LL_TIM_ClearFlag_UPDATE(TIMx);
     LL_TIM_EnableIT_UPDATE( TIMx );
   }
@@ -1153,13 +1147,6 @@ uint16_t R3_1_SetADCSampPointSectX_OVM( PWMC_Handle_t * pHdl )
   *
   * @param  pHandle: Handler of the current instance of the PWM component.
   */
-/* ====== TIM1 更新中断处理(每个 PWM 周期开始时触发) ======
- * 作用: 根据当前 SVPWM 计算出的扇区,重新配置 ADC 注入序列寄存器 JSQR,
- *       决定"下一个 PWM 周期"里 ADC 在注入触发时刻采哪两相电流。
- * 三电阻采样(R3_1)约定: 采导通时间最长的两相(下桥臂导通相),
- *                       因为此时该相电流=实际相电流,采样最准确。
- * 流程: TIM1 更新中断(UP) -> 配置 JSQR -> TIM1 CH4 产生 ADC 注入触发 -> ADC 注入完成中断(JEOS)
- *       -> TSK_HighFrequencyTask -> FOC_CurrControllerM1 */
 __weak void *R3_1_TIMx_UP_IRQHandler(PWMC_R3_1_Handle_t *pHandle)
 {
   TIM_TypeDef * TIMx = pHandle->pParams_str->TIMx;
@@ -1167,15 +1154,13 @@ __weak void *R3_1_TIMx_UP_IRQHandler(PWMC_R3_1_Handle_t *pHandle)
 
   /* reset ADC external trigger edge */
   LL_ADC_INJ_StopConversionExtTrig(ADCx);
-
-  /* 按当前扇区选择对应的 ADC 注入通道序列(决定采哪两相) */
+  
   ADCx->JSQR = pHandle->pParams_str->ADCConfig[pHandle->_Super.Sector];
 
   /* enable ADC trigger source */
   LL_TIM_CC_EnableChannel(TIMx, LL_TIM_CHANNEL_CH4);
-
+  
   /* set ADC external trigger edge */
-  /* 重新使能 ADC 注入外部触发(TIM1 CH4 比较),在 PWM 中点附近启动注入转换 */
   LL_ADC_INJ_StartConversionExtTrig(ADCx, pHandle->ADCTriggerEdge);
 
   /* reset default edge detection trigger */

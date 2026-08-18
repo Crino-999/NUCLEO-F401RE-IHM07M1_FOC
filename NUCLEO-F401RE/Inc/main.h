@@ -28,6 +28,7 @@ extern "C" {
 
 /* Includes ------------------------------------------------------------------*/
 #include "stm32f4xx_hal.h"
+
 #include "motorcontrol.h"
 
 /* Private includes ----------------------------------------------------------*/
@@ -49,8 +50,6 @@ extern "C" {
 /* USER CODE BEGIN EM */
 
 /* USER CODE END EM */
-
-void HAL_TIM_MspPostInit(TIM_HandleTypeDef *htim);
 
 /* Exported functions prototypes ---------------------------------------------*/
 void Error_Handler(void);
@@ -77,6 +76,8 @@ void Error_Handler(void);
 #define UART_TX_GPIO_Port GPIOA
 #define UART_RX_Pin GPIO_PIN_3
 #define UART_RX_GPIO_Port GPIOA
+#define LED2_Pin GPIO_PIN_5
+#define LED2_GPIO_Port GPIOA
 #define M1_DP_Pin GPIO_PIN_6
 #define M1_DP_GPIO_Port GPIOA
 #define M1_POTENTIOMETER_Pin GPIO_PIN_1
@@ -93,6 +94,10 @@ void Error_Handler(void);
 #define M1_PWM_EN_V_GPIO_Port GPIOC
 #define M1_PWM_EN_W_Pin GPIO_PIN_12
 #define M1_PWM_EN_W_GPIO_Port GPIOC
+#define AS5600_SCL_Pin GPIO_PIN_8
+#define AS5600_SCL_GPIO_Port GPIOB
+#define AS5600_SDA_Pin GPIO_PIN_9
+#define AS5600_SDA_GPIO_Port GPIOB
 
 /* USER CODE BEGIN Private defines */
 

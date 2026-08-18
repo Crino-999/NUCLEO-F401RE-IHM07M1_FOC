@@ -120,10 +120,6 @@ __weak alphabeta_t MCM_Clarke(ab_t Input)
   int32_t wbeta_tmp;
   int16_t hbeta_tmp;
 
-  /* Clarke 变换(3相->2相静止): 把三相静止电流 (Ia,Ib) 变换到两相静止 (Iα,Iβ)
-   * Iα = Ia
-   * Iβ = (Ia + 2*Ib) / √3   (此处用 divSQRT_3=18919≈√3*2^14 做定点近似) */
-
   /* qIalpha = qIas*/
   Output.alpha = Input.a;
 
@@ -132,7 +128,6 @@ __weak alphabeta_t MCM_Clarke(ab_t Input)
   b_divSQRT3_tmp = divSQRT_3 * ((int32_t)Input.b);
 
   /* qIbeta = -(2*qIbs+qIas)/sqrt(3) */
-  /* 注意符号:这里 β=-(a+2b)/√3,与 SDK 约定的 β 正方向一致 */
 #ifndef FULL_MISRA_C_COMPLIANCY_MC_MATH
   /* WARNING: the below instruction is not MISRA compliant, user should verify
     that Cortex-M3 assembly instruction ASR (arithmetic shift right) is used by
@@ -144,7 +139,6 @@ __weak alphabeta_t MCM_Clarke(ab_t Input)
 #endif
 
   /* Check saturation of Ibeta */
-  /* Q1.15 定点饱和处理,防止超出 int16 范围 */
   if (wbeta_tmp > INT16_MAX)
   {
     hbeta_tmp = INT16_MAX;
@@ -200,10 +194,6 @@ __weak qd_t MCM_Park(alphabeta_t Input, int16_t Theta)
   int16_t hqd_tmp;
   Trig_Components Local_Vector_Components;
 
-  /* Park 变换(2相静止->2相同步旋转): 把 (Iα,Iβ) 旋转到与转子同步的 (Id,Iq) 坐标系
-   * Id = Iα*sinθ + Iβ*cosθ   (d 轴对准磁链,理想下 Id 为励磁分量)
-   * Iq = Iα*cosθ - Iβ*sinθ   (q 轴超前 d 轴 90°,Iq 为转矩分量)
-   * θ 来自速度传感器(STO-PLL 或 VSS)。旋转后交流量变为直流量,PI 易于调节 */
   Local_Vector_Components = MCM_Trig_Functions(Theta);
 
   /* No overflow guaranteed */
@@ -317,11 +307,6 @@ __weak alphabeta_t MCM_Rev_Park(qd_t Input, int16_t Theta)
   Trig_Components Local_Vector_Components;
   alphabeta_t Output;
 
-  /* 反 Park 变换(2相同步旋转->2相静止): 把控制器输出的电压指令 (Vd,Vq)
-   * 还原回静止坐标系 (Vα,Vβ),供 SVPWM 使用。
-   * Vα = Vq*cosθ + Vd*sinθ
-   * Vβ = -Vq*sinθ + Vd*cosθ
-   * 是 Park 变换的逆过程,把"直流"电压指令变回"交流"施加到电机 */
   Local_Vector_Components = MCM_Trig_Functions(Theta);
 
   /* No overflow guaranteed */

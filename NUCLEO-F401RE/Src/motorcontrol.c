@@ -48,11 +48,6 @@ MCI_Handle_t* pMCI[NBR_OF_MOTORS];
  */
 __weak void MX_MotorControl_Init(void)
 {
-  /* ====== 电机控制子系统入口 ======
-   * 由 CubeMX 在外设初始化后、NVIC 配置前调用。
-   * 1. 把 SysTick 重配为 2kHz(每 500us 触发一次),用于中频任务调度;
-   * 2. MCboot() 初始化 FOC 全部组件(PWM/ADC/PI/观测器/启动控制等);
-   * 3. 锁定电机相关 GPIO,防止误配置。 */
   /* Reconfigure the SysTick interrupt to fire every 500 us. */
   (void)HAL_SYSTICK_Config(HAL_RCC_GetHCLKFreq() / SYS_TICK_FREQUENCY);
   HAL_NVIC_SetPriority(SysTick_IRQn, uwTickPrio, 0U);

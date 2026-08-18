@@ -60,11 +60,7 @@ void TIMx_BRK_M1_IRQHandler(void);
   * @brief  This function handles ADC interrupt request.
   * @param  None
   */
-/* ====== ADC 中断: FOC 高频环入口(16kHz) ======
- * 触发源: TIM1 CH4 在 PWM 周期内某时刻产生 ADC 注入外部触发,
- *         ADC 完成两相电流注入转换后置位 JEOS 标志并触发本中断。
- * 此处调用 TSK_HighFrequencyTask() -> FOC_CurrControllerM1(),
- * 即每个 PWM 周期执行一次完整的电流环 + SVPWM。 */
+
 void ADC_IRQHandler(void)
 {
   /* USER CODE BEGIN ADC_IRQn 0 */
@@ -97,9 +93,6 @@ void ADC_IRQHandler(void)
   * @brief  This function handles first motor TIMx Update interrupt request.
   * @param  None
   */
-/* ====== TIM1 更新中断: 每个 PWM 周期开始时触发(16kHz) ======
- * 作用: 调用 R3_1_TIMx_UP_IRQHandler,按当前扇区重配 ADC 注入序列,
- *       决定本周期采哪两相电流。先于 ADC 注入触发执行。 */
 void TIMx_UP_M1_IRQHandler(void)
 {
   /* USER CODE BEGIN TIMx_UP_M1_IRQn 0 */
@@ -118,8 +111,6 @@ void TIMx_UP_M1_IRQHandler(void)
   * @brief  This function handles first motor BRK interrupt.
   * @param  None
   */
-/* ====== TIM1 刹车中断: 硬件过流/过压保护 ======
- * 触发后硬件自动封锁 PWM 输出(MOE=0),这里做软件善后并重新使能输出。 */
 void TIMx_BRK_M1_IRQHandler(void)
 {
   /* USER CODE BEGIN TIMx_BRK_M1_IRQn 0 */

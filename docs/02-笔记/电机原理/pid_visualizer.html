@@ -403,9 +403,9 @@ button.primary:hover { background: #6cb2ff; }
   <header>
     <h1>FOC q轴电流环 PID 可视化演示</h1>
     <div class="formula-row">
-      <span class="formula">误差信号：e(t) = i<sub>q</sub><sup>*</sup>(t) − i<sub>q</sub>(t)</span>
-      <span class="formula">PID 总输出：u(t) = K<sub>p</sub>·e(t) + K<sub>i</sub>·∫<sub>0</sub><sup>t</sup> e(τ)dτ + K<sub>d</sub>·de(t)/dt</span>
-      <span class="formula">电流方程：L·di<sub>q</sub>/dt + R·i<sub>q</sub> = u(t)</span>
+      <span class="formula">误差信号：e[n] = i<sub>q</sub><sup>*</sup> − i<sub>q</sub>[n]</span>
+      <span class="formula">离散 PID：u[n] = K<sub>p</sub>·e[n] + K<sub>i</sub>·Σe[k] + K<sub>d</sub>·Δe[n]</span>
+      <span class="formula">电流方程：L·di<sub>q</sub>/dt + R·i<sub>q</sub> = u(t)　（T = 62.5μs）</span>
     </div>
   </header>
 
@@ -417,11 +417,11 @@ button.primary:hover { background: #6cb2ff; }
       <div class="ctrl-group">
         <div class="input-row">
           <label>目标电流 i<sub>q</sub><sup>*</sup> <small>(A)</small></label>
-          <input type="number" id="iqRef" value="2" step="0.1" min="-10" max="10">
+          <input type="number" id="iqRef" value="1" step="0.1" min="-2" max="2">
         </div>
         <div class="input-row">
           <label>初始电流 i<sub>q</sub>(0) <small>(A)</small></label>
-          <input type="number" id="iq0" value="0" step="0.1" min="-10" max="10">
+          <input type="number" id="iq0" value="0" step="0.1" min="-2" max="2">
         </div>
       </div>
 
@@ -429,23 +429,41 @@ button.primary:hover { background: #6cb2ff; }
       <div class="ctrl-group">
         <div class="slider-row">
           <label>K<sub>p</sub></label>
-          <input type="range" id="kpSlider" min="0" max="5" step="0.05" value="1">
-          <input type="number" id="kpNum" min="0" max="5" step="0.05" value="1">
+          <input type="range" id="kpSlider" min="0" max="10" step="0.01" value="2.565">
+          <input type="number" id="kpNum" min="0" max="10" step="0.01" value="2.565">
         </div>
         <div class="slider-row">
           <label>K<sub>i</sub></label>
-          <input type="range" id="kiSlider" min="0" max="5" step="0.05" value="1">
-          <input type="number" id="kiNum" min="0" max="5" step="0.05" value="1">
+          <input type="range" id="kiSlider" min="0" max="10" step="0.01" value="0.640">
+          <input type="number" id="kiNum" min="0" max="10" step="0.01" value="0.640">
         </div>
         <div class="slider-row">
           <label>K<sub>d</sub></label>
-          <input type="range" id="kdSlider" min="0" max="5" step="0.01" value="0.2">
-          <input type="number" id="kdNum" min="0" max="5" step="0.01" value="0.2">
+          <input type="range" id="kdSlider" min="0" max="2" step="0.001" value="0">
+          <input type="number" id="kdNum" min="0" max="2" step="0.001" value="0">
         </div>
         <div class="slider-row">
-          <label>时间范围 <small>(s)</small></label>
-          <input type="range" id="tSlider" min="1" max="60" step="1" value="5">
-          <input type="number" id="tNum" min="1" max="60" step="1" value="5" style="width:56px;">
+          <label>时间范围 <small>(ms)</small></label>
+          <input type="range" id="tSlider" min="0.5" max="20" step="0.5" value="5">
+          <input type="number" id="tNum" min="0.5" max="20" step="0.5" value="5" style="width:56px;">
+        </div>
+      </div>
+
+      <h2>控制参数</h2>
+      <div class="ctrl-group">
+        <div class="input-row">
+          <label>电压限幅 <small>(V)</small></label>
+          <input type="number" id="vmaxNum" value="6.93" step="0.01" min="0.1" max="12">
+        </div>
+        <div class="switch-row">
+          <div>
+            <div>抗积分饱和</div>
+            <div class="desc">电压饱和时停止同向积分累积</div>
+          </div>
+          <label class="switch">
+            <input type="checkbox" id="antiWindupOn" checked>
+            <span class="track"></span>
+          </label>
         </div>
       </div>
 
@@ -508,12 +526,12 @@ button.primary:hover { background: #6cb2ff; }
         <div class="curve-row">
           <input type="checkbox" id="show-i" checked>
           <input type="color" id="color-i" value="#4da3ff">
-          <span class="curve-name">u<sub>I</sub> = K<sub>i</sub>·∫e dτ <small>(V)</small></span>
+          <span class="curve-name">u<sub>I</sub> = K<sub>i</sub>·Σe <small>(V)</small></span>
         </div>
         <div class="curve-row">
           <input type="checkbox" id="show-d" checked>
           <input type="color" id="color-d" value="#b37feb">
-          <span class="curve-name">u<sub>D</sub> = K<sub>d</sub>·de/dt <small>(V)</small></span>
+          <span class="curve-name">u<sub>D</sub> = K<sub>d</sub>·Δe <small>(V)</small></span>
         </div>
         <div class="curve-row">
           <input type="checkbox" id="show-iq" checked>
@@ -533,11 +551,14 @@ button.primary:hover { background: #6cb2ff; }
       </div>
 
       <div class="note">
-        <b>简化模型说明：</b><br>
-        实际电流用一阶惯性系统近似：<br>
-        <code>i_q(t+Δt) = i_q(t) + (u(t) − R·i_q(t)) / L · Δt</code><br>
-        电机参数固定为 <code>L = 1 H</code>、<code>R = 1 Ω</code>。<br>
-        误差 e(t) = i<sub>q</sub><sup>*</sup> − i<sub>q</sub>(t)，由 PID 闭环驱动。
+        <b>模型说明（NUCLEO-F401RE + IHM07M1 2804云台电机）：</b><br>
+        电机参数：<code>L = 0.8 mH</code>, <code>R = 3.19 Ω</code>（pmsm_motor_parameters.h）<br>
+        电气时间常数 τ = L/R = 0.25 ms<br>
+        PID 定点参数：<code>Kp = 2627/1024 ≈ 2.565</code>, <code>Ki = 2622/4096 ≈ 0.640</code>（drive_parameters.h）<br>
+        积分项为离散累加 Σe（不含 dt），D 项实际禁用<br>
+        控制周期 T = 1/16000 ≈ 62.5 μs（零阶保持）<br>
+        电压限幅 = Vbus/√3 ≈ 6.93 V（SVPWM 线性调制上限）<br>
+        电流方程：<code>L·di<sub>q</sub>/dt + R·i<sub>q</sub> = u(t)</code>
       </div>
 
     </aside>
@@ -549,8 +570,8 @@ button.primary:hover { background: #6cb2ff; }
       <div id="legend">
         <span class="legend-item"><span class="legend-line" id="legend-u" style="border-color:#ff9f2e"></span>u(t) 总输出 <small>(V)</small></span>
         <span class="legend-item"><span class="legend-line" id="legend-p" style="border-color:#ff5252"></span>u<sub>P</sub> = K<sub>p</sub>·e <small>(V)</small></span>
-        <span class="legend-item"><span class="legend-line" id="legend-i" style="border-color:#4da3ff"></span>u<sub>I</sub> = K<sub>i</sub>·∫e dτ <small>(V)</small></span>
-        <span class="legend-item"><span class="legend-line" id="legend-d" style="border-color:#b37feb"></span>u<sub>D</sub> = K<sub>d</sub>·de/dt <small>(V)</small></span>
+        <span class="legend-item"><span class="legend-line" id="legend-i" style="border-color:#4da3ff"></span>u<sub>I</sub> = K<sub>i</sub>·Σe <small>(V)</small></span>
+        <span class="legend-item"><span class="legend-line" id="legend-d" style="border-color:#b37feb"></span>u<sub>D</sub> = K<sub>d</sub>·Δe <small>(V)</small></span>
         <span class="legend-item"><span class="legend-line" id="legend-iq" style="border-color:#9aa4b2"></span>i<sub>q</sub>(t) 实际电流 <small>(A)</small></span>
         <span class="legend-item"><span class="legend-line" id="legend-e" style="border-color:#3ddc84"></span>e(t) 误差信号 <small>(A)</small></span>
       </div>
@@ -568,14 +589,14 @@ button.primary:hover { background: #6cb2ff; }
           </div>
           <table>
             <tbody>
-              <tr><td>t (s)</td>     <td id="cp-a-t"></td>   <td id="cp-b-t"></td>   <td id="cp-d-t"></td></tr>
-              <tr><td>e(t) (A)</td>   <td id="cp-a-e"></td>   <td id="cp-b-e"></td>   <td id="cp-d-e"></td></tr>
-              <tr><td>u_P (V)</td>    <td id="cp-a-p"></td>   <td id="cp-b-p"></td>   <td id="cp-d-p"></td></tr>
-              <tr><td>u_I (V)</td>    <td id="cp-a-i"></td>   <td id="cp-b-i"></td>   <td id="cp-d-i"></td></tr>
-              <tr><td>u_D (V)</td>    <td id="cp-a-d"></td>   <td id="cp-b-d"></td>   <td id="cp-d-d"></td></tr>
-              <tr><td>u (V)</td>      <td id="cp-a-u"></td>   <td id="cp-b-u"></td>   <td id="cp-d-u"></td></tr>
-              <tr><td>i_q (A)</td>    <td id="cp-a-iq"></td>  <td id="cp-b-iq"></td>  <td id="cp-d-iq"></td></tr>
-              <tr><td>∫e dτ (A·s)</td><td id="cp-a-area"></td><td id="cp-b-area"></td><td id="cp-d-area"></td></tr>
+              <tr><td>t (ms)</td>    <td id="cp-a-t"></td>   <td id="cp-b-t"></td>   <td id="cp-d-t"></td></tr>
+              <tr><td>e(t) (A)</td>  <td id="cp-a-e"></td>   <td id="cp-b-e"></td>   <td id="cp-d-e"></td></tr>
+              <tr><td>u_P (V)</td>   <td id="cp-a-p"></td>   <td id="cp-b-p"></td>   <td id="cp-d-p"></td></tr>
+              <tr><td>u_I (V)</td>   <td id="cp-a-i"></td>   <td id="cp-b-i"></td>   <td id="cp-d-i"></td></tr>
+              <tr><td>u_D (V)</td>   <td id="cp-a-d"></td>   <td id="cp-b-d"></td>   <td id="cp-d-d"></td></tr>
+              <tr><td>u (V)</td>     <td id="cp-a-u"></td>   <td id="cp-b-u"></td>   <td id="cp-d-u"></td></tr>
+              <tr><td>i_q (A)</td>   <td id="cp-a-iq"></td>  <td id="cp-b-iq"></td>  <td id="cp-d-iq"></td></tr>
+              <tr><td>Σe (A)</td>    <td id="cp-a-area"></td><td id="cp-b-area"></td><td id="cp-d-area"></td></tr>
             </tbody>
           </table>
         </div>
@@ -583,14 +604,14 @@ button.primary:hover { background: #6cb2ff; }
 
       <!-- 底部实时数值 -->
       <div id="readout">
-        <div class="ro-item"><span class="ro-label">时间 t</span><span class="ro-value" id="ro-t">0.000 s</span></div>
+        <div class="ro-item"><span class="ro-label">时间 t</span><span class="ro-value" id="ro-t">0.000 ms</span></div>
         <div class="ro-item"><span class="ro-label">误差 e(t)</span><span class="ro-value v-e" id="ro-e">0.000</span></div>
         <div class="ro-item"><span class="ro-label">P 项</span><span class="ro-value v-p" id="ro-p">0.000</span></div>
         <div class="ro-item"><span class="ro-label">I 项</span><span class="ro-value v-i" id="ro-i">0.000</span></div>
         <div class="ro-item"><span class="ro-label">D 项</span><span class="ro-value v-d" id="ro-d">0.000</span></div>
         <div class="ro-item"><span class="ro-label">总输出 u(t)</span><span class="ro-value v-u" id="ro-u">0.000</span></div>
         <div class="ro-item"><span class="ro-label">实际电流 i<sub>q</sub>(t)</span><span class="ro-value v-iq" id="ro-iq">0.000</span></div>
-        <div class="ro-item"><span class="ro-label">积分面积 ∫e dτ</span><span class="ro-value v-i" id="ro-area">0.000</span></div>
+        <div class="ro-item"><span class="ro-label">积分累积 Σe</span><span class="ro-value v-i" id="ro-area">0.000</span></div>
       </div>
 
     </section>
@@ -603,19 +624,32 @@ button.primary:hover { background: #6cb2ff; }
  * 常量与状态
  * ===================================================================== */
 const N_SAMPLE = 6000;            // 整段时间的采样点数（固定，保证曲线平滑）
-const L = 1.0;                    // 电机绕组电感（简化模型参数）
-const R = 1.0;                    // 电机绕组电阻
+
+/* --- 本工程实际电机参数（pmsm_motor_parameters.h） --- */
+const L = 0.0008;                 // 电机相电感 (H) = 0.8 mH
+const R = 3.19;                   // 电机相电阻 (Ω)
+
+/* --- 控制参数（drive_parameters.h / power_stage_parameters.h） --- */
+const F_PWM = 16000;              // PWM/控制频率 (Hz)
+const CONTROL_DT = 1 / F_PWM;     // 控制周期 ≈ 62.5μs
+const V_BUS = 12;                 // 母线电压 (V)
+
+/* --- PID 定点参数 → 等效浮点值（drive_parameters.h） --- */
+/*  Kp = 2627 / TF_KPDIV(1024) ≈ 2.565                    */
+/*  Ki = 2622 / TF_KIDIV(4096) ≈ 0.640                    */
+/*  Kd = 100  / TF_KDDIV(8192) ≈ 0.012（但 D 项禁用）       */
+/*  ST 库积分项为离散累加 Σe（不含 dt），等效连续 Ki ≈ 10242 */
 
 // 仿真结果数据（每个数组长度 N_SAMPLE+1）
 const sim = {
   t: [],      // 时间 t
   e: [],      // 误差信号 e(t) = i_q* - i_q
   p: [],      // P 项输出  u_P = Kp·e(t)
-  i: [],      // I 项输出  u_I = Ki·∫e dτ
-  d: [],      // D 项输出  u_D = Kd·de/dt
-  u: [],      // PID 总输出（电压指令）
+  i: [],      // I 项输出  u_I = Ki·Σe
+  d: [],      // D 项输出  u_D = Kd·Δe
+  u: [],      // PID 总输出（电压指令，限幅后）
   iq: [],     // 实际电流 i_q(t)
-  area: [],   // 积分面积 ∫₀ᵗ e(τ)dτ（累积值）
+  area: [],   // 积分累积 Σe（离散累加值）
 };
 
 /* 曲线配置：颜色 + 可见性 + 所属 Y 轴（L=左轴/A, R=右轴/V）
@@ -639,21 +673,22 @@ const PRESETS = {
   "荧光":   { u:"#ffff00", p:"#ff00ff", i:"#00ffff", d:"#ff0080", iq:"#80ff00", e:"#00ff80" },
 };
 
-let tMax = 5;        // 时间范围（秒）
-let playing = false; // 播放状态
-let curT = 0;        // 当前播放时刻
-let lastFrame = 0;   // 上一帧真实时间（毫秒）
+let tMax = 0.005;     // 时间范围（秒），UI 以 ms 显示
+let vMax = V_BUS / Math.sqrt(3);  // 电压限幅，默认 SVPWM 线性调制上限 ≈ 6.93V
+let playing = false;  // 播放状态
+let curT = 0;         // 当前播放时刻
+let lastFrame = 0;    // 上一帧真实时间（毫秒）
 
 // 测量游标（示波器 X1 / X2）：与播放头独立，可在 [0,tMax] 全程拖动
 const cursor = {
   on: false,
-  a: { t: 1.0, drag: false },   // X1
-  b: { t: 3.0, drag: false },   // X2
-  hover: null,                  // 'a' | 'b' | null（hover 反馈用）
+  a: { t: 0.001, drag: false },  // X1 = 1ms
+  b: { t: 0.003, drag: false },  // X2 = 3ms
+  hover: null,                   // 'a' | 'b' | null（hover 反馈用）
 };
 const CUR_COLORS = { a: "#ffd23f", b: "#2ee6d6" };   // X1 黄、X2 青
 const CP_KEYS = ["t","e","p","i","d","u","iq","area"];
-const CP_UNITS = { t:"s", e:"A", p:"V", i:"V", d:"V", u:"V", iq:"A", area:"A·s" };
+const CP_UNITS = { t:"ms", e:"A", p:"V", i:"V", d:"V", u:"V", iq:"A", area:"A" };
 
 /* =====================================================================
  * DOM 引用
@@ -665,6 +700,7 @@ const el = {
   kiSlider: $("kiSlider"), kiNum: $("kiNum"),
   kdSlider: $("kdSlider"), kdNum: $("kdNum"),
   tSlider:  $("tSlider"),  tNum:  $("tNum"),
+  vmaxNum: $("vmaxNum"), antiWindupOn: $("antiWindupOn"),
   areaOn: $("areaOn"), tangentOn: $("tangentOn"),
   playBtn: $("playBtn"), resetBtn: $("resetBtn"),
   canvas: $("chart"),
@@ -704,51 +740,68 @@ function getParams() {
 }
 
 /* =====================================================================
- * 仿真：一阶惯性模型 + PID 闭环，生成整段时间的数据
+ * 仿真：一阶惯性模型 + 离散 PID 闭环（16kHz 控制周期，零阶保持）
  *
- *   误差：        e(t) = i_q* - i_q(t)
- *   差分方程：    i_q(t+Δt) = i_q(t) + (u(t) - R·i_q(t)) / L · Δt
+ *   控制周期边界（每 T = 62.5μs）：
+ *     误差：     e = i_q* - i_q[n]
+ *     P 项：     u_P = Kp · e
+ *     I 项：     u_I = Ki · Σe        （ST 库离散累加，不含 dt）
+ *     D 项：     u_D = Kd · Δe        （相邻控制周期差分）
+ *     PID 输出：  u = u_P + u_I + u_D  → 电压限幅 → 抗积分饱和
  *
- *   其中 u(t) 由 PID 三部分（下面代码中分别标注 P / I / D）合成：
+ *   控制周期内（零阶保持，输出恒定）：
+ *     差分方程： i_q(t+Δt) = i_q(t) + (u − R·i_q(t)) / L · Δt
  * ===================================================================== */
 function simulate() {
   const p = getParams();
-  const dt = tMax / N_SAMPLE;         // 仿真步长
+  const dt = tMax / N_SAMPLE;              // 仿真步长（细，保证曲线平滑）
   const N = N_SAMPLE;
+  const stepsPerControl = Math.max(1, Math.round(CONTROL_DT / dt)); // 每个 PID 周期内的仿真子步数
 
   // 清空旧数据
   for (const k in sim) sim[k].length = 0;
 
   let iq = p.iq0;                          // 实际电流状态
-  let integral = 0;                        // 积分累积量 ∫₀ᵗ e(τ)dτ
-  let prevE = p.iqRef - p.iq0;             // 上一时刻误差（用于数值微分，起点斜率=0）
+  let integral = 0;                        // 积分累积 Σe（ST 库离散形式，不含 dt）
+  let prevE = p.iqRef - p.iq0;             // 上一控制周期误差
+  let uP = 0, uI = 0, uD = 0, u = 0;       // 当前 PID 分量（零阶保持）
 
   for (let n = 0; n <= N; n++) {
     const t = n * dt;
-    const e = p.iqRef - iq;                // 误差信号
 
-    /* ---- P：比例输出 = Kp·e(t) ---- */
-    const uP = p.kp * e;
+    /* ---- PID 在控制周期边界更新（零阶保持：周期内输出恒定） ---- */
+    if (n % stepsPerControl === 0) {
+      const e_ctrl = p.iqRef - iq;
 
-    /* ---- I：积分输出 = Ki·∫₀ᵗ e(τ)dτ ---- */
-    const uI = p.ki * integral;
+      uP = p.kp * e_ctrl;                  // P：比例
+      uI = p.ki * integral;                // I：离散累加 Σe
+      uD = p.kd * (e_ctrl - prevE);        // D：相邻周期差分（D 项默认禁用）
 
-    /* ---- D：微分输出 = Kd·de(t)/dt（前向差分近似） ---- */
-    const de = (e - prevE) / dt;
-    const uD = p.kd * de;
+      u = uP + uI + uD;
 
-    /* ---- PID 总输出（电压指令） ---- */
-    const u = uP + uI + uD;
+      /* ---- 电压限幅（SVPWM 线性调制上限） ---- */
+      const saturated = u > vMax || u < -vMax;
+      u = Math.max(-vMax, Math.min(vMax, u));
+
+      /* ---- 抗积分饱和（clamping）：饱和时停止同向积分 ---- */
+      const windupBlock = saturated && (
+        (u >= vMax && e_ctrl > 0) ||
+        (u <= -vMax && e_ctrl < 0)
+      );
+      if (!el.antiWindupOn.checked || !windupBlock) {
+        integral += e_ctrl;
+      }
+      prevE = e_ctrl;
+    }
 
     // 记录本时刻
+    const e = p.iqRef - iq;
     sim.t.push(t);   sim.e.push(e);
     sim.p.push(uP);  sim.i.push(uI);  sim.d.push(uD);
     sim.u.push(u);   sim.iq.push(iq); sim.area.push(integral);
 
     /* ---- 模型递推：电压 u 驱动电流 i_q 变化 ---- */
-    integral += e * dt;                    // 积分累积（供下一时刻 I 项使用）
-    iq += (u - R * iq) / L * dt;           // 一阶惯性系统
-    prevE = e;
+    iq += (u - R * iq) / L * dt;           // 一阶惯性系统（零阶保持的 u）
   }
   computeYRange();
 }
@@ -757,10 +810,10 @@ function simulate() {
  * 事件绑定：任何参数变化 → 重新仿真
  * ===================================================================== */
 function onParamChange() {
-  const wasEnd = curT >= tMax;   // 若已播放到末尾，参数变化后从头开始
+  const wasEnd = curT >= tMax;
   simulate();
   if (wasEnd) curT = 0;
-  clampCursor();                 // tMax 变化后钳制游标位置
+  clampCursor();
 }
 
 /* 钳制游标时刻到 [0, tMax] */
@@ -773,12 +826,17 @@ bindSliderNum(el.kpSlider, el.kpNum, onParamChange);
 bindSliderNum(el.kiSlider, el.kiNum, onParamChange);
 bindSliderNum(el.kdSlider, el.kdNum, onParamChange);
 bindSliderNum(el.tSlider, el.tNum, () => {
-  tMax = parseFloat(el.tNum.value) || 5;
+  tMax = (parseFloat(el.tNum.value) || 5) / 1000;  // ms → s
   if (curT > tMax) curT = tMax;
   onParamChange();
 });
 el.iqRef.addEventListener("input", onParamChange);
 el.iq0.addEventListener("input", onParamChange);
+el.vmaxNum.addEventListener("input", () => {
+  vMax = parseFloat(el.vmaxNum.value) || V_BUS / Math.sqrt(3);
+  onParamChange();
+});
+el.antiWindupOn.addEventListener("change", onParamChange);
 
 /* 播放 / 暂停 */
 el.playBtn.addEventListener("click", () => {
@@ -901,7 +959,8 @@ function draw() {
 
 /* ---- 网格 + 刻度 + 坐标轴（双 Y 轴） ---- */
 function drawGrid() {
-  const xStep = niceStep(tMax, 7);
+  const tMaxMs = tMax * 1000;             // 以 ms 为单位计算 x 轴刻度
+  const xStep = niceStep(tMaxMs, 7);       // x 轴步长（ms）
   const yStep = niceStep(yMax1 - yMin1, 6);   // 网格按左轴 nice 值
 
   ctx.textAlign = "center";
@@ -928,8 +987,9 @@ function drawGrid() {
     ctx.textAlign = "center";
   }
 
-  // 垂直网格线（x 刻度）
-  for (let t = 0; t <= tMax + 1e-9; t += xStep) {
+  // 垂直网格线（x 刻度，以 ms 为单位）
+  for (let tMs = 0; tMs <= tMaxMs + 1e-9; tMs += xStep) {
+    const t = tMs / 1000;                 // 转回秒用于坐标映射
     const x = X(Math.min(t, tMax));
     ctx.strokeStyle = "rgba(255,255,255,0.08)";
     ctx.beginPath();
@@ -937,7 +997,7 @@ function drawGrid() {
     ctx.stroke();
 
     ctx.fillStyle = "#8a93a3";
-    ctx.fillText(fmtNum(t), x, plotT + plotH + 17);
+    ctx.fillText(fmtNum(tMs), x, plotT + plotH + 17);
   }
 
   // 坐标轴轮廓（左轴 + 底轴 + 右轴）
@@ -953,7 +1013,7 @@ function drawGrid() {
   // 轴名称标注
   ctx.fillStyle = "#c9d1dc";
   ctx.textAlign = "center";
-  ctx.fillText("t (s)", plotL + plotW / 2, cssH - 5);
+  ctx.fillText("t (ms)", plotL + plotW / 2, cssH - 5);
 
   // 左轴标注 (A)
   ctx.save();
@@ -1028,7 +1088,7 @@ function drawTangent(idx) {
   if (!el.tangentOn.checked || idx < 1) return;
   const dt = tMax / N_SAMPLE;
   const slope = (sim.e[idx] - sim.e[idx - 1]) / dt;   // 数值斜率 de/dt
-  const halfW = Math.min(0.5 * tMax, 1.2);            // 切线向两侧延伸的时长（秒）
+  const halfW = Math.min(0.5 * tMax, 0.001);            // 切线向两侧延伸的时长（秒），最多 1ms
 
   const x1 = X(sim.t[idx] - halfW), y1 = Y1(sim.e[idx] - slope * halfW);
   const x2 = X(sim.t[idx] + halfW), y2 = Y1(sim.e[idx] + slope * halfW);
@@ -1052,7 +1112,7 @@ function drawTangent(idx) {
   ctx.fillStyle = curveCfg.d.color;
   ctx.font = "bold 11px Consolas, monospace";
   ctx.textAlign = "left";
-  ctx.fillText("de/dt = " + slope.toFixed(2),
+  ctx.fillText("de/dt = " + (slope / 1000).toFixed(2) + " A/ms",
                X(sim.t[idx]) + 8, Y1(sim.e[idx]) - 10);
   ctx.font = "11px 'Segoe UI', 'Microsoft YaHei', sans-serif";
 }
@@ -1072,14 +1132,14 @@ function drawCursor(idx) {
 
 /* ---- 底部实时数值 ---- */
 function updateReadout(idx) {
-  el.ro.t.textContent    = sim.t[idx].toFixed(3) + " s";
+  el.ro.t.textContent    = (sim.t[idx] * 1000).toFixed(3) + " ms";
   el.ro.e.textContent    = sim.e[idx].toFixed(3) + " A";
   el.ro.p.textContent    = sim.p[idx].toFixed(3) + " V";
   el.ro.i.textContent    = sim.i[idx].toFixed(3) + " V";
   el.ro.d.textContent    = sim.d[idx].toFixed(3) + " V";
   el.ro.u.textContent    = sim.u[idx].toFixed(3) + " V";
   el.ro.iq.textContent   = sim.iq[idx].toFixed(3) + " A";
-  el.ro.area.textContent = sim.area[idx].toFixed(3) + " A·s";
+  el.ro.area.textContent = sim.area[idx].toFixed(3) + " A";
 }
 
 /* =====================================================================
@@ -1115,7 +1175,7 @@ function drawCursors() {
   ctx.font = "bold 13px Consolas, monospace";
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
-  ctx.fillText("Δt = " + dt.toFixed(3) + " s", (xA + xB) / 2, top + plotH / 2);
+  ctx.fillText("Δt = " + (dt * 1000).toFixed(3) + " ms", (xA + xB) / 2, top + plotH / 2);
   ctx.font = "11px 'Segoe UI', 'Microsoft YaHei', sans-serif";
   ctx.textBaseline = "alphabetic";
 }
@@ -1160,7 +1220,7 @@ function drawOneCursor(c, idx, color, label) {
   ctx.font = "bold 10px Consolas, monospace";
   ctx.textAlign = "center";
   ctx.textBaseline = "bottom";
-  ctx.fillText(label + " " + c.t.toFixed(3) + "s", x, top - 2);
+  ctx.fillText(label + " " + (c.t * 1000).toFixed(3) + "ms", x, top - 2);
   ctx.font = "11px 'Segoe UI', 'Microsoft YaHei', sans-serif";
   ctx.textBaseline = "alphabetic";
 }
@@ -1169,7 +1229,8 @@ function drawOneCursor(c, idx, color, label) {
 function updateCursorPanel() {
   const iA = tToIdx(cursor.a.t), iB = tToIdx(cursor.b.t);
   for (const k of CP_KEYS) {
-    const va = sim[k][iA], vb = sim[k][iB];
+    let va = sim[k][iA], vb = sim[k][iB];
+    if (k === "t") { va *= 1000; vb *= 1000; }  // 时间以 ms 显示
     const u = CP_UNITS[k];
     $("cp-a-" + k).textContent = va.toFixed(3) + " " + u;
     $("cp-b-" + k).textContent = vb.toFixed(3) + " " + u;
@@ -1273,7 +1334,8 @@ CURVE_KEYS.forEach(k => {
 function frame(now) {
   if (playing) {
     if (lastFrame === 0) lastFrame = now;
-    curT += (now - lastFrame) / 1000;    // 1 秒真实时间 = 1 秒仿真时间
+    const PLAY_DURATION = 5;  // 播放总时长（真实秒），仿真时间按比例映射
+    curT += (now - lastFrame) / 1000 * (tMax / PLAY_DURATION);
     lastFrame = now;
     if (curT >= tMax) {                  // 播放到末尾自动暂停
       curT = tMax;
@@ -1295,7 +1357,7 @@ resizeCanvas();
 simulate();
 updateLegend();
 requestAnimationFrame(frame);
-</script>
+  </script>
 
 </body>
 

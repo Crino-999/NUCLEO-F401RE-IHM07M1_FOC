@@ -180,23 +180,14 @@ __weak uint16_t PWMC_SetPhaseVoltage(PWMC_Handle_t *pHandle, alphabeta_t Valfa_b
     int32_t wTimePhB;
     int32_t wTimePhC;
 
-    /* ====== 空间矢量脉宽调制(SVPWM) ======
-     * 输入: 反 Park 后的静止坐标系电压 (Vα,Vβ)
-     * 输出: 三相占空比 CntPhA/CntPhB/CntPhC(写入 TIM1 CCR1/2/3)
-     * 原理: 把参考电压矢量分解到最近的两个基本电压矢量(扇区),
-     *       用相邻矢量作用时间+零矢量作用时间合成,使输出电压利用率比正弦PWM高 15% */
-    /* hT_Sqrt3 = PWMperiod * √3,这里把 Vα 转换为带 PWM 周期量纲的定点值 */
     wUAlpha = Valfa_beta.alpha * (int32_t)pHandle->hT_Sqrt3;
     wUBeta = -(Valfa_beta.beta * ((int32_t)pHandle->PWMperiod)) * 2;
 
-    /* 计算 X/Y/Z 三个中间量,用于判断扇区(等效于扇区判断函数) */
     wX = wUBeta;
     wY = ((int64_t)wUBeta + wUAlpha)>>1;
     wZ = ((int64_t)wUBeta - wUAlpha)>>1;
 
     /* Sector calculation from wX, wY, wZ */
-    /* 由 X/Y/Z 的符号判断参考电压矢量落在 6 个扇区中的哪一个,
-     * 并计算该扇区下三相导通时间 wTimePhA/B/C */
     if (wY < 0)
     {
       if (wZ < 0)
@@ -330,8 +321,6 @@ __weak uint16_t PWMC_SetPhaseVoltage(PWMC_Handle_t *pHandle, alphabeta_t Valfa_b
     pHandle->CntPhB = (uint16_t)(MAX(wTimePhB, 0));
     pHandle->CntPhC = (uint16_t)(MAX(wTimePhC, 0));
 
-    /* 根据扇区设置 ADC 采样点(让 ADC 在下桥臂全导通时刻采电流最准),
-     * 并把 CntPhA/B/C 写入 TIM1 的 CCR 寄存器 */
     returnValue = pHandle->pFctSetADCSampPointSectX(pHandle);
 #ifdef NULL_PTR_CHECK_PWR_CUR_FDB
   }
