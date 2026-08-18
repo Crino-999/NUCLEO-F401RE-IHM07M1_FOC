@@ -66,7 +66,11 @@ NUCLEO-F401RE + X-NUCLEO-IHM07M1 平台上的 FOC 电机控制学习与工程仓
 L2 属于判断 / 审核类工作，按本机全局约定留在云端由主代理完成：
 
 - commit 前，主代理按 8.6 L2 清单逐项审查 staged 变更，输出「可提交 / 待确认 / 不可提交 + 文件:行号 + 理由」，交用户终审。
-- 本地 Ollama MCP Worker（vision / doc-worker）仅用于机械初筛（截图文字识别、文档要点提取），可用时调用，敏感内容一律传文件路径，不粘贴正文；不可用时跳过，不影响审查。
+- 本地 Ollama MCP Worker 用于机械初筛，敏感内容一律传文件路径，不粘贴正文；不可用时跳过，不影响审查。各 Worker 真实能力（工程源码在本机，非仓库内）：
+  - **Document Worker（qwen3:4b）**：工具 `extract_requirements` / `generate_test_cases` / `decompose_requirements` / `get_status`。读取文档→分块→本地推理→合并→Schema校验→返回结构化结果。`decompose_requirements` 和 `generate_test_cases` 支持 `extra_instructions` 自定义任务补充指令（但 schema 强制核心输出格式，不能完全改变任务性质）、`output_format`（json/markdown/table）、`unload_after_task`（控制模型驻留）。安全审查初筛用法：传入文件路径 + `extra_instructions` 指定敏感信息扫描，本地模型读取全文并提取要点，正文不离开本地。限制：二进制文件（xlsx 等）无法扫描，需主代理或用户确认。
+  - **Vision Worker（qwen2.5vl:7b）**：工具 `analyze_image` / `analyze_image_detailed` / `analyze_clipboard` / `analyze_latest_screenshot` / `capture_screen` / `get_status`。支持大图分区识别、剪贴板直达。可用于截图文字识别、图片内容分析。
+  - **三层使用模式**：L1 全本地（省 token，正文不离开本地）、L2 本地读取 + 云端审核（本地提取要点，云端做语义判断）、L3 纯云端（不推荐，消耗 token 且正文上传）。
+  - 实际使用经验（2026-08-18）：`decompose_requirements` + `extra_instructions` 做安全扫描时，schema 强制需求分解格式，但本地模型仍读取了全文 14KB 并提取结构化要点，确认无敏感信息，起到了机械初筛作用。使用前先 `get_status` 确认 Worker 可用性。
 - 如需独立复核，可另派 Codex 子代理（`spawn_agent`，`fork_turns="none"`，只传文件路径清单，不传历史对话）。**注意：Codex 子代理走云端模型，不是本地 Worker**。
 - 用户终审是唯一放行依据；AI 生成的新文档 / 代码与用户手写内容同等对待，一律过审。
 
@@ -94,3 +98,4 @@ Codex 子代理任务模板（可选独立复核，云端）：
 |---|---|
 | 2026-08-16 | 初稿：建立仓库级协作约定，含防漂移仲裁规则与提交前隐私审查机制 |
 | 2026-08-16 | L2 执行方式修正：默认由主代理执行，本地 Ollama Worker 仅做机械初筛，Codex 子代理为可选云端复核 |
+| 2026-08-18 | 本地 MCP 认知更新：补充 Document Worker（qwen3:4b）和 Vision Worker（qwen2.5vl:7b）的真实工具能力、三层使用模式、安全审查初筛的实际用法和限制 |
