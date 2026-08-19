@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>FOC q轴电流环 PID 可视化演示</title>
+<title>通用 PID 控制仿真（连续 / 离散双轨）</title>
 <style>
 /* ================= 全局样式 ================= */
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -16,13 +16,14 @@
   --text:      #d9dee6;   /* 主文字 */
   --text-dim:  #8a93a3;   /* 次要文字 */
   --accent:    #4da3ff;
+  --c-line:    #7d8ea3;   /* 框图线条 */
   /* 曲线颜色（全局统一定义，便于维护） */
-  --c-u:  #ff9f2e;   /* PID 总输出 u(t)：橙 */
+  --c-u:  #ff9f2e;   /* PID 总输出 u：橙 */
   --c-p:  #ff5252;   /* 比例项 u_P：红 */
   --c-i:  #4da3ff;   /* 积分项 u_I：蓝 */
   --c-d:  #b37feb;   /* 微分项 u_D：紫 */
-  --c-iq: #9aa4b2;   /* 实际电流 i_q：灰 */
-  --c-e:  #3ddc84;   /* 误差 e(t)：绿 */
+  --c-y:  #9aa4b2;   /* 被控量 y：灰 */
+  --c-e:  #3ddc84;   /* 误差 e：绿 */
 }
 
 html, body { height: 100%; }
@@ -71,7 +72,53 @@ header h1 {
 
 .formula sub, .formula sup { font-size: 10px; }
 
-/* ================= 主布局：左控制 / 右可视化 ================= */
+/* 控制系统框图容器（可折叠：宽屏下 SVG 拉伸后过高，默认收起省面积） */
+.diagram-wrap {
+  margin-top: 10px;
+  background: var(--panel2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+.diagram-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 10px 6px 12px;
+}
+.diagram-head h2 {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--accent);
+  margin: 0;
+  white-space: nowrap;
+}
+#diagramToggle {
+  flex: 0 0 auto;
+  width: 28px;
+  padding: 3px 0;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--panel);
+  color: var(--text-dim);
+  font-size: 10px;
+  line-height: 1;
+  cursor: pointer;
+}
+#diagramToggle:hover { color: var(--text); border-color: var(--text-dim); }
+.diagram-body {
+  padding: 0 10px 4px;
+  overflow-x: auto;   /* 窄屏时可横向滚动，避免挤压 */
+}
+.diagram-wrap.collapsed .diagram-body { display: none; }
+.diagram-wrap svg {
+  display: block;
+  width: 100%;
+  min-width: 560px;
+  height: auto;
+}
+
+/* ================= 主布局：左控制 / 中画布 / 右分析 ================= */
 main {
   flex: 1 1 auto;
   display: flex;
@@ -100,6 +147,17 @@ main {
 
 .ctrl-group { display: flex; flex-direction: column; gap: 10px; margin-bottom: 8px; }
 
+/* 快速预设按钮行 */
+.preset-row { display: flex; gap: 6px; flex-wrap: wrap; }
+.preset-row button {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 6px 4px;
+  font-size: 12px;
+  border-radius: 6px;
+}
+.ctrl-desc { color: var(--text-dim); font-size: 11px; margin-top: -4px; }
+
 /* 输入行：标签 + 控件 */
 .input-row {
   display: flex;
@@ -123,6 +181,21 @@ input[type="number"] {
   outline: none;
 }
 input[type="number"]:focus { border-color: var(--accent); }
+input:disabled { opacity: 0.4; cursor: not-allowed; }
+
+/* 下拉选择（对象模型 / 控制器结构） */
+select {
+  background: var(--bg);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  padding: 4px 6px;
+  font-size: 12px;
+  outline: none;
+  cursor: pointer;
+}
+select:focus { border-color: var(--accent); }
+#objModelSel { flex: 1; min-width: 0; }
 
 /* 滑块 + 数字 联动行 */
 .slider-row { display: flex; align-items: center; gap: 10px; }
@@ -155,7 +228,28 @@ input[type="range"]::-moz-range-thumb {
   border: 2px solid #fff3;
 }
 
-/* 开关（积分面积 / 微分斜率） */
+/* 分段选择（仿真模式切换） */
+.seg {
+  display: flex;
+  background: var(--panel2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  overflow: hidden;
+}
+.seg button {
+  flex: 1;
+  border: none;
+  background: transparent;
+  color: var(--text-dim);
+  padding: 7px 0;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.seg button.active { background: var(--accent); color: #0b1220; }
+
+/* 开关 */
 .switch-row {
   display: flex;
   align-items: center;
@@ -226,7 +320,7 @@ button.primary:hover { background: #6cb2ff; }
   font-family: Consolas, monospace;
 }
 
-/* ---------- 右侧可视化区 ---------- */
+/* ---------- 中间可视化区 ---------- */
 #viz {
   flex: 1 1 auto;
   min-width: 0;
@@ -249,6 +343,14 @@ button.primary:hover { background: #6cb2ff; }
   font-size: 12px;
 }
 .legend-item { display: flex; align-items: center; gap: 6px; }
+.legend-group {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-dim);
+  letter-spacing: 0.5px;
+  margin-right: 2px;
+}
+.legend-group + .legend-item { margin-left: -8px; }
 .legend-line {
   width: 22px; height: 0;
   border-top: 3px solid;
@@ -258,7 +360,7 @@ button.primary:hover { background: #6cb2ff; }
 /* Canvas 容器 */
 #canvas-wrap {
   flex: 1 1 auto;
-  min-height: 0;
+  min-height: 320px;   /* 双通道模式保证每通道可读 */
   background: var(--panel);
   border: 1px solid var(--border);
   border-radius: 8px;
@@ -302,7 +404,7 @@ button.primary:hover { background: #6cb2ff; }
 .ro-value.v-p   { color: var(--c-p); }
 .ro-value.v-i   { color: var(--c-i); }
 .ro-value.v-d   { color: var(--c-d); }
-.ro-value.v-iq  { color: var(--c-iq); }
+.ro-value.v-y   { color: var(--c-y); }
 .ro-value.v-e   { color: var(--c-e); }
 
 /* 曲线设置行 */
@@ -313,18 +415,7 @@ button.primary:hover { background: #6cb2ff; }
   margin-bottom: 6px;
 }
 .preset-row label { font-size: 13px; white-space: nowrap; }
-.preset-row select {
-  flex: 1;
-  background: var(--bg);
-  color: var(--text);
-  border: 1px solid var(--border);
-  border-radius: 5px;
-  padding: 4px 6px;
-  font-size: 12px;
-  outline: none;
-  cursor: pointer;
-}
-.preset-row select:focus { border-color: var(--accent); }
+.preset-row select { flex: 1; }
 
 .curve-row {
   display: flex;
@@ -390,10 +481,172 @@ button.primary:hover { background: #6cb2ff; }
 }
 #cursor-panel .cp-hidden { display: none; }
 
+/* ---------- 右侧分析面板（自动控制分析） ---------- */
+#analysis {
+  flex: 0 0 320px;
+  min-width: 280px;
+  background: var(--panel);
+  border-left: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  transition: flex 0.2s, min-width 0.2s;
+}
+#analysis.collapsed {
+  flex: 0 0 34px;
+  min-width: 34px;
+  overflow: hidden;
+}
+#analysis.collapsed #analysis-body { display: none; }
+/* 折叠态隐藏标题、按钮居中——否则 h2(nowrap) 会把 30px 按钮挤出 overflow:hidden 的
+ * 可视区，用户将无法再次展开（收起 = 永久收起） */
+#analysis.collapsed #analysis-head {
+  justify-content: center;
+  border-bottom: none;
+  padding: 10px 2px;
+}
+#analysis.collapsed #analysis-head h2 { display: none; }
+
+#analysis-head {
+  flex: 0 0 auto;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 10px 10px 14px;
+  border-bottom: 1px solid var(--border);
+  position: sticky; top: 0;
+  background: var(--panel);
+  z-index: 2;
+}
+#analysis-head h2 {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--accent);
+  margin: 0;
+  white-space: nowrap;
+}
+#analysisToggle {
+  flex: 0 0 auto;
+  width: 30px;
+  padding: 4px 0;
+  font-size: 12px;
+}
+
+#analysis-body {
+  padding: 10px 12px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.an-sec {
+  background: var(--panel2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 12px;
+}
+.an-sec h3 {
+  font-size: 12px;
+  color: var(--text-dim);
+  margin-bottom: 6px;
+  font-weight: 600;
+}
+.an-sec code {
+  display: block;
+  font-family: Consolas, monospace;
+  color: var(--accent);
+  font-size: 11px;
+  line-height: 1.55;
+  word-break: break-all;
+  margin: 2px 0;
+}
+.an-sec code .dim { color: var(--text-dim); }
+
+.an-row { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; margin: 3px 0; }
+.an-row .k { color: var(--text-dim); white-space: nowrap; }
+.an-row .v { font-family: Consolas, monospace; font-weight: 600; text-align: right; }
+
+#an-poles { font-family: Consolas, monospace; font-size: 11px; line-height: 1.5; color: var(--text); }
+#an-poles .pole { margin-right: 10px; white-space: nowrap; }
+
+#poleCanvas {
+  width: 100%;
+  height: 140px;
+  display: block;
+  background: var(--bg);
+  border-radius: 6px;
+  border: 1px solid var(--border);
+}
+
+.an-tag {
+  display: inline-block;
+  padding: 1px 8px;
+  border-radius: 8px;
+  font-size: 11px;
+  font-weight: 600;
+}
+.an-tag.ok   { background: rgba(61,220,132,0.15); color: #3ddc84; }
+.an-tag.warn { background: rgba(255,159,46,0.15);  color: #ff9f2e; }
+.an-tag.bad  { background: rgba(255,82,82,0.15);   color: #ff5252; }
+
+.an-note {
+  font-size: 11px;
+  color: var(--text-dim);
+  line-height: 1.6;
+}
+
+@media (max-width: 1300px) {
+  /* 中等屏：辅助侧栏自动折叠出空间 */
+  #analysis:not(.pinned) { flex: 0 0 34px; min-width: 34px; }
+  #analysis:not(.pinned) #analysis-body { display: none; }
+  /* 同上：自动折叠时隐藏标题，保住展开按钮 */
+  #analysis:not(.pinned) #analysis-head {
+    justify-content: center;
+    border-bottom: none;
+    padding: 10px 2px;
+  }
+  #analysis:not(.pinned) #analysis-head h2 { display: none; }
+}
+
 @media (max-width: 1100px) {
-  main { flex-direction: column; }
-  #control { flex: 0 0 auto; border-right: none; border-bottom: 1px solid var(--border); max-height: 45vh; }
+  /* 移动端：放开页面滚动，三栏纵向堆叠 */
+  body { overflow-y: auto; -webkit-overflow-scrolling: touch; }
+  main { flex-direction: column; flex: 0 0 auto; }
+  #control {
+    flex: 0 0 auto;
+    overflow-y: visible;
+    max-height: none;
+    border-right: none;
+    border-bottom: 1px solid var(--border);
+  }
+  #viz { flex: 0 0 auto; }
+  #canvas-wrap { flex: 0 0 auto; height: 40vh; min-height: 250px; }
   #readout { grid-template-columns: repeat(2, 1fr); }
+  /* 分析面板：纵向堆叠全宽。默认展开（覆盖中等屏 :not(.pinned) 自动折叠） */
+  #analysis, #analysis.pinned, #analysis:not(.pinned) {
+    flex: 0 0 auto;
+    min-width: 0;
+    border-left: none;
+    border-top: 1px solid var(--border);
+    overflow: visible;
+  }
+  #analysis:not(.pinned) #analysis-body { display: block; }
+  #analysis:not(.pinned) #analysis-head,
+  #analysis.collapsed #analysis-head {
+    justify-content: space-between;
+    border-bottom: 1px solid var(--border);
+    padding: 10px 10px 10px 14px;
+  }
+  #analysis:not(.pinned) #analysis-head h2,
+  #analysis.collapsed #analysis-head h2 { display: block; }
+  /* 手动折叠在移动端同样生效：隐藏 body，保留 head 条（标题 + 展开按钮） */
+  #analysis.collapsed #analysis-body { display: none; }
+  #analysis-head { position: static; }
+  /* 游标面板在小屏上缩小，避免遮挡过多曲线 */
+  #cursor-panel { font-size: 10px; }
+  #cursor-panel td, #cursor-panel th { padding: 1px 6px 1px 0; }
 }
 </style>
 </head>
@@ -401,64 +654,205 @@ button.primary:hover { background: #6cb2ff; }
 
   <!-- ============ 顶部：标题 + 公式说明 ============ -->
   <header>
-    <h1>FOC q轴电流环 PID 可视化演示</h1>
+    <h1>通用 PID 控制仿真（连续 / 离散双轨）</h1>
     <div class="formula-row">
-      <span class="formula">误差信号：e[n] = i<sub>q</sub><sup>*</sup> − i<sub>q</sub>[n]</span>
+      <span class="formula">误差：e[n] = r[n] − y[n]</span>
       <span class="formula">离散 PID：u[n] = K<sub>p</sub>·e[n] + K<sub>i</sub>·Σe[k] + K<sub>d</sub>·Δe[n]</span>
-      <span class="formula">电流方程：L·di<sub>q</sub>/dt + R·i<sub>q</sub> = u(t)　（T = 62.5μs）</span>
+      <span class="formula">连续 PID：u(t) = K<sub>p</sub>·e + K<sub>i</sub>·∫e dτ + K<sub>d</sub>·de/dt</span>
+      <span class="formula">一阶对象：τ·dy/dt + y = K·u</span>
     </div>
+
+    <!-- 控制系统框图：教科书式单位反馈结构（可折叠，默认收起） -->
+    <div class="diagram-wrap collapsed" id="diagramWrap">
+      <div class="diagram-head">
+        <h2>控制系统框图</h2>
+        <button type="button" id="diagramToggle" title="展开 / 折叠">▲</button>
+      </div>
+      <div class="diagram-body">
+      <svg viewBox="0 0 680 148" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="单位反馈控制系统框图">
+        <defs>
+          <marker id="arw" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M0,0 L8,4 L0,8 z" fill="var(--c-line)"/>
+          </marker>
+        </defs>
+        <style>
+          .d-line { stroke: var(--c-line); stroke-width: 1.6; fill: none; }
+          .d-box { fill: var(--panel2); stroke: var(--c-line); stroke-width: 1.4; }
+          .d-txt { fill: var(--text); font: 600 12px Consolas, monospace; text-anchor: middle; }
+          .d-sub { fill: var(--text-dim); font: 11px "Segoe UI","Microsoft YaHei",sans-serif; text-anchor: middle; }
+          .d-sig { fill: var(--accent); font: italic 12px Consolas, monospace; text-anchor: middle; }
+          .d-formula { fill: var(--text-dim); font: 12px "Cambria Math","Times New Roman",serif; }
+        </style>
+
+        <!-- 主通道 y = 62 -->
+        <!-- R(s) -->
+        <text class="d-sig" x="18" y="66">R(s)</text>
+        <line class="d-line" x1="44" y1="62" x2="66" y2="62" marker-end="url(#arw)"/>
+        <!-- 加法器 ⊕ -->
+        <circle cx="88" cy="62" r="15" class="d-box"/>
+        <line class="d-line" x1="80" y1="62" x2="96" y2="62"/>
+        <line class="d-line" x1="88" y1="54" x2="88" y2="70"/>
+        <text class="d-sig" x="112" y="62" font-style="italic">+</text>
+        <text class="d-sig" x="88" y="84" font-style="italic">−</text>
+        <!-- E(s) -->
+        <text class="d-sig" x="136" y="66">E(s)</text>
+        <line class="d-line" x1="103" y1="62" x2="152" y2="62" marker-end="url(#arw)"/>
+        <!-- C(s) 控制器 -->
+        <rect x="156" y="34" width="88" height="56" rx="6" class="d-box"/>
+        <text class="d-txt" x="200" y="58">C(s)</text>
+        <text class="d-sub" x="200" y="76">控制器</text>
+        <line class="d-line" x1="244" y1="62" x2="270" y2="62" marker-end="url(#arw)"/>
+        <!-- U(s) -->
+        <text class="d-sig" x="280" y="66">U(s)</text>
+        <line class="d-line" x1="296" y1="62" x2="320" y2="62" marker-end="url(#arw)"/>
+        <!-- G(s) 被控对象 -->
+        <rect x="324" y="34" width="88" height="56" rx="6" class="d-box"/>
+        <text class="d-txt" x="368" y="58">G(s)</text>
+        <text class="d-sub" x="368" y="76">被控对象</text>
+        <line class="d-line" x1="412" y1="62" x2="446" y2="62" marker-end="url(#arw)"/>
+        <!-- 分支点 -->
+        <circle cx="452" cy="62" r="3.2" fill="var(--c-line)"/>
+        <line class="d-line" x1="452" y1="62" x2="474" y2="62" marker-end="url(#arw)"/>
+        <!-- Y(s) -->
+        <text class="d-sig" x="498" y="66">Y(s)</text>
+
+        <!-- 反馈支路：Y → H(s) → 加法器 -->
+        <line class="d-line" x1="452" y1="62" x2="452" y2="116"/>
+        <line class="d-line" x1="452" y1="116" x2="392" y2="116" marker-end="url(#arw)"/>
+        <rect x="300" y="92" width="88" height="48" rx="6" class="d-box"/>
+        <text class="d-txt" x="344" y="116">H(s)</text>
+        <text class="d-sub" x="344" y="132">反馈环节</text>
+        <line class="d-line" x1="300" y1="116" x2="182" y2="116" marker-end="url(#arw)"/>
+        <line class="d-line" x1="182" y1="116" x2="182" y2="79"/>
+
+        <!-- 开环 / 闭环传函标注（右上） -->
+        <text class="d-formula" x="560" y="46">L(s) = C(s)·G(s)·H(s)</text>
+        <text class="d-formula" x="560" y="66">Φ(s) = C(s)G(s) ⁄ [1+L(s)]</text>
+        <text class="d-formula" x="560" y="86">单位反馈：H(s) = 1</text>
+      </svg>
+      </div><!-- /diagram-body -->
+    </div><!-- /diagram-wrap -->
   </header>
 
   <main>
     <!-- ============ 左侧控制区 ============ -->
     <aside id="control">
 
-      <h2>目标设定</h2>
+      <h2>快速预设</h2>
       <div class="ctrl-group">
-        <div class="input-row">
-          <label>目标电流 i<sub>q</sub><sup>*</sup> <small>(A)</small></label>
-          <input type="number" id="iqRef" value="1" step="0.1" min="-2" max="2">
+        <div class="preset-row">
+          <button type="button" data-scenario="foc">FOC q轴电流环</button>
+          <button type="button" data-scenario="temp">温度控制</button>
+          <button type="button" data-scenario="arm">欠阻尼机械臂</button>
         </div>
-        <div class="input-row">
-          <label>初始电流 i<sub>q</sub>(0) <small>(A)</small></label>
-          <input type="number" id="iq0" value="0" step="0.1" min="-2" max="2">
-        </div>
+        <div class="ctrl-desc">一键填入经典对象与增益，先看效果再动手调</div>
       </div>
 
-      <h2>PID 参数</h2>
+      <h2>仿真模式</h2>
       <div class="ctrl-group">
-        <div class="slider-row">
-          <label>K<sub>p</sub></label>
-          <input type="range" id="kpSlider" min="0" max="10" step="0.01" value="2.565">
-          <input type="number" id="kpNum" min="0" max="10" step="0.01" value="2.565">
-        </div>
-        <div class="slider-row">
-          <label>K<sub>i</sub></label>
-          <input type="range" id="kiSlider" min="0" max="10" step="0.01" value="0.640">
-          <input type="number" id="kiNum" min="0" max="10" step="0.01" value="0.640">
-        </div>
-        <div class="slider-row">
-          <label>K<sub>d</sub></label>
-          <input type="range" id="kdSlider" min="0" max="2" step="0.001" value="0">
-          <input type="number" id="kdNum" min="0" max="2" step="0.001" value="0">
+        <div class="seg" id="modeSeg">
+          <button type="button" id="modeDisc" class="active">离散 Σe</button>
+          <button type="button" id="modeCont">连续 ∫e</button>
         </div>
         <div class="slider-row">
           <label>时间范围 <small>(ms)</small></label>
-          <input type="range" id="tSlider" min="0.5" max="20" step="0.5" value="5">
-          <input type="number" id="tNum" min="0.5" max="20" step="0.5" value="5" style="width:56px;">
+          <input type="range" id="tSlider" min="1" max="5000" step="1" value="10">
+          <input type="number" id="tNum" min="1" max="5000" step="1" value="10" style="width:56px;">
         </div>
       </div>
 
-      <h2>控制参数</h2>
+      <h2>目标设定</h2>
       <div class="ctrl-group">
         <div class="input-row">
-          <label>电压限幅 <small>(V)</small></label>
-          <input type="number" id="vmaxNum" value="6.93" step="0.01" min="0.1" max="12">
+          <label>目标值 r</label>
+          <input type="number" id="rNum" value="1" step="0.1" min="-10" max="10">
+        </div>
+        <div class="input-row">
+          <label>初始值 y(0)</label>
+          <input type="number" id="y0Num" value="0" step="0.1" min="-10" max="10">
+        </div>
+      </div>
+
+      <h2>对象模型</h2>
+      <div class="ctrl-group">
+        <div class="input-row">
+          <label>被控对象 G(s)</label>
+          <select id="objModelSel">
+            <option value="first" selected>一阶惯性 K/(τs+1)</option>
+            <option value="integ">纯积分 K/s</option>
+            <option value="second">二阶标准形</option>
+          </select>
+        </div>
+        <div class="input-row" id="objTauRow">
+          <label>时间常数 τ <small>(ms)</small></label>
+          <input type="number" id="objTau" value="1" step="0.1" min="0.01" max="1000">
+        </div>
+        <div class="input-row" id="objKRow">
+          <label>增益 K</label>
+          <input type="number" id="objK" value="1" step="0.1" min="0.01" max="100">
+        </div>
+        <div class="input-row" id="objWnRow" style="display:none;">
+          <label>自然频率 ω<sub>n</sub> <small>(rad/s)</small></label>
+          <input type="number" id="objWn" value="1000" step="100" min="10" max="100000">
+        </div>
+        <div class="input-row" id="objZetaRow" style="display:none;">
+          <label>阻尼比 ζ<sub>0</sub></label>
+          <input type="number" id="objZeta" value="0.5" step="0.05" min="0.05" max="2">
+        </div>
+      </div>
+
+      <h2>控制器 C(s)</h2>
+      <div class="ctrl-group">
+        <div class="input-row">
+          <label>结构</label>
+          <select id="ctrlSel">
+            <option value="P">P</option>
+            <option value="PI">PI</option>
+            <option value="PD">PD</option>
+            <option value="PID" selected>PID</option>
+          </select>
+        </div>
+        <div class="slider-row">
+          <label>K<sub>p</sub></label>
+          <input type="range" id="kpSlider" min="0" max="10" step="0.01" value="2">
+          <input type="number" id="kpNum" min="0" max="10" step="0.01" value="2">
+        </div>
+        <div class="slider-row">
+          <label>K<sub>i</sub></label>
+          <input type="range" id="kiSlider" min="0" max="10" step="0.01" value="2">
+          <input type="number" id="kiNum" min="0" max="10" step="0.01" value="2">
+        </div>
+        <div class="slider-row">
+          <label>K<sub>d</sub></label>
+          <input type="range" id="kdSlider" min="0" max="2" step="0.001" value="0.2">
+          <input type="number" id="kdNum" min="0" max="2" step="0.001" value="0.2">
+        </div>
+        <div class="input-row">
+          <label>控制周期 T <small>(ms，离散)</small></label>
+          <input type="number" id="tCtrl" value="1" step="0.1" min="0.01" max="100">
+        </div>
+      </div>
+
+      <h2>工程参数</h2>
+      <div class="ctrl-group">
+        <div class="input-row">
+          <label>输出限幅 ±U<sub>max</sub></label>
+          <input type="number" id="uMaxNum" value="10" step="0.5" min="0.1" max="100">
         </div>
         <div class="switch-row">
           <div>
-            <div>抗积分饱和</div>
-            <div class="desc">电压饱和时停止同向积分累积</div>
+            <div>限幅 ±U<sub>max</sub></div>
+            <div class="desc">关闭时理论 = 仿真；开启可见饱和偏离</div>
+          </div>
+          <label class="switch">
+            <input type="checkbox" id="limitOn" checked>
+            <span class="track"></span>
+          </label>
+        </div>
+        <div class="switch-row">
+          <div>
+            <div>抗积分饱和（clamping）</div>
+            <div class="desc">限幅开启时：饱和且误差同向 → 冻结积分。关闭可见积分飞升（windup）</div>
           </div>
           <label class="switch">
             <input type="checkbox" id="antiWindupOn" checked>
@@ -499,6 +893,16 @@ button.primary:hover { background: #6cb2ff; }
             <span class="track"></span>
           </label>
         </div>
+        <div class="switch-row">
+          <div>
+            <div>理论解析曲线叠加</div>
+            <div class="desc">连续域闭环阶跃响应解析解（虚线）</div>
+          </div>
+          <label class="switch">
+            <input type="checkbox" id="theoryOn">
+            <span class="track"></span>
+          </label>
+        </div>
       </div>
 
       <h2>曲线设置</h2>
@@ -516,32 +920,32 @@ button.primary:hover { background: #6cb2ff; }
         <div class="curve-row">
           <input type="checkbox" id="show-u" checked>
           <input type="color" id="color-u" value="#ff9f2e">
-          <span class="curve-name">u(t) 总输出 <small>(V)</small></span>
+          <span class="curve-name">u(t) 控制输出</span>
         </div>
         <div class="curve-row">
           <input type="checkbox" id="show-p" checked>
           <input type="color" id="color-p" value="#ff5252">
-          <span class="curve-name">u<sub>P</sub> = K<sub>p</sub>·e <small>(V)</small></span>
+          <span class="curve-name">u<sub>P</sub> = K<sub>p</sub>·e</span>
         </div>
         <div class="curve-row">
           <input type="checkbox" id="show-i" checked>
           <input type="color" id="color-i" value="#4da3ff">
-          <span class="curve-name">u<sub>I</sub> = K<sub>i</sub>·Σe <small>(V)</small></span>
+          <span class="curve-name">u<sub>I</sub> = K<sub>i</sub>·Σe</span>
         </div>
         <div class="curve-row">
           <input type="checkbox" id="show-d" checked>
           <input type="color" id="color-d" value="#b37feb">
-          <span class="curve-name">u<sub>D</sub> = K<sub>d</sub>·Δe <small>(V)</small></span>
+          <span class="curve-name">u<sub>D</sub> = K<sub>d</sub>·Δe</span>
         </div>
         <div class="curve-row">
-          <input type="checkbox" id="show-iq" checked>
-          <input type="color" id="color-iq" value="#9aa4b2">
-          <span class="curve-name">i<sub>q</sub>(t) 实际电流 <small>(A)</small></span>
+          <input type="checkbox" id="show-y" checked>
+          <input type="color" id="color-y" value="#9aa4b2">
+          <span class="curve-name">y(t) 被控量</span>
         </div>
         <div class="curve-row">
           <input type="checkbox" id="show-e" checked>
           <input type="color" id="color-e" value="#3ddc84">
-          <span class="curve-name">e(t) 误差信号 <small>(A)</small></span>
+          <span class="curve-name">e(t) 误差信号</span>
         </div>
       </div>
 
@@ -551,29 +955,29 @@ button.primary:hover { background: #6cb2ff; }
       </div>
 
       <div class="note">
-        <b>模型说明（NUCLEO-F401RE + IHM07M1 2804云台电机）：</b><br>
-        电机参数：<code>L = 0.8 mH</code>, <code>R = 3.19 Ω</code>（pmsm_motor_parameters.h）<br>
-        电气时间常数 τ = L/R = 0.25 ms<br>
-        PID 定点参数：<code>Kp = 2627/1024 ≈ 2.565</code>, <code>Ki = 2622/4096 ≈ 0.640</code>（drive_parameters.h）<br>
-        积分项为离散累加 Σe（不含 dt），D 项实际禁用<br>
-        控制周期 T = 1/16000 ≈ 62.5 μs（零阶保持）<br>
-        电压限幅 = Vbus/√3 ≈ 6.93 V（SVPWM 线性调制上限）<br>
-        电流方程：<code>L·di<sub>q</sub>/dt + R·i<sub>q</sub> = u(t)</code>
+        <b>模型说明：</b><br>
+        符号：<code>r</code> 目标值 / <code>y</code> 被控量 / <code>e</code> 误差 / <code>u</code> 控制输出（无量纲）<br>
+        <b>离散模式</b>：控制周期 <code>T</code> 内输出零阶保持；I 项为累加 <code>Σe</code>（不含 dt），D 项为相邻周期差分 <code>Δe</code><br>
+        <b>连续模式</b>：对象微分方程 RK4 数值求解；I 项 <code>∫e dτ</code>，D 项 <code>de/dt</code><br>
+        等效换算：<code>K<sub>i,c</sub> = K<sub>i</sub>/T</code>，<code>K<sub>d,c</sub> = K<sub>d</sub>·T</code>（两模式共用一组滑块，行为一致）<br>
+        对象模型：一阶惯性 <code>τ·dy/dt + y = K·u</code>（原 RL 电流模型数学等价）／纯积分 <code>dy/dt = K·u</code>／二阶标准形
       </div>
 
     </aside>
 
-    <!-- ============ 右侧可视化区 ============ -->
+    <!-- ============ 中间可视化区 ============ -->
     <section id="viz">
 
-      <!-- 图例 -->
+      <!-- 图例（按通道分组：CH1 响应 / CH2 控制） -->
       <div id="legend">
-        <span class="legend-item"><span class="legend-line" id="legend-u" style="border-color:#ff9f2e"></span>u(t) 总输出 <small>(V)</small></span>
-        <span class="legend-item"><span class="legend-line" id="legend-p" style="border-color:#ff5252"></span>u<sub>P</sub> = K<sub>p</sub>·e <small>(V)</small></span>
-        <span class="legend-item"><span class="legend-line" id="legend-i" style="border-color:#4da3ff"></span>u<sub>I</sub> = K<sub>i</sub>·Σe <small>(V)</small></span>
-        <span class="legend-item"><span class="legend-line" id="legend-d" style="border-color:#b37feb"></span>u<sub>D</sub> = K<sub>d</sub>·Δe <small>(V)</small></span>
-        <span class="legend-item"><span class="legend-line" id="legend-iq" style="border-color:#9aa4b2"></span>i<sub>q</sub>(t) 实际电流 <small>(A)</small></span>
-        <span class="legend-item"><span class="legend-line" id="legend-e" style="border-color:#3ddc84"></span>e(t) 误差信号 <small>(A)</small></span>
+        <span class="legend-group">CH1 响应</span>
+        <span class="legend-item"><span class="legend-line" id="legend-y" style="border-color:#9aa4b2"></span>y(t) 被控量</span>
+        <span class="legend-item"><span class="legend-line" id="legend-e" style="border-color:#3ddc84"></span>e(t) 误差信号</span>
+        <span class="legend-group">CH2 控制</span>
+        <span class="legend-item"><span class="legend-line" id="legend-u" style="border-color:#ff9f2e"></span><span id="leg-u">u(t) 控制输出</span></span>
+        <span class="legend-item"><span class="legend-line" id="legend-p" style="border-color:#ff5252"></span>u<sub>P</sub> = K<sub>p</sub>·e</span>
+        <span class="legend-item"><span class="legend-line" id="legend-i" style="border-color:#4da3ff"></span><span id="leg-i">u<sub>I</sub> = K<sub>i</sub>·Σe</span></span>
+        <span class="legend-item"><span class="legend-line" id="legend-d" style="border-color:#b37feb"></span><span id="leg-d">u<sub>D</sub> = K<sub>d</sub>·Δe</span></span>
       </div>
 
       <!-- Canvas 绘图区 -->
@@ -590,13 +994,13 @@ button.primary:hover { background: #6cb2ff; }
           <table>
             <tbody>
               <tr><td>t (ms)</td>    <td id="cp-a-t"></td>   <td id="cp-b-t"></td>   <td id="cp-d-t"></td></tr>
-              <tr><td>e(t) (A)</td>  <td id="cp-a-e"></td>   <td id="cp-b-e"></td>   <td id="cp-d-e"></td></tr>
-              <tr><td>u_P (V)</td>   <td id="cp-a-p"></td>   <td id="cp-b-p"></td>   <td id="cp-d-p"></td></tr>
-              <tr><td>u_I (V)</td>   <td id="cp-a-i"></td>   <td id="cp-b-i"></td>   <td id="cp-d-i"></td></tr>
-              <tr><td>u_D (V)</td>   <td id="cp-a-d"></td>   <td id="cp-b-d"></td>   <td id="cp-d-d"></td></tr>
-              <tr><td>u (V)</td>     <td id="cp-a-u"></td>   <td id="cp-b-u"></td>   <td id="cp-d-u"></td></tr>
-              <tr><td>i_q (A)</td>   <td id="cp-a-iq"></td>  <td id="cp-b-iq"></td>  <td id="cp-d-iq"></td></tr>
-              <tr><td>Σe (A)</td>    <td id="cp-a-area"></td><td id="cp-b-area"></td><td id="cp-d-area"></td></tr>
+              <tr><td>e(t)</td>      <td id="cp-a-e"></td>   <td id="cp-b-e"></td>   <td id="cp-d-e"></td></tr>
+              <tr><td>u_P</td>       <td id="cp-a-p"></td>   <td id="cp-b-p"></td>   <td id="cp-d-p"></td></tr>
+              <tr><td>u_I</td>       <td id="cp-a-i"></td>   <td id="cp-b-i"></td>   <td id="cp-d-i"></td></tr>
+              <tr><td>u_D</td>       <td id="cp-a-d"></td>   <td id="cp-b-d"></td>   <td id="cp-d-d"></td></tr>
+              <tr><td>u</td>         <td id="cp-a-u"></td>   <td id="cp-b-u"></td>   <td id="cp-d-u"></td></tr>
+              <tr><td>y(t)</td>      <td id="cp-a-y"></td>   <td id="cp-b-y"></td>   <td id="cp-d-y"></td></tr>
+              <tr><td id="cp-area-label">Σe</td> <td id="cp-a-area"></td><td id="cp-b-area"></td><td id="cp-d-area"></td></tr>
             </tbody>
           </table>
         </div>
@@ -610,11 +1014,68 @@ button.primary:hover { background: #6cb2ff; }
         <div class="ro-item"><span class="ro-label">I 项</span><span class="ro-value v-i" id="ro-i">0.000</span></div>
         <div class="ro-item"><span class="ro-label">D 项</span><span class="ro-value v-d" id="ro-d">0.000</span></div>
         <div class="ro-item"><span class="ro-label">总输出 u(t)</span><span class="ro-value v-u" id="ro-u">0.000</span></div>
-        <div class="ro-item"><span class="ro-label">实际电流 i<sub>q</sub>(t)</span><span class="ro-value v-iq" id="ro-iq">0.000</span></div>
-        <div class="ro-item"><span class="ro-label">积分累积 Σe</span><span class="ro-value v-i" id="ro-area">0.000</span></div>
+        <div class="ro-item"><span class="ro-label">被控量 y(t)</span><span class="ro-value v-y" id="ro-y">0.000</span></div>
+        <div class="ro-item"><span class="ro-label" id="ro-area-label">积分累积 Σe</span><span class="ro-value v-i" id="ro-area">0.000</span></div>
+        <div class="ro-item"><span class="ro-label">稳定时间 t<sub>s</sub> (2%)</span><span class="ro-value v-y" id="ro-ts">—</span></div>
       </div>
 
     </section>
+
+    <!-- ============ 右侧分析面板（自动控制分析） ============ -->
+    <aside id="analysis">
+      <div id="analysis-head">
+        <h2>自动控制分析</h2>
+        <button type="button" id="analysisToggle" title="折叠 / 展开">◀</button>
+      </div>
+      <div id="analysis-body">
+
+        <div class="an-sec">
+          <h3>传递函数</h3>
+          <code id="an-g">G(s) = …</code>
+          <code id="an-c">C(s) = …</code>
+          <code id="an-l">L(s) = …</code>
+          <code id="an-phi">Φ(s) = …</code>
+        </div>
+
+        <div class="an-sec">
+          <h3>闭环特征方程（连续等效域）</h3>
+          <code id="an-char">…</code>
+          <code class="dim" id="an-char-hint"></code>
+        </div>
+
+        <div class="an-sec">
+          <h3>闭环极点</h3>
+          <div id="an-poles">…</div>
+        </div>
+
+        <div class="an-sec">
+          <h3>复平面极点图</h3>
+          <canvas id="poleCanvas"></canvas>
+        </div>
+
+        <div class="an-sec">
+          <h3>阻尼分析</h3>
+          <div class="an-row"><span class="k">ζ（阻尼比）</span><span class="v" id="an-zeta">—</span></div>
+          <div class="an-row"><span class="k">ω<sub>n</sub>（自然频率）</span><span class="v" id="an-wn">—</span></div>
+          <div class="an-row"><span class="k">阻尼类型</span><span class="v" id="an-type">—</span></div>
+          <div class="an-row"><span class="k">稳定性</span><span class="v" id="an-stable">—</span></div>
+        </div>
+
+        <div class="an-sec">
+          <h3>时域指标（单位阶跃响应）</h3>
+          <div class="an-row"><span class="k">超调量 M<sub>p</sub></span><span class="v" id="an-mp">—</span></div>
+          <div class="an-row"><span class="k">上升时间 t<sub>r</sub></span><span class="v" id="an-tr">—</span></div>
+          <div class="an-row"><span class="k">峰值时间 t<sub>p</sub></span><span class="v" id="an-tp">—</span></div>
+          <div class="an-row"><span class="k">调节时间 t<sub>s</sub> (2%)</span><span class="v" id="an-ts">—</span></div>
+        </div>
+
+        <div class="an-note" id="an-note">
+          说明：ζ/ω<sub>n</sub> 由连续等效域特征方程得出（K<sub>i,c</sub>=K<sub>i</sub>/T，K<sub>d,c</sub>=K<sub>d</sub>·T）。
+          离散模式下为理论近似值，实际响应见左侧仿真曲线。闭环 3 阶以上时用主导极点近似，或给出稳定性判断。
+        </div>
+
+      </div>
+    </aside>
   </main>
 
   <script>
@@ -625,89 +1086,142 @@ button.primary:hover { background: #6cb2ff; }
  * ===================================================================== */
 const N_SAMPLE = 6000;            // 整段时间的采样点数（固定，保证曲线平滑）
 
-/* --- 本工程实际电机参数（pmsm_motor_parameters.h） --- */
-const L = 0.0008;                 // 电机相电感 (H) = 0.8 mH
-const R = 3.19;                   // 电机相电阻 (Ω)
+/* --- 仿真模式 / 对象模型 / 控制器结构（通用化，无量纲） --- */
+let mode = "discrete";            // 'discrete' 离散 Σe  |  'continuous' 连续 ∫e
+let objModel = "first";           // 'first' 一阶惯性 | 'integ' 纯积分 | 'second' 二阶标准形
+let ctrlType = "PID";             // 'P' | 'PI' | 'PD' | 'PID'
 
-/* --- 控制参数（drive_parameters.h / power_stage_parameters.h） --- */
-const F_PWM = 16000;              // PWM/控制频率 (Hz)
-const CONTROL_DT = 1 / F_PWM;     // 控制周期 ≈ 62.5μs
-const V_BUS = 12;                 // 母线电压 (V)
-
-/* --- PID 定点参数 → 等效浮点值（drive_parameters.h） --- */
-/*  Kp = 2627 / TF_KPDIV(1024) ≈ 2.565                    */
-/*  Ki = 2622 / TF_KIDIV(4096) ≈ 0.640                    */
-/*  Kd = 100  / TF_KDDIV(8192) ≈ 0.012（但 D 项禁用）       */
-/*  ST 库积分项为离散累加 Σe（不含 dt），等效连续 Ki ≈ 10242 */
+/* --- 参数 --- */
+let tMax = 0.01;                  // 时间范围（秒），UI 以 ms 显示
+let uMax = 10;                    // 输出限幅 ±U_max
 
 // 仿真结果数据（每个数组长度 N_SAMPLE+1）
 const sim = {
   t: [],      // 时间 t
-  e: [],      // 误差信号 e(t) = i_q* - i_q
-  p: [],      // P 项输出  u_P = Kp·e(t)
-  i: [],      // I 项输出  u_I = Ki·Σe
-  d: [],      // D 项输出  u_D = Kd·Δe
-  u: [],      // PID 总输出（电压指令，限幅后）
-  iq: [],     // 实际电流 i_q(t)
-  area: [],   // 积分累积 Σe（离散累加值）
+  e: [],      // 误差 e(t) = r - y
+  p: [],      // P 项输出  u_P = Kp·e
+  i: [],      // I 项输出  u_I（离散: Ki·Σe / 连续: Ki_c·∫e dτ）
+  d: [],      // D 项输出  u_D（离散: Kd·Δe / 连续: Kd_c·de/dt）
+  u: [],      // PID 总输出（限幅后）
+  y: [],      // 被控量 y(t)
+  area: [],   // 积分累积（离散: Σe / 连续: ∫e dτ）
 };
 
-/* 曲线配置：颜色 + 可见性 + 所属 Y 轴（L=左轴/A, R=右轴/V）
- * 用户可通过控制面板自由修改颜色和可见性。 */
-const CURVE_KEYS = ["u", "p", "i", "d", "iq", "e"];
+// 理论解析解（连续等效域闭环阶跃响应，仅闭环 ≤2 阶时有闭式解）
+const simTheo = { y: [] };
+
+/* 曲线配置：颜色 + 可见性 + 所属通道（L=CH1 上区, R=CH2 下区）
+ * CH1 (y/e)，CH2 (u/p/i/d) */
+const CURVE_KEYS = ["u", "p", "i", "d", "y", "e"];
 const curveCfg = {
-  u:  { color: "#ff9f2e", show: true, axis: "R" },   // 总输出 → 右轴(V)
-  p:  { color: "#ff5252", show: true, axis: "R" },   // 比例 → 右轴(V)
-  i:  { color: "#4da3ff", show: true, axis: "R" },   // 积分 → 右轴(V)
-  d:  { color: "#b37feb", show: true, axis: "R" },   // 微分 → 右轴(V)
-  iq: { color: "#9aa4b2", show: true, axis: "L" },   // 实际电流 → 左轴(A)
-  e:  { color: "#3ddc84", show: true, axis: "L" },   // 误差 → 左轴(A)
+  u:  { color: "#ff9f2e", show: true, axis: "R" },   // 总输出 → CH2
+  p:  { color: "#ff5252", show: true, axis: "R" },   // 比例 → CH2
+  i:  { color: "#4da3ff", show: true, axis: "R" },   // 积分 → CH2
+  d:  { color: "#b37feb", show: true, axis: "R" },   // 微分 → CH2
+  y:  { color: "#9aa4b2", show: true, axis: "L" },   // 被控量 → CH1
+  e:  { color: "#3ddc84", show: true, axis: "L" },   // 误差 → CH1
 };
 
 /* 预设调色板 */
 const PRESETS = {
-  "经典":   { u:"#ff9f2e", p:"#ff5252", i:"#4da3ff", d:"#b37feb", iq:"#9aa4b2", e:"#3ddc84" },
-  "高对比": { u:"#ff8800", p:"#ff0044", i:"#00aaff", d:"#cc00ff", iq:"#ffffff", e:"#00ff66" },
-  "暖色":   { u:"#ff6b35", p:"#e63946", i:"#f4a261", d:"#e76f51", iq:"#d4a373", e:"#ffb703" },
-  "冷色":   { u:"#00b4d8", p:"#ef476f", i:"#0077b6", d:"#7209b7", iq:"#90a4ae", e:"#06d6a0" },
-  "荧光":   { u:"#ffff00", p:"#ff00ff", i:"#00ffff", d:"#ff0080", iq:"#80ff00", e:"#00ff80" },
+  "经典":   { u:"#ff9f2e", p:"#ff5252", i:"#4da3ff", d:"#b37feb", y:"#9aa4b2", e:"#3ddc84" },
+  "高对比": { u:"#ff8800", p:"#ff0044", i:"#00aaff", d:"#cc00ff", y:"#ffffff", e:"#00ff66" },
+  "暖色":   { u:"#ff6b35", p:"#e63946", i:"#f4a261", d:"#e76f51", y:"#d4a373", e:"#ffb703" },
+  "冷色":   { u:"#00b4d8", p:"#ef476f", i:"#0077b6", d:"#7209b7", y:"#90a4ae", e:"#06d6a0" },
+  "荧光":   { u:"#ffff00", p:"#ff00ff", i:"#00ffff", d:"#ff0080", y:"#80ff00", e:"#00ff80" },
 };
 
-let tMax = 0.005;     // 时间范围（秒），UI 以 ms 显示
-let vMax = V_BUS / Math.sqrt(3);  // 电压限幅，默认 SVPWM 线性调制上限 ≈ 6.93V
+/* 快速预设场景：一键填入经典对象与增益（教学入门入口）
+ * 增益含义与 UI 一致：离散 Kp/Ki/Kd；连续模式 Kd 直接是 Kd_c（等效增益直读）
+ * 参数均经闭环特征根校核，保证演示效果（超调量、收敛时间、稳定性） */
+const SCENARIOS = {
+  foc: {
+    label: "FOC q轴电流环",
+    mode: "discrete",
+    r: 1, y0: 0,
+    obj: "first", tau: 0.25, k: 0.3135, wn: 1000, zeta: 0.5,
+    ctrl: "PI", kp: 2.565, ki: 0.64, kd: 0, tMax: 5,
+    T: 0.0625, uMax: 6.93, limit: true, antiWindup: true,
+    // 映射关系（y = i_q 电流，u = 电压指令）：
+    //   电气一阶惯性 L·di/dt + R·i = u → τ = L/R = 0.8mH/3.19Ω ≈ 0.25ms，K = 1/R ≈ 0.3135 A/V
+    //   STM32 FOC 库定点 PI：Kp = 2627/1024 ≈ 2.565，Ki = 2622/4096 ≈ 0.640（Σe 累加语义，与离散模式一致）
+    //   16kHz 控制周期 T = 0.0625ms；输出限幅 = V_BUS/√3 = 12/√3 ≈ 6.93V（SVPWM 线性调制上限）
+  },
+  temp: {
+    label: "温度控制",
+    mode: "discrete",
+    r: 1, y0: 0,
+    obj: "first", tau: 800, k: 2, wn: 1000, zeta: 0.5,
+    ctrl: "PI", kp: 2, ki: 0.02, kd: 0.2, tMax: 3000,
+    T: 1, limit: false, antiWindup: true,
+    // 连续等效：0.8s² + 5s + 40 → ωₙ=7.07, ζ=0.44（大时间常数慢系统）
+  },
+  arm: {
+    label: "欠阻尼机械臂",
+    mode: "discrete",
+    r: 1, y0: 0,
+    obj: "second", tau: 1, k: 1, wn: 100, zeta: 0.5,
+    ctrl: "PID", kp: 3, ki: 0.08, kd: 2, tMax: 300,
+    T: 1, limit: false, antiWindup: true,
+    // 开环 2ζ₀ωₙ₀=100；PID 后连续等效 s³+120s²+40000s+800000
+    // → 主导复极点 −49.5±124j（ζ≈0.37，超调 ~29%），实极点 −21.1
+    // Kd=2 顶格（Kd_c=Kd·T=0.002 → D 贡献 0.002·ωₙ₀²=20），演示 D 项镇振荡
+  },
+};
+
 let playing = false;  // 播放状态
 let curT = 0;         // 当前播放时刻
+let settleT = null;   // 稳定时间 t_s（秒）：y 进入并保持 ±2% 稳态带；null = 未稳定
 let lastFrame = 0;    // 上一帧真实时间（毫秒）
 
 // 测量游标（示波器 X1 / X2）：与播放头独立，可在 [0,tMax] 全程拖动
 const cursor = {
   on: false,
-  a: { t: 0.001, drag: false },  // X1 = 1ms
-  b: { t: 0.003, drag: false },  // X2 = 3ms
+  a: { t: 0.002, drag: false },  // X1 = 2ms
+  b: { t: 0.006, drag: false },  // X2 = 6ms
   hover: null,                   // 'a' | 'b' | null（hover 反馈用）
 };
 const CUR_COLORS = { a: "#ffd23f", b: "#2ee6d6" };   // X1 黄、X2 青
-const CP_KEYS = ["t","e","p","i","d","u","iq","area"];
-const CP_UNITS = { t:"ms", e:"A", p:"V", i:"V", d:"V", u:"V", iq:"A", area:"A" };
+const CP_KEYS = ["t","e","p","i","d","u","y","area"];  // 无单位，仅 t 有 ms
 
 /* =====================================================================
  * DOM 引用
  * ===================================================================== */
 const $ = id => document.getElementById(id);
 const el = {
-  iqRef: $("iqRef"), iq0: $("iq0"),
+  modeDisc: $("modeDisc"), modeCont: $("modeCont"),
+  rNum: $("rNum"), y0Num: $("y0Num"),
+  objModelSel: $("objModelSel"),
+  objTau: $("objTau"), objTauRow: $("objTauRow"),
+  objK: $("objK"), objKRow: $("objKRow"),
+  objWn: $("objWn"), objWnRow: $("objWnRow"),
+  objZeta: $("objZeta"), objZetaRow: $("objZetaRow"),
+  ctrlSel: $("ctrlSel"),
   kpSlider: $("kpSlider"), kpNum: $("kpNum"),
   kiSlider: $("kiSlider"), kiNum: $("kiNum"),
   kdSlider: $("kdSlider"), kdNum: $("kdNum"),
-  tSlider:  $("tSlider"),  tNum:  $("tNum"),
-  vmaxNum: $("vmaxNum"), antiWindupOn: $("antiWindupOn"),
+  tCtrl: $("tCtrl"),
+  uMaxNum: $("uMaxNum"), limitOn: $("limitOn"), antiWindupOn: $("antiWindupOn"),
+  tSlider: $("tSlider"), tNum: $("tNum"),
   areaOn: $("areaOn"), tangentOn: $("tangentOn"),
+  cursorOn: $("cursorOn"), theoryOn: $("theoryOn"),
   playBtn: $("playBtn"), resetBtn: $("resetBtn"),
   canvas: $("chart"),
   ro: { t: $("ro-t"), e: $("ro-e"), p: $("ro-p"), i: $("ro-i"),
-        d: $("ro-d"), u: $("ro-u"), iq: $("ro-iq"), area: $("ro-area") },
-  cursorOn: $("cursorOn"), cursorPanel: $("cursor-panel"),
+        d: $("ro-d"), u: $("ro-u"), y: $("ro-y"), area: $("ro-area"), ts: $("ro-ts") },
+  roAreaLabel: $("ro-area-label"),
+  cursorPanel: $("cursor-panel"), cpAreaLabel: $("cp-area-label"),
   preset: $("presetSelect"),
+  analysis: $("analysis"), analysisToggle: $("analysisToggle"),
+  diagramWrap: $("diagramWrap"), diagramToggle: $("diagramToggle"),
+  poleCanvas: $("poleCanvas"),
+  an: {
+    g: $("an-g"), c: $("an-c"), l: $("an-l"), phi: $("an-phi"),
+    ch: $("an-char"), chHint: $("an-char-hint"), poles: $("an-poles"),
+    zeta: $("an-zeta"), wn: $("an-wn"), type: $("an-type"), stable: $("an-stable"),
+    mp: $("an-mp"), tr: $("an-tr"), tp: $("an-tp"), ts: $("an-ts"),
+    note: $("an-note"),
+  },
 };
 
 /* =====================================================================
@@ -718,97 +1232,86 @@ function bindSliderNum(slider, num, onChange) {
     num.value = slider.value;
     onChange();
   });
+  /* input 事件：只同步滑块 + 触发重算，绝不写回 num——否则输入 "2." 时
+   * parseFloat("2.")=2 被立即写回，小数点被打掉无法继续输入。 */
   num.addEventListener("input", () => {
+    let v = parseFloat(num.value);
+    if (isNaN(v)) v = parseFloat(slider.value);   // 输入中态（如 "2."）保持原样
+    v = Math.min(parseFloat(num.max), Math.max(parseFloat(num.min), v));
+    slider.value = v;
+    onChange();
+  });
+  /* change 事件（失焦/回车）：clamp 并规范化回写显示 */
+  num.addEventListener("change", () => {
     let v = parseFloat(num.value);
     if (isNaN(v)) v = parseFloat(slider.value);
     v = Math.min(parseFloat(num.max), Math.max(parseFloat(num.min), v));
-    slider.value = v;
     num.value = v;
     onChange();
   });
 }
 
-/* 读取当前全部参数 */
+/* 读取当前全部参数（时间类内部统一为秒） */
 function getParams() {
   return {
-    iqRef: parseFloat(el.iqRef.value) || 0,
-    iq0:   parseFloat(el.iq0.value)   || 0,
-    kp:    parseFloat(el.kpNum.value) || 0,
-    ki:    parseFloat(el.kiNum.value) || 0,
-    kd:    parseFloat(el.kdNum.value) || 0,
+    r:    parseFloat(el.rNum.value)     || 0,
+    y0:   parseFloat(el.y0Num.value)    || 0,
+    kp:   parseFloat(el.kpNum.value)    || 0,
+    ki:   parseFloat(el.kiNum.value)    || 0,
+    kd:   parseFloat(el.kdNum.value)    || 0,
+    tau:  (parseFloat(el.objTau.value)  || 1) / 1000,   // ms → s
+    k:    parseFloat(el.objK.value)     || 1,
+    wn:   parseFloat(el.objWn.value)    || 1000,        // rad/s
+    zeta0: parseFloat(el.objZeta.value) || 0.5,
+    T:    (parseFloat(el.tCtrl.value)   || 1) / 1000,   // ms → s
   };
 }
 
-/* =====================================================================
- * 仿真：一阶惯性模型 + 离散 PID 闭环（16kHz 控制周期，零阶保持）
- *
- *   控制周期边界（每 T = 62.5μs）：
- *     误差：     e = i_q* - i_q[n]
- *     P 项：     u_P = Kp · e
- *     I 项：     u_I = Ki · Σe        （ST 库离散累加，不含 dt）
- *     D 项：     u_D = Kd · Δe        （相邻控制周期差分）
- *     PID 输出：  u = u_P + u_I + u_D  → 电压限幅 → 抗积分饱和
- *
- *   控制周期内（零阶保持，输出恒定）：
- *     差分方程： i_q(t+Δt) = i_q(t) + (u − R·i_q(t)) / L · Δt
- * ===================================================================== */
-function simulate() {
-  const p = getParams();
-  const dt = tMax / N_SAMPLE;              // 仿真步长（细，保证曲线平滑）
-  const N = N_SAMPLE;
-  const stepsPerControl = Math.max(1, Math.round(CONTROL_DT / dt)); // 每个 PID 周期内的仿真子步数
+/* 控制器结构 → 生效系数（未启用项强制 0） */
+function ctrlGains(p) {
+  const g = { kp: p.kp, ki: p.ki, kd: p.kd };
+  if (ctrlType === "P")  { g.ki = 0; g.kd = 0; }
+  if (ctrlType === "PI") { g.kd = 0; }
+  if (ctrlType === "PD") { g.ki = 0; }
+  return g;
+}
 
-  // 清空旧数据
-  for (const k in sim) sim[k].length = 0;
-
-  let iq = p.iq0;                          // 实际电流状态
-  let integral = 0;                        // 积分累积 Σe（ST 库离散形式，不含 dt）
-  let prevE = p.iqRef - p.iq0;             // 上一控制周期误差
-  let uP = 0, uI = 0, uD = 0, u = 0;       // 当前 PID 分量（零阶保持）
-
-  for (let n = 0; n <= N; n++) {
-    const t = n * dt;
-
-    /* ---- PID 在控制周期边界更新（零阶保持：周期内输出恒定） ---- */
-    if (n % stepsPerControl === 0) {
-      const e_ctrl = p.iqRef - iq;
-
-      uP = p.kp * e_ctrl;                  // P：比例
-      uI = p.ki * integral;                // I：离散累加 Σe
-      uD = p.kd * (e_ctrl - prevE);        // D：相邻周期差分（D 项默认禁用）
-
-      u = uP + uI + uD;
-
-      /* ---- 电压限幅（SVPWM 线性调制上限） ---- */
-      const saturated = u > vMax || u < -vMax;
-      u = Math.max(-vMax, Math.min(vMax, u));
-
-      /* ---- 抗积分饱和（clamping）：饱和时停止同向积分 ---- */
-      const windupBlock = saturated && (
-        (u >= vMax && e_ctrl > 0) ||
-        (u <= -vMax && e_ctrl < 0)
-      );
-      if (!el.antiWindupOn.checked || !windupBlock) {
-        integral += e_ctrl;
-      }
-      prevE = e_ctrl;
-    }
-
-    // 记录本时刻
-    const e = p.iqRef - iq;
-    sim.t.push(t);   sim.e.push(e);
-    sim.p.push(uP);  sim.i.push(uI);  sim.d.push(uD);
-    sim.u.push(u);   sim.iq.push(iq); sim.area.push(integral);
-
-    /* ---- 模型递推：电压 u 驱动电流 i_q 变化 ---- */
-    iq += (u - R * iq) / L * dt;           // 一阶惯性系统（零阶保持的 u）
-  }
-  computeYRange();
+/* 连续域等效增益：离散 Σe ≈ (1/T)·∫e dτ → Ki_c = Ki/T
+ *                 离散 Δe ≈ T·de/dt    → Kd_c = Kd·T  */
+function equivGains(p) {
+  const T = Math.max(p.T, 1e-6);
+  return { kp: p.kp, ki: p.ki / T, kd: p.kd * T };
 }
 
 /* =====================================================================
- * 事件绑定：任何参数变化 → 重新仿真
+ * 参数行显隐 / 滑块禁用（随对象模型与控制器结构变化）
  * ===================================================================== */
+function updateParamVisibility() {
+  // 对象模型：一阶 → τ+K；纯积分 → K；二阶 → ωₙ+ζ₀
+  el.objTauRow.style.display  = (objModel === "first")  ? "" : "none";
+  el.objKRow.style.display    = (objModel !== "second") ? "" : "none";
+  el.objWnRow.style.display   = (objModel === "second") ? "" : "none";
+  el.objZetaRow.style.display = (objModel === "second") ? "" : "none";
+
+  // 控制器结构：P → 禁 Ki/Kd；PI → 禁 Kd；PD → 禁 Ki
+  el.kiSlider.disabled = (ctrlType === "P" || ctrlType === "PD");
+  el.kiNum.disabled    = el.kiSlider.disabled;
+  el.kdSlider.disabled = (ctrlType === "P" || ctrlType === "PI");
+  el.kdNum.disabled    = el.kdSlider.disabled;
+
+  // 模式 → 图例/面板积分文字
+  updateModeLabels();
+}
+
+function updateModeLabels() {
+  const disc = (mode === "discrete");
+  $("leg-i").innerHTML  = disc ? "u<sub>I</sub> = K<sub>i</sub>·Σe" : "u<sub>I</sub> = K<sub>i,c</sub>·∫e dτ";
+  $("leg-d").innerHTML  = disc ? "u<sub>D</sub> = K<sub>d</sub>·Δe" : "u<sub>D</sub> = K<sub>d,c</sub>·de/dt";
+  el.roAreaLabel.textContent = disc ? "积分累积 Σe" : "积分 ∫e dτ";
+  el.cpAreaLabel.textContent = disc ? "Σe" : "∫e dτ";
+}
+
+/* 任何参数变化 → 重新仿真（保持播放状态语义） */
 function onParamChange() {
   const wasEnd = curT >= tMax;
   simulate();
@@ -822,543 +1325,984 @@ function clampCursor() {
   cursor.b.t = Math.max(0, Math.min(tMax, cursor.b.t));
 }
 
+/* =====================================================================
+ * 事件绑定：模式 / 对象 / 控制器 / 参数
+ * ===================================================================== */
+function setMode(m) {
+  mode = m;
+  el.modeDisc.classList.toggle("active", m === "discrete");
+  el.modeCont.classList.toggle("active", m === "continuous");
+  updateParamVisibility();
+  onParamChange();
+}
+el.modeDisc.addEventListener("click", () => setMode("discrete"));
+el.modeCont.addEventListener("click", () => setMode("continuous"));
+
+el.objModelSel.addEventListener("change", () => {
+  objModel = el.objModelSel.value;
+  updateParamVisibility();
+  onParamChange();
+});
+el.ctrlSel.addEventListener("change", () => {
+  ctrlType = el.ctrlSel.value;
+  updateParamVisibility();
+  onParamChange();
+});
+
 bindSliderNum(el.kpSlider, el.kpNum, onParamChange);
 bindSliderNum(el.kiSlider, el.kiNum, onParamChange);
 bindSliderNum(el.kdSlider, el.kdNum, onParamChange);
 bindSliderNum(el.tSlider, el.tNum, () => {
-  tMax = (parseFloat(el.tNum.value) || 5) / 1000;  // ms → s
+  tMax = (parseFloat(el.tNum.value) || 10) / 1000;  // ms → s
   if (curT > tMax) curT = tMax;
   onParamChange();
 });
-el.iqRef.addEventListener("input", onParamChange);
-el.iq0.addEventListener("input", onParamChange);
-el.vmaxNum.addEventListener("input", () => {
-  vMax = parseFloat(el.vmaxNum.value) || V_BUS / Math.sqrt(3);
+
+el.rNum.addEventListener("input", onParamChange);
+el.y0Num.addEventListener("input", onParamChange);
+el.objTau.addEventListener("input", onParamChange);
+el.objK.addEventListener("input", onParamChange);
+el.objWn.addEventListener("input", onParamChange);
+el.objZeta.addEventListener("input", onParamChange);
+el.tCtrl.addEventListener("input", onParamChange);
+el.uMaxNum.addEventListener("input", () => {
+  uMax = parseFloat(el.uMaxNum.value) || 10;
   onParamChange();
 });
-el.antiWindupOn.addEventListener("change", onParamChange);
-
-/* 播放 / 暂停 */
-el.playBtn.addEventListener("click", () => {
-  if (curT >= tMax) curT = 0;    // 已播完 → 从头重播
-  playing = !playing;
-  lastFrame = 0;
-  updatePlayBtn();
+el.limitOn.addEventListener("change", () => {
+  el.antiWindupOn.disabled = !el.limitOn.checked;   // 无限幅时抗饱和无意义
+  onParamChange();
 });
 
-/* 重置：回到 t=0 并暂停 */
-el.resetBtn.addEventListener("click", () => {
-  playing = false;
-  curT = 0;
-  lastFrame = 0;
-  simulate();
-  updatePlayBtn();
-});
+/* 快速预设：填参 → 更新全局类型 → setMode 触发重绘（顺序保证 simulate 读到新值） */
+function applyScenario(key) {
+  const S = SCENARIOS[key];
+  if (!S) return;
+  el.rNum.value = S.r;   el.y0Num.value = S.y0;
+  el.objModelSel.value = S.obj;  objModel = S.obj;
+  el.objTau.value = S.tau; el.objK.value = S.k;
+  el.objWn.value = S.wn;  el.objZeta.value = S.zeta;
+  el.ctrlSel.value = S.ctrl;     ctrlType = S.ctrl;
+  el.kpSlider.value = S.kp; el.kpNum.value = S.kp;
+  el.kiSlider.value = S.ki; el.kiNum.value = S.ki;
+  el.kdSlider.value = S.kd; el.kdNum.value = S.kd;
+  el.tSlider.value = S.tMax; el.tNum.value = S.tMax;
+  tMax = S.tMax / 1000;
+  /* 工程参数（可选字段，未定义时保留当前值，向后兼容） */
+  if (S.T !== undefined) el.tCtrl.value = S.T;
+  if (S.uMax !== undefined) { el.uMaxNum.value = S.uMax; uMax = S.uMax; }  // 同步全局限幅值（input 事件不触发）
+  if (S.limit !== undefined) { el.limitOn.checked = S.limit; el.antiWindupOn.disabled = !S.limit; }
+  if (S.antiWindup !== undefined) el.antiWindupOn.checked = S.antiWindup;
+  curT = 0; playing = false; updatePlayBtn();
+  setMode(S.mode);               // 内含 updateParamVisibility + onParamChange
+}
+for (const b of document.querySelectorAll("[data-scenario]")) {
+  b.addEventListener("click", () => applyScenario(b.dataset.scenario));
+}
+el.areaOn.addEventListener("change", onParamChange);
+el.tangentOn.addEventListener("change", onParamChange);
+el.theoryOn.addEventListener("change", onParamChange);
 
-function updatePlayBtn() {
-  el.playBtn.textContent = playing ? "⏸ 暂停" : "▶ 播放";
+/* =====================================================================
+ * 仿真引擎：双轨（离散零阶保持 / 连续 RK4）+ 三种对象模型
+ *
+ *   误差：        e = r − y
+ *   P 项：        u_P = Kp · e
+ *   离散 I 项：   u_I = Ki · Σe      （累加不含 dt，ST 风格）
+ *   连续 I 项：   u_I = (Ki/T) · ∫e dτ   （等效 Ki_c = Ki/T）
+ *   离散 D 项：   u_D = Kd · Δe      （相邻控制周期差分）
+ *   连续 D 项：   u_D = (Kd·T) · de/dt  （等效 Kd_c = Kd·T）
+ *
+ *   对象模型（状态 y，二阶另有 v = dy/dt）：
+ *   一阶惯性：  τ·dy/dt + y = K·u
+ *   纯积分：    dy/dt = K·u
+ *   二阶标准形：d²y/dt² + 2ζ₀ωₙ·dy/dt + ωₙ²y = K·ωₙ²·u
+ * ===================================================================== */
+
+/* 输出限幅：clamping（u 饱和且误差同向时阻断积分 → 抗积分饱和） */
+function windup(uRaw, e) {
+  return (uRaw >= uMax && e > 0) || (uRaw <= -uMax && e < 0);
+}
+function applyLimit(v, e, limit) {
+  if (!limit) return v;
+  return Math.max(-uMax, Math.min(uMax, v));
+}
+
+/* 对象微分方程：返回 { dy, dv } */
+function plantDeriv(p, u, y, v) {
+  if (objModel === "first") return { dy: (p.k * u - y) / p.tau, dv: 0 };
+  if (objModel === "integ") return { dy: p.k * u, dv: 0 };
+  const wn2 = p.wn * p.wn;   // 二阶：dy/dt=v, dv/dt=Kωₙ²u−2ζ₀ωₙv−ωₙ²y
+  return { dy: v, dv: p.k * wn2 * u - 2 * p.zeta0 * p.wn * v - wn2 * y };
+}
+
+/* 离散模式对象递推（零阶保持 u；半隐式欧拉保证稳定） */
+function plantStep(p, u, dt, s) {
+  if (objModel === "first") {
+    const a = dt / p.tau;
+    return { y: (s.y + p.k * u * a) / (1 + a), v: 0 };
+  }
+  if (objModel === "integ") return { y: s.y + p.k * u * dt, v: 0 };
+  const wn2 = p.wn * p.wn;
+  const v2 = s.v + (p.k * wn2 * u - 2 * p.zeta0 * p.wn * s.v - wn2 * s.y) * dt;
+  return { y: s.y + v2 * dt, v: v2 };
+}
+
+/* 连续模式控制器输出：在任意状态 (y, v, int) 处计算 PID 输出（含分量）。
+ * D 项 Kd_c·de/dt = −Kd_c·dy/dt，而 dy/dt 依赖 u（一阶/积分对象）→
+ * 按对象类型解析消去代数环；二阶对象 dy/dt = v 与 u 无关，无环。 */
+function ctrlOut(p, g, y, v, int, r, T, limit) {
+  const e = r - y;
+  const uP = g.kp * e;
+  const uI = (g.ki / T) * int;
+  const kdC = g.kd * T;                    // 等效 Kd_c
+  let uRaw, uD;
+  if (objModel === "second") {
+    uD = kdC * (-v);                       // dy/dt = v，无代数环
+    uRaw = uP + uI + uD;
+  } else if (objModel === "integ") {
+    // dy/dt = K·u → uD = −Kd_c·K·u → u(1 + Kd_c·K) = uP + uI
+    uRaw = (uP + uI) / (1 + kdC * p.k);
+    uD = uRaw - (uP + uI);
+  } else {
+    // 一阶：dy/dt = (K·u−y)/τ → uD = Kd_c·(y−K·u)/τ → u(1+Kd_c·K/τ) = uP+uI+Kd_c·y/τ
+    uRaw = (uP + uI + kdC * y / p.tau) / (1 + kdC * p.k / p.tau);
+    uD = uRaw - (uP + uI);
+  }
+  return { u: applyLimit(uRaw, e, limit), uRaw, uP, uI, uD };
+}
+
+/* 连续模式递推（RK4 经典四阶）：对象状态 [y, v] 与积分状态 int 同步推进。
+ * 每个 RK4 子步内经 ctrlOut 重新计算控制器输出（u 随子步状态连续更新，
+ * 消除采样-保持误差）；dint/dt = r − y 纳入同一循环，避免深欠阻尼 +
+ * 长窗口下闭环特征值越出单位圆导致发散。 */
+function rk4Step(p, g, dt, s, r, T, limit, freezeInt) {
+  const f = (y, v, int) => {
+    const c = ctrlOut(p, g, y, v, int, r, T, limit);
+    const d = plantDeriv(p, c.u, y, v);
+    return { dy: d.dy, dv: d.dv, dint: freezeInt ? 0 : (r - y) };
+  };
+  const k1 = f(s.y, s.v, s.int);
+  const k2 = f(s.y + dt / 2 * k1.dy, s.v + dt / 2 * k1.dv, s.int + dt / 2 * k1.dint);
+  const k3 = f(s.y + dt / 2 * k2.dy, s.v + dt / 2 * k2.dv, s.int + dt / 2 * k2.dint);
+  const k4 = f(s.y + dt * k3.dy, s.v + dt * k3.dv, s.int + dt * k3.dint);
+  return {
+    y: s.y + dt / 6 * (k1.dy + 2 * k2.dy + 2 * k3.dy + k4.dy),
+    v: s.v + dt / 6 * (k1.dv + 2 * k2.dv + 2 * k3.dv + k4.dv),
+    int: s.int + dt / 6 * (k1.dint + 2 * k2.dint + 2 * k3.dint + k4.dint),
+  };
+}
+
+function simulate() {
+  const p = getParams();
+  const dt = tMax / N_SAMPLE;
+  const N = N_SAMPLE;
+  const T = Math.max(p.T, dt);                       // 控制周期至少一个仿真步
+  const stepsPerControl = Math.max(1, Math.round(T / dt));
+  const g  = ctrlGains(p);                           // 结构生效系数（未启用项为 0）
+  const limit = el.limitOn.checked;
+  const antiWindup = el.antiWindupOn.checked && limit;   // 抗饱和仅在限幅开启时生效
+
+  for (const k in sim) sim[k].length = 0;
+
+  let s = { y: p.y0, v: 0, int: 0 };                 // 对象状态（二阶对象 v=dy/dt；连续模式 int=∫e dτ）
+  let integral = 0;                                  // 离散: Σe 累加（连续模式用 s.int 随 RK4 推进）
+  let prevE = p.r - p.y0;                            // 上一控制周期误差（D 项用）
+  let uP = 0, uI = 0, uD = 0, u = 0;                 // PID 分量（零阶保持）
+  let freezeInt = false;                             // 连续模式：限幅饱和且误差同向 → 冻结积分
+
+  for (let n = 0; n <= N; n++) {
+    const e = p.r - s.y;                 // 当前时刻 t = n·dt 的误差
+
+    if (mode === "discrete") {
+      /* ---- 离散：PID 在控制周期边界更新，周期内输出零阶保持 ---- */
+      if (n % stepsPerControl === 0) {
+        uP = g.kp * e;                               // P：比例
+        uI = g.ki * integral;                        // I：Σe 累加
+        uD = g.kd * (e - prevE);                     // D：相邻周期差分
+        const uRaw = uP + uI + uD;
+        u = applyLimit(uRaw, e, limit);
+        /* 积分更新（clamping 抗饱和：限幅开 + 抗饱和开 + 饱和同向才冻结） */
+        if (!limit || !antiWindup || !windup(uRaw, e)) integral += e;
+        prevE = e;
+      }
+    } else {
+      /* ---- 连续：控制器在 RK4 子步内随状态连续更新，此处仅取步初值用于记录 ---- */
+      const c = ctrlOut(p, g, s.y, s.v, s.int, p.r, T, limit);
+      uP = c.uP; uI = c.uI; uD = c.uD; u = c.u;
+      /* 限幅时误差同向 → 冻结积分（clamping 抗饱和，冻结条件按步初值判定） */
+      freezeInt = limit && antiWindup && windup(c.uRaw, e);
+    }
+
+    /* 记录当前时刻状态（y 与 t 严格对齐，理论解析曲线可逐点对比） */
+    sim.t.push(n * dt);  sim.e.push(e);
+    sim.p.push(uP);      sim.i.push(uI);  sim.d.push(uD);
+    sim.u.push(u);       sim.y.push(s.y);
+    sim.area.push(mode === "discrete" ? integral : s.int);
+
+    /* 推进一个仿真步（离散零阶保持 / 连续 RK4，int 随 RK4 同步推进） */
+    s = (mode === "discrete") ? plantStep(p, u, dt, s)
+                              : rk4Step(p, g, dt, s, p.r, T, limit, freezeInt);
+  }
+  computeYRange();
+  simTheo.y = theoryY() || [];
+  /* 稳定时间：y 进入并保持 ±2% 带宽即稳定。
+   * 带宽基准 = max(|稳态参考|, |r−y0|)·2%（防 r≈0 时带宽退化到数值噪声）；
+   * 稳态参考取末段 20% 均值；末段自身波动仍超带宽 → 发散/极限环 → 未稳定。
+   * 从前往后记录最后越出带外的索引，其后一个采样点即 t_s；
+   * 若末尾样本仍越出 → 未稳定（null）。 */
+  settleT = null;
+  const nY = sim.y.length, m0 = Math.max(1, Math.floor(nY * 0.8));
+  let anyBad = false, ref = 0, segMin = +Infinity, segMax = -Infinity;
+  for (let i = m0; i < nY; i++) {
+    const v = sim.y[i];
+    if (!isFinite(v)) { anyBad = true; break; }        // 溢出/NaN → 未稳定
+    ref += v;
+    if (v < segMin) segMin = v;
+    if (v > segMax) segMax = v;
+  }
+  if (!anyBad) {
+    ref /= (nY - m0);
+    const band = Math.max(Math.abs(ref), Math.abs(p.r - p.y0), 1e-9) * 0.02;
+    if (segMax - segMin > band) {
+      settleT = null;                      // 末段波动超带宽 → 未收敛
+    } else {
+      let lastOut = -1;
+      for (let i = 0; i < nY; i++) {
+        if (Math.abs(sim.y[i] - ref) > band) lastOut = i;
+      }
+      settleT = (lastOut < 0) ? sim.t[0]
+               : (lastOut + 1 < nY ? sim.t[lastOut + 1] : null);
+    }
+  }
+  updateAnalysisPanel();
+  updateLegend();
 }
 
 /* =====================================================================
- * 绘图系统
+ * 自动控制分析：多项式工具（系数数组，低次在前）
  * ===================================================================== */
-const canvas = el.canvas;
-const ctx = canvas.getContext("2d");
-let cssW = 0, cssH = 0, dpr = 1;
 
-// 绘图区在 canvas 内的矩形区域（CSS 像素）
-let plotL = 62, plotT = 18, plotW = 0, plotH = 0;
+/* 复数运算 */
+const C    = (re, im = 0) => ({ re, im });
+const cAdd = (a, b) => C(a.re + b.re, a.im + b.im);
+const cSub = (a, b) => C(a.re - b.re, a.im - b.im);
+const cMul = (a, b) => C(a.re * b.re - a.im * b.im, a.re * b.im + a.im * b.re);
+const cDiv = (a, b) => { const d = b.re * b.re + b.im * b.im;
+                         return C((a.re * b.re + a.im * b.im) / d, (a.im * b.re - a.re * b.im) / d); };
+const cAbs = a => Math.hypot(a.re, a.im);
 
-/* 双 Y 轴数据范围（基于全部仿真数据，不受曲线可见性影响，避免 toggle 跳变）
- * 左轴 (A)：i_q, e      右轴 (V)：u, p, i, d */
-let yMin1 = 0, yMax1 = 0;   // 左轴 (A)
-let yMin2 = 0, yMax2 = 0;   // 右轴 (V)
+function polyTrim(c) {                 // 去掉高阶零系数
+  let i = c.length - 1;
+  while (i > 0 && Math.abs(c[i]) < 1e-12) i--;
+  return c.slice(0, i + 1);
+}
+function polyMul(a, b) {
+  const r = new Array(a.length + b.length - 1).fill(0);
+  for (let i = 0; i < a.length; i++)
+    for (let j = 0; j < b.length; j++) r[i + j] += a[i] * b[j];
+  return r;
+}
+function polyAdd(a, b) {
+  const n = Math.max(a.length, b.length);
+  const r = new Array(n).fill(0);
+  for (let i = 0; i < n; i++) r[i] = (a[i] || 0) + (b[i] || 0);
+  return r;
+}
+function polyEvalC(c, z) {             // 复数 Horner 求值
+  let r = C(c[c.length - 1] || 0);
+  for (let i = c.length - 2; i >= 0; i--) r = cAdd(cMul(r, z), C(c[i] || 0));
+  return r;
+}
 
+/* 多项式求根：1/2 次解析；3 次以上 Durand-Kerner 迭代 */
+function polyRoots(c) {
+  c = polyTrim(c);
+  const n = c.length - 1;
+  if (n <= 0) return [];
+  if (n === 1) return [C(-c[0] / c[1])];
+  if (n === 2) {
+    const a = c[2], b = c[1], cc = c[0];
+    const disc = b * b - 4 * a * cc;
+    if (disc >= 0) {
+      const sq = Math.sqrt(disc);
+      return [C((-b - sq) / (2 * a)), C((-b + sq) / (2 * a))];
+    }
+    const sq = Math.sqrt(-disc);
+    return [C(-b / (2 * a), -sq / (2 * a)), C(-b / (2 * a), sq / (2 * a))];
+  }
+  const roots = [];
+  const off = (Math.random() * 2 - 1) * 0.4;
+  for (let i = 0; i < n; i++) {
+    const a = off + i * 2 * Math.PI / n;
+    roots.push(C(0.4 * Math.cos(a), 0.4 * Math.sin(a)));
+  }
+  for (let iter = 0; iter < 300; iter++) {
+    let maxDelta = 0;
+    for (let i = 0; i < n; i++) {
+      const num = polyEvalC(c, roots[i]);
+      let den = C(1);
+      for (let j = 0; j < n; j++) if (j !== i) den = cMul(den, cSub(roots[i], roots[j]));
+      const delta = cDiv(num, den);
+      roots[i] = cSub(roots[i], delta);
+      maxDelta = Math.max(maxDelta, cAbs(delta));
+    }
+    if (maxDelta < 1e-10) break;
+  }
+  return roots;
+}
+
+/* ---- 组装闭环特征多项式（8 种组合统一写法） ----
+ * C(s) = (Kd·s² + Kp·s + Ki) / s   （P/PI/PD/PID 只是对应系数为 0）
+ * 闭环特征方程：Cden·Gden + Cnum·Gnum = 0
+ * 等效连续系数：离散模式 Ki_eff = Ki/T、Kd_eff = Kd·T（Σe/Δe ↔ ∫e/de 的换算）
+ */
+function buildClosedLoop() {
+  const p = getParams();
+  const T = Math.max(p.T, 1e-6);
+  const g = ctrlGains(p);                      // 结构生效系数（未启用项为 0）
+  // 等效连续域：离散 Σe ≈ (1/T)·∫e → Ki_c = Ki/T；Δe ≈ T·de/dt → Kd_c = Kd·T
+  // 两模式共用同一等效域：仿真（连续分支按 Ki/T 积分）与分析必须一致
+  const Ki_eff = g.ki / T;
+  const Kd_eff = g.kd * T;
+  // 多项式系数一律低次在前（[常数, s, s², …]）
+  let Cnum = [Ki_eff, g.kp, Kd_eff];        // C(s) = Ki/s + Kp + Kd·s
+  let Cden = [0, 1];                        // C(s) 分母 = s
+  // P/PD（Ki=0）：(Kp·s + Kd·s²)/s 的 s 因子与分母相消 → C(s) = Kp + Kd·s
+  // 不消元会在特征多项式留下虚假的 s=0 根（误判 3 阶/不稳定，ζ、ωₙ 失效）
+  if (Math.abs(Ki_eff) < 1e-12) { Cnum = [g.kp, Kd_eff]; Cden = [1]; }
+
+  let Gnum, Gden;
+  if (objModel === "first") {                  // 一阶惯性 K/(τs+1)
+    Gnum = [p.k]; Gden = [1, p.tau];
+  } else if (objModel === "integ") {           // 纯积分 K/s
+    Gnum = [p.k]; Gden = [0, 1];
+  } else {                                     // 二阶标准形 K·ωₙ²/(s²+2ζ₀ωₙs+ωₙ²)
+    const w = p.wn, z = p.zeta0;
+    Gnum = [p.k * w * w]; Gden = [w * w, 2 * z * w, 1];
+  }
+  const char = polyAdd(polyMul(Cden, Gden), polyMul(Cnum, Gnum));
+  return { char: polyTrim(char),
+           Gnum, Gden, Cnum, Cden };
+}
+
+/* ---- 分析计算：极点 → 稳定性 → ζ/ωₙ → 阻尼类型 → 时域指标 ---- */
+function computeAnalysis() {
+  const { char } = buildClosedLoop();
+  // char 为低次在前（常数项在最前）；去高阶零系数后归一化最高次为 1
+  const c = polyTrim(char.slice());
+  const n = c.length - 1, a0 = c[n];           // 最高次系数在数组末尾
+  const norm = c.map(v => v / a0);
+  const roots = polyRoots(norm);
+  roots.sort((x, y) => y.re - x.re);
+
+  const stable = roots.every(r => r.re < -1e-9);
+  let dampType = !stable ? "不稳定" : (n === 1 ? "一阶系统" : "");
+  let zeta = null, omegaN = null, dcGain = 1;
+
+  // 直流增益 Φ(0) = Cnum(0)·Gnum(0) / (Cden(0)·Gden(0) + Cnum(0)·Gnum(0))
+  // 多项式低次在前 → s=0 处取值即索引 0 的常数项
+  const { Gnum, Gden, Cnum, Cden } = buildClosedLoop();
+  const g0 = Gnum[0] || 0, d0 = Gden[0] || 0;
+  const cn0 = Cnum[0] || 0, cd0 = Cden[0] || 0;
+  const num0 = cn0 * g0, den0 = cd0 * d0 + num0;
+  dcGain = Math.abs(den0) < 1e-12 ? 1 : num0 / den0;
+
+  if (n === 2) {
+    omegaN = Math.sqrt(Math.max(0, norm[0]));  // 归一化后 s²+2ζωₙs+ωₙ²：常数项=ωₙ²
+    zeta = norm[1] / (2 * omegaN);             // s 系数 = 2ζωₙ
+    // 阻尼分类独立于稳定性判断：ζ=0（虚轴极点）→ 无阻尼，随后被 !stable 覆盖为不稳定
+    if (Math.abs(zeta) < 1e-6) dampType = "无阻尼 (ζ=0)";
+    else if (zeta < 0.999)     dampType = "欠阻尼";
+    else if (zeta < 1.001)     dampType = "临界阻尼";
+    else                       dampType = "过阻尼";
+  }
+  // ζ≈0（虚轴极点，临界稳定）保留"无阻尼"标签；其余不稳定情形覆盖为"不稳定"
+  if (!stable && (zeta === null || Math.abs(zeta) >= 1e-6)) dampType = "不稳定";
+
+  const metrics = {};
+  if (n === 1 && stable) {                    // 一阶：时间常数 = -1/极点
+    const tc = -1 / roots[0].re;
+    metrics.ts = 3 * tc;
+  } else if (n === 2 && stable && zeta !== null) {
+    if (zeta < 1e-6) { metrics.tp = Infinity; metrics.Mp = 0; }
+    else if (zeta < 1) {
+      const wd = omegaN * Math.sqrt(1 - zeta * zeta);
+      metrics.Mp = Math.exp(-Math.PI * zeta / Math.sqrt(1 - zeta * zeta)) * 100;
+      metrics.tp = Math.PI / wd;
+      metrics.ts = 4 / (zeta * omegaN);
+      metrics.tr = (Math.PI - Math.acos(zeta)) / wd;
+    } else if (zeta < 1.001) {
+      metrics.Mp = 0; metrics.ts = 4 / omegaN; metrics.tp = Infinity;
+    } else {                                   // 过阻尼：主导极点 = re 最大（最靠虚轴）
+      const sD = Math.abs(roots[0].re);
+      metrics.Mp = 0; metrics.ts = 4 / sD; metrics.tp = Infinity;
+    }
+  }
+  return { n, roots, stable, dampType, zeta, omegaN, dcGain, metrics, charPoly: char };
+}
+
+/* ---- 连续模式理论解析曲线（闭环阶跃响应，仅一阶/二阶闭式解） ---- */
+function theoryY() {
+  if (mode !== "continuous") return null;
+  const A = computeAnalysis();
+  if (!A.stable || A.n > 2) return null;
+  const dc = A.dcGain, out = new Array(N_SAMPLE + 1);
+  const R = A.roots;
+  for (let i = 0; i <= N_SAMPLE; i++) {
+    const t = sim.t[i];
+    let y;
+    if (A.n === 1) {
+      y = dc * (1 - Math.exp(R[0].re * t));
+    } else {
+      const z = A.zeta, w = A.omegaN;
+      if (z < 1e-6) y = dc * (1 - Math.cos(w * t));
+      else if (z < 1) {
+        const wd = w * Math.sqrt(1 - z * z);
+        y = dc * (1 - Math.exp(-z * w * t) * (Math.cos(wd * t) + z / Math.sqrt(1 - z * z) * Math.sin(wd * t)));
+      } else if (z < 1.001) {
+        y = dc * (1 - Math.exp(-w * t) * (1 + w * t));
+      } else {
+        const fast = R[1].re, slow = R[0].re;  // roots 按 re 降序：R[0]=主导(慢)、R[1]=快
+        y = dc * (1 + (slow * Math.exp(fast * t) - fast * Math.exp(slow * t)) / (fast - slow));
+      }
+    }
+    out[i] = y;
+  }
+  return out;
+}
+
+/* ---- 分析面板极点图（复平面，实轴 + 虚轴 + 极点×） ---- */
+function drawPoleMap() {
+  const cv = el.poleCanvas;
+  if (!cv) return;
+  const A = computeAnalysis();
+  const dpr = window.devicePixelRatio || 1;
+  const cssW = cv.clientWidth || 220, cssH = cv.clientHeight || 140;
+  cv.width = cssW * dpr; cv.height = cssH * dpr;
+  const g = cv.getContext("2d");
+  g.setTransform(dpr, 0, 0, dpr, 0, 0);
+  g.clearRect(0, 0, cssW, cssH);
+
+  const pad = 14;
+  const maxR = Math.max(2, ...A.roots.map(r => Math.hypot(r.re, r.im))) * 1.3;
+  const midX = cssW / 2 + pad, w = cssW - pad * 2 - midX / 2, h = cssH - pad * 2;
+  const scale = Math.min(w / maxR, h / (maxR * 2));
+  const Xp = re => midX + re * scale;
+  const Yp = im => cssH / 2 - im * scale;
+
+  // 虚轴（关键：穿越它 = 失稳）
+  g.strokeStyle = "rgba(255,255,255,0.35)"; g.lineWidth = 1; g.setLineDash([4, 3]);
+  g.beginPath(); g.moveTo(Xp(0), pad); g.lineTo(Xp(0), cssH - pad); g.stroke();
+  g.setLineDash([]);
+  // 实轴
+  g.beginPath(); g.moveTo(pad, Yp(0)); g.lineTo(cssW - pad, Yp(0)); g.stroke();
+  // 稳定域底色（左半平面淡绿 / 右半淡红）
+  g.fillStyle = A.stable ? "rgba(61,220,132,0.07)" : "rgba(255,82,82,0.10)";
+  g.fillRect(pad, pad, Xp(0) - pad, h);
+  // 极点
+  for (const r of A.roots) {
+    const x = Xp(r.re), y = Yp(r.im);
+    g.strokeStyle = r.re < 0 ? "#3ddc84" : "#ff5252";
+    g.lineWidth = 2;
+    g.beginPath();
+    g.moveTo(x - 5, y - 5); g.lineTo(x + 5, y + 5);
+    g.moveTo(x + 5, y - 5); g.lineTo(x - 5, y + 5);
+    g.stroke();
+  }
+  // 标签
+  g.fillStyle = "#8a93a3"; g.font = "10px Consolas, monospace"; g.textAlign = "left";
+  g.fillText("Re", cssW - pad - 14, Yp(0) - 4);
+  g.fillText("Im", Xp(0) + 4, pad + 9);
+}
+
+/* =====================================================================
+ * 绘制层：双通道坐标系统（示波器式上下两区，共享时间轴）
+ *   CH1（上）：y / e / r / 理论 y     CH2（下）：u / p / i / d
+ * ===================================================================== */
+let cssW = 0, cssH = 0, plotL = 58, plotT = 18;
+let plotW = 0, chGap = 30, ch1H = 0, ch2H = 0, ch1B = 0, ch2T = 0, ch2B = 0;
+let yMin1 = 0, yMax1 = 0, yMin2 = 0, yMax2 = 0;   // CH1 y/e；CH2 u/p/i/d
+
+const ctx = el.canvas.getContext("2d");
+
+function resizeCanvas() {
+  const dpr = window.devicePixelRatio || 1;
+  const wrap = el.canvas.parentElement;
+  cssW = wrap.clientWidth || 600; cssH = wrap.clientHeight || 400;
+  el.canvas.width = cssW * dpr; el.canvas.height = cssH * dpr;
+  el.canvas.style.width = cssW + "px"; el.canvas.style.height = cssH + "px";
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  plotL = 58; plotT = 18;
+  plotW = cssW - plotL - 14;               // 无右轴区，绘图区直接扩到右侧
+  const inner = cssH - plotT - 42 - chGap; // 扣除顶部/底部留白与通道间隙
+  ch1H = inner * 0.44; ch2H = inner * 0.56;  // 下区曲线多（4 条），多给一点
+  ch1B = plotT + ch1H;
+  ch2T = ch1B + chGap;
+  ch2B = ch2T + ch2H;
+}
+
+/* 双通道量程：CH1(y/e)、CH2(u/p/i/d)，基于全量数据，参数变化时跳变一次 */
 function computeYRange() {
-  // 左轴 (A)：电流与误差
-  let lo1 = 0, hi1 = 0;
-  for (const arr of [sim.iq, sim.e]) {
-    for (const v of arr) { if (v < lo1) lo1 = v; if (v > hi1) hi1 = v; }
-  }
-  const pad1 = (hi1 - lo1) * 0.15 || 1;
-  yMin1 = lo1 - pad1; yMax1 = hi1 + pad1;
-
-  // 右轴 (V)：电压输出
-  let lo2 = 0, hi2 = 0;
-  for (const arr of [sim.u, sim.p, sim.i, sim.d]) {
-    for (const v of arr) { if (v < lo2) lo2 = v; if (v > hi2) hi2 = v; }
-  }
-  const pad2 = (hi2 - lo2) * 0.15 || 1;
-  yMin2 = lo2 - pad2; yMax2 = hi2 + pad2;
+  let lo1 = 0, hi1 = 0, lo2 = 0, hi2 = 0;
+  for (const k of ["y", "e"]) for (const v of sim[k]) { if (v < lo1) lo1 = v; if (v > hi1) hi1 = v; }
+  for (const k of ["u", "p", "i", "d"]) for (const v of sim[k]) { if (v < lo2) lo2 = v; if (v > hi2) hi2 = v; }
+  const p1 = (hi1 - lo1) * 0.15 || 1, p2 = (hi2 - lo2) * 0.15 || 1;
+  yMin1 = lo1 - p1; yMax1 = hi1 + p1;
+  yMin2 = lo2 - p2; yMax2 = hi2 + p2;
 }
 
-/* 数据坐标 → 屏幕坐标（横轴公用，纵轴按曲线所属轴选择） */
+/* 数据坐标 → 屏幕坐标（CH1 用 Y1、CH2 用 Y2） */
 const X  = t => plotL + (t / tMax) * plotW;
-const Y1 = v => plotT + (yMax1 - v) / (yMax1 - yMin1) * plotH;   // 左轴 (A)
-const Y2 = v => plotT + (yMax2 - v) / (yMax2 - yMin2) * plotH;   // 右轴 (V)
+const Y1 = v => plotT + (yMax1 - v) / (yMax1 - yMin1) * ch1H;
+const Y2 = v => ch2T + (yMax2 - v) / (yMax2 - yMin2) * ch2H;
 
-/* 当前采样索引（由播放时刻换算） */
-function curIdx() {
-  return Math.max(0, Math.min(N_SAMPLE, Math.round(curT / tMax * N_SAMPLE)));
-}
-
-/* 刻度间隔：取 1 / 2 / 5 × 10^k 的"好看"数值 */
 function niceStep(range, target) {
-  const raw = range / Math.max(target, 1);
+  const raw = range / target;
   const mag = Math.pow(10, Math.floor(Math.log10(raw)));
-  const norm = raw / mag;
-  const s = norm < 1.5 ? 1 : norm < 3 ? 2 : norm < 7 ? 5 : 10;
-  return s * mag;
+  for (const m of [1, 2, 2.5, 5, 10]) if (raw <= m * mag) return m * mag;
+  return 10 * mag;
 }
-
 function fmtNum(v) {
   const a = Math.abs(v);
-  if (a >= 100) return v.toFixed(0);
-  if (a >= 1)   return v.toFixed(1);
-  return v.toFixed(2);
+  if (a >= 1000) return v.toFixed(0);
+  if (a >= 100) return v.toFixed(1);
+  if (a >= 1) return v.toFixed(2);
+  return v.toFixed(3);
 }
+function fmtCoef(v) { return Math.abs(v - Math.round(v)) < 1e-6 ? String(Math.round(v)) : fmtNum(v); }
 
-/* 自适应尺寸（含高清屏适配） */
-function resizeCanvas() {
-  const rect = canvas.parentElement.getBoundingClientRect();
-  dpr = window.devicePixelRatio || 1;
-  cssW = Math.max(rect.width, 50);
-  cssH = Math.max(rect.height, 50);
-  canvas.width  = Math.round(cssW * dpr);
-  canvas.height = Math.round(cssH * dpr);
-}
-
-/* =====================================================================
- * 主绘制函数
- * ===================================================================== */
-function draw() {
-  // 容器尺寸变化检测 → 自适应
-  const rect = canvas.parentElement.getBoundingClientRect();
-  if (Math.abs(rect.width - cssW) > 1 || Math.abs(rect.height - cssH) > 1) resizeCanvas();
-
-  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  ctx.clearRect(0, 0, cssW, cssH);
-  ctx.font = "11px 'Segoe UI', 'Microsoft YaHei', sans-serif";
-
-  // 计算绘图区（四周留出轴标签空间）
-  plotL = 62; plotT = 18;
-  plotW = cssW - plotL - 58;   /* 右侧留 58px 给右轴刻度 */
-  plotH = cssH - plotT - 42;
-
-  const idx = curIdx();
-
-  drawGrid();                // 网格、刻度、坐标轴
-  drawTargetLine();          // 目标电流参考线（虚线）
-  drawArea(idx);             // 积分面积（开关控制）
-  drawSeries(idx);           // 6 条曲线
-  drawTangent(idx);          // 微分切线（开关控制）
-  drawCursor(idx);           // 当前时刻游标
-  updateReadout(idx);        // 底部实时数值
-  if (cursor.on) { drawCursors(); updateCursorPanel(); }   // 测量游标 X1/X2
-}
-
-/* ---- 网格 + 刻度 + 坐标轴（双 Y 轴） ---- */
+/* ---- 网格 + 双通道刻度（各自独立 Y 轴，共享时间轴） ---- */
 function drawGrid() {
-  const tMaxMs = tMax * 1000;             // 以 ms 为单位计算 x 轴刻度
-  const xStep = niceStep(tMaxMs, 7);       // x 轴步长（ms）
-  const yStep = niceStep(yMax1 - yMin1, 6);   // 网格按左轴 nice 值
-
-  ctx.textAlign = "center";
+  const xStep  = niceStep(tMax, 8);
+  const yStep1 = niceStep(yMax1 - yMin1, 5);
+  const yStep2 = niceStep(yMax2 - yMin2, 5);
   ctx.textBaseline = "middle";
 
-  // 水平网格线（左轴 nice 值），y=0 的线加亮
-  for (let v = Math.ceil(yMin1 / yStep) * yStep; v <= yMax1 + 1e-9; v += yStep) {
+  // CH1 水平网格 + 左轴刻度
+  for (let v = Math.ceil(yMin1 / yStep1) * yStep1; v <= yMax1 + 1e-9; v += yStep1) {
     const y = Y1(v);
-    ctx.strokeStyle = (Math.abs(v) < yStep * 1e-6)
-      ? "rgba(255,255,255,0.35)" : "rgba(255,255,255,0.08)";
-    ctx.beginPath();
-    ctx.moveTo(plotL, y); ctx.lineTo(plotL + plotW, y);
-    ctx.stroke();
-
-    // 左轴刻度 (A)
-    ctx.fillStyle = "#8a93a3";
-    ctx.textAlign = "right";
+    ctx.strokeStyle = (Math.abs(v) < yStep1 * 1e-6) ? "rgba(255,255,255,0.35)" : "rgba(255,255,255,0.07)";
+    ctx.beginPath(); ctx.moveTo(plotL, y); ctx.lineTo(plotL + plotW, y); ctx.stroke();
+    ctx.fillStyle = "#8a93a3"; ctx.textAlign = "right";
     ctx.fillText(fmtNum(v), plotL - 8, y);
-
-    // 右轴刻度 (V)：同一像素位置反算右轴值
-    const v2 = yMax2 - (y - plotT) / plotH * (yMax2 - yMin2);
-    ctx.textAlign = "left";
-    ctx.fillText(fmtNum(v2), plotL + plotW + 8, y);
-    ctx.textAlign = "center";
+  }
+  // CH2 水平网格 + 左轴刻度
+  for (let v = Math.ceil(yMin2 / yStep2) * yStep2; v <= yMax2 + 1e-9; v += yStep2) {
+    const y = Y2(v);
+    ctx.strokeStyle = (Math.abs(v) < yStep2 * 1e-6) ? "rgba(255,255,255,0.35)" : "rgba(255,255,255,0.07)";
+    ctx.beginPath(); ctx.moveTo(plotL, y); ctx.lineTo(plotL + plotW, y); ctx.stroke();
+    ctx.fillStyle = "#8a93a3"; ctx.textAlign = "right";
+    ctx.fillText(fmtNum(v), plotL - 8, y);
   }
 
-  // 垂直网格线（x 刻度，以 ms 为单位）
-  for (let tMs = 0; tMs <= tMaxMs + 1e-9; tMs += xStep) {
-    const t = tMs / 1000;                 // 转回秒用于坐标映射
+  // 垂直网格（跨两通道）+ 底部时间刻度
+  for (let t = 0; t <= tMax + 1e-9; t += xStep) {
     const x = X(Math.min(t, tMax));
-    ctx.strokeStyle = "rgba(255,255,255,0.08)";
-    ctx.beginPath();
-    ctx.moveTo(x, plotT); ctx.lineTo(x, plotT + plotH);
-    ctx.stroke();
-
-    ctx.fillStyle = "#8a93a3";
-    ctx.fillText(fmtNum(tMs), x, plotT + plotH + 17);
+    ctx.strokeStyle = "rgba(255,255,255,0.07)";
+    ctx.beginPath(); ctx.moveTo(x, plotT); ctx.lineTo(x, ch2B); ctx.stroke();
+    ctx.fillStyle = "#8a93a3"; ctx.textAlign = "center";
+    ctx.fillText(fmtNum(t * 1000), x, ch2B + 17);
   }
 
-  // 坐标轴轮廓（左轴 + 底轴 + 右轴）
-  ctx.strokeStyle = "rgba(255,255,255,0.55)";
-  ctx.lineWidth = 1.2;
-  ctx.beginPath();
-  ctx.moveTo(plotL, plotT);         ctx.lineTo(plotL, plotT + plotH);          // 左 y 轴
-  ctx.moveTo(plotL, plotT + plotH); ctx.lineTo(plotL + plotW, plotT + plotH);  // x 轴
-  ctx.moveTo(plotL + plotW, plotT); ctx.lineTo(plotL + plotW, plotT + plotH);  // 右 y 轴
-  ctx.stroke();
+  // 两通道边框
+  ctx.strokeStyle = "rgba(255,255,255,0.55)"; ctx.lineWidth = 1.2;
+  ctx.strokeRect(plotL, plotT, plotW, ch1H);
+  ctx.strokeRect(plotL, ch2T, plotW, ch2H);
   ctx.lineWidth = 1;
 
-  // 轴名称标注
+  // 通道标签（间隙条内，左/右对齐一行）
+  ctx.font = "bold 11px Consolas, monospace"; ctx.textBaseline = "middle";
   ctx.fillStyle = "#c9d1dc";
-  ctx.textAlign = "center";
+  ctx.textAlign = "left";  ctx.fillText("CH1 · y(t) / e(t)", plotL + 6, ch1B + chGap / 2);
+  ctx.textAlign = "right"; ctx.fillText("CH2 · u(t) / p(t) / i(t) / d(t)", plotL + plotW - 6, ch2T - chGap / 2);
+  ctx.font = "11px 'Segoe UI','Microsoft YaHei',sans-serif";
+
+  // 轴名
+  ctx.fillStyle = "#c9d1dc"; ctx.textAlign = "center";
   ctx.fillText("t (ms)", plotL + plotW / 2, cssH - 5);
-
-  // 左轴标注 (A)
-  ctx.save();
-  ctx.translate(17, plotT + plotH / 2);
-  ctx.rotate(-Math.PI / 2);
-  ctx.fillText("i_q(t), e(t) (A)", 0, 0);
-  ctx.restore();
-
-  // 右轴标注 (V)
-  ctx.save();
-  ctx.translate(cssW - 5, plotT + plotH / 2);
-  ctx.rotate(Math.PI / 2);
-  ctx.fillText("u(t) (V)", 0, 0);
-  ctx.restore();
+  ctx.save(); ctx.translate(15, plotT + ch1H / 2); ctx.rotate(-Math.PI / 2);
+  ctx.fillText("y(t), e(t)", 0, 0); ctx.restore();
+  ctx.save(); ctx.translate(15, ch2T + ch2H / 2); ctx.rotate(-Math.PI / 2);
+  ctx.fillText("u(t)", 0, 0); ctx.restore();
 }
 
-/* ---- 目标电流参考线（白色虚线） ---- */
-function drawTargetLine() {
-  const ref = parseFloat(el.iqRef.value) || 0;
-  const y = Y1(ref);
-  if (y < plotT - 20 || y > plotT + plotH + 20) return;
-  ctx.strokeStyle = "rgba(255,255,255,0.45)";
-  ctx.lineWidth = 1.2;
-  ctx.setLineDash([6, 5]);
-  ctx.beginPath();
-  ctx.moveTo(plotL, y); ctx.lineTo(plotL + plotW, y);
-  ctx.stroke();
-  ctx.setLineDash([]);
-}
-
-/* ---- 积分面积：e(t) 与时间轴 y=0 之间填充半透明蓝色。
- *      e(t) > 0 时区域在轴上方，e(t) < 0 时自动落在轴下方。 ---- */
-function drawArea(idx) {
-  if (!el.areaOn.checked) return;
-  const y0 = Y1(0);
-  ctx.beginPath();
-  ctx.moveTo(X(0), y0);
-  for (let i = 0; i <= idx; i++) ctx.lineTo(X(sim.t[i]), Y1(sim.e[i]));
-  ctx.lineTo(X(sim.t[idx]), y0);
-  ctx.closePath();
-  ctx.fillStyle = "rgba(77,163,255,0.28)";
-  ctx.fill();
-}
-
-/* ---- 绘制单条曲线（只画到当前时刻 idx），yFn 指定用哪个 Y 轴 ---- */
-function trace(arr, idx, color, width, yFn) {
-  ctx.strokeStyle = color;
-  ctx.lineWidth = width;
-  ctx.lineJoin = "round";
+/* ---- 单条曲线 trace（只画到 idx；yFn 按所属轴选择 Y1/Y2） ---- */
+function trace(arr, yFn, color, width, idx) {
+  ctx.strokeStyle = color; ctx.lineWidth = width; ctx.lineJoin = "round";
   ctx.beginPath();
   for (let i = 0; i <= idx; i++) {
     const x = X(sim.t[i]), y = yFn(arr[i]);
-    if (i === 0) ctx.moveTo(x, y);
-    else ctx.lineTo(x, y);
+    if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
   }
   ctx.stroke();
 }
 
-/* ---- 6 条曲线（按可见性过滤，按所属轴选 Y1/Y2） ---- */
+/* ---- 6 条曲线 + 理论解析解叠加 ---- */
 function drawSeries(idx) {
-  const order = ["e", "iq", "p", "i", "d", "u"];   // 绘制顺序：垫底 → 最上层
+  const order = ["e", "y", "d", "i", "p", "u"];   // e/y 垫底，u 最上层
   for (const k of order) {
     if (!curveCfg[k].show) continue;
-    const yFn = curveCfg[k].axis === "L" ? Y1 : Y2;
-    const w   = (k === "u") ? 2.6 : (k === "e") ? 1.6 : 1.8;
-    trace(sim[k], idx, curveCfg[k].color, w, yFn);
+    const yFn = (curveCfg[k].axis === "L") ? Y1 : Y2;
+    trace(sim[k], yFn, curveCfg[k].color, k === "u" ? 2.6 : 1.8, idx);
+  }
+  // 理论解析曲线（连续模式 + 开关开启时，白色虚线叠在 y 上）
+  if (el.theoryOn.checked && simTheo.y.length === sim.y.length) {
+    ctx.strokeStyle = "rgba(255,255,255,0.85)"; ctx.setLineDash([5, 4]); ctx.lineWidth = 1.4;
+    ctx.beginPath();
+    for (let i = 0; i <= idx; i++) {
+      const x = X(sim.t[i]), y = Y1(simTheo.y[i]);
+      if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    }
+    ctx.stroke(); ctx.setLineDash([]);
   }
 }
 
-/* ---- 微分切线：当前时刻 e(t) 的切线，斜率 = de/dt（e 在左轴，用 Y1） ---- */
+/* ---- 参考输入 r 虚线（CH1） ---- */
+function drawTargetLine() {
+  const r = parseFloat(el.rNum.value) || 0;
+  const y = Y1(r);
+  if (y < plotT - 20 || y > ch1B + 20) return;
+  ctx.strokeStyle = "rgba(255,255,255,0.45)"; ctx.setLineDash([6, 4]); ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(plotL, y); ctx.lineTo(plotL + plotW, y); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle = "#c9d1dc"; ctx.textAlign = "left"; ctx.font = "11px Consolas, monospace";
+  ctx.fillText("r = " + fmtNum(r), plotL + 6, y - 5);
+}
+
+/* ---- 积分面积可视化（e 与 y=0 之间，左轴） ---- */
+function drawArea(idx) {
+  if (!el.areaOn.checked) return;
+  const y0 = Y1(0);
+  ctx.fillStyle = "rgba(77,163,255,0.25)";
+  ctx.beginPath(); ctx.moveTo(X(0), y0);
+  for (let i = 0; i <= idx; i++) ctx.lineTo(X(sim.t[i]), Y1(sim.e[i]));
+  ctx.lineTo(X(sim.t[idx]), y0);
+  ctx.closePath(); ctx.fill();
+}
+
+/* ---- 微分斜率可视化（当前时刻 e(t) 切线，紫色，左轴） ---- */
 function drawTangent(idx) {
   if (!el.tangentOn.checked || idx < 1) return;
   const dt = tMax / N_SAMPLE;
-  const slope = (sim.e[idx] - sim.e[idx - 1]) / dt;   // 数值斜率 de/dt
-  const halfW = Math.min(0.5 * tMax, 0.001);            // 切线向两侧延伸的时长（秒），最多 1ms
-
-  const x1 = X(sim.t[idx] - halfW), y1 = Y1(sim.e[idx] - slope * halfW);
-  const x2 = X(sim.t[idx] + halfW), y2 = Y1(sim.e[idx] + slope * halfW);
-
-  ctx.strokeStyle = "rgba(179,127,235,0.95)";
-  ctx.lineWidth = 2;
+  const slope = (sim.e[idx] - sim.e[idx - 1]) / dt;
+  const halfW = Math.min(0.3 * tMax, tMax / 20);
+  const t0 = sim.t[idx];
+  ctx.strokeStyle = "rgba(179,127,235,0.95)"; ctx.lineWidth = 2;
   ctx.beginPath();
-  ctx.moveTo(x1, y1); ctx.lineTo(x2, y2);
+  ctx.moveTo(X(t0 - halfW), Y1(sim.e[idx] - slope * halfW));
+  ctx.lineTo(X(t0 + halfW), Y1(sim.e[idx] + slope * halfW));
   ctx.stroke();
-
-  // 切点标记
-  ctx.beginPath();
-  ctx.arc(X(sim.t[idx]), Y1(sim.e[idx]), 3.5, 0, Math.PI * 2);
-  ctx.fillStyle = curveCfg.d.color;
-  ctx.fill();
-  ctx.strokeStyle = "#fff";
-  ctx.lineWidth = 1;
-  ctx.stroke();
-
-  // 斜率数值标注
-  ctx.fillStyle = curveCfg.d.color;
-  ctx.font = "bold 11px Consolas, monospace";
-  ctx.textAlign = "left";
-  ctx.fillText("de/dt = " + (slope / 1000).toFixed(2) + " A/ms",
-               X(sim.t[idx]) + 8, Y1(sim.e[idx]) - 10);
-  ctx.font = "11px 'Segoe UI', 'Microsoft YaHei', sans-serif";
+  ctx.beginPath(); ctx.arc(X(t0), Y1(sim.e[idx]), 3.5, 0, Math.PI * 2);
+  ctx.fillStyle = "#b37feb"; ctx.fill();
+  ctx.strokeStyle = "#fff"; ctx.lineWidth = 1; ctx.stroke();
+  ctx.fillStyle = "#b37feb"; ctx.font = "bold 11px Consolas, monospace"; ctx.textAlign = "left";
+  ctx.fillText("de/dt = " + slope.toFixed(2), X(t0) + 8, Y1(sim.e[idx]) - 10);
+  ctx.font = "11px 'Segoe UI','Microsoft YaHei',sans-serif";
 }
 
-/* ---- 当前时刻游标线（淡白虚线） ---- */
+/* ---- 稳定时间标注（黄色竖线跨两通道 + CH1 顶部标签，随播放头越过而点亮） ---- */
+function drawSettle() {
+  if (settleT === null || settleT > tMax) return;
+  const x = X(settleT);
+  const reached = curT >= settleT;
+  ctx.strokeStyle = reached ? "rgba(255,210,63,0.95)" : "rgba(255,210,63,0.35)";
+  ctx.setLineDash([5, 4]); ctx.lineWidth = 1.2;
+  ctx.beginPath(); ctx.moveTo(x, plotT); ctx.lineTo(x, ch2B); ctx.stroke();
+  ctx.setLineDash([]);
+  const label = "t_s = " + (settleT * 1000).toFixed(1) + " ms (±2%)";
+  ctx.font = "bold 11px Consolas, monospace";
+  const tw = ctx.measureText(label).width;
+  const labelX = Math.max(plotL + tw / 2 + 6, Math.min(plotL + plotW - tw / 2 - 6, x));
+  ctx.fillStyle = "rgba(20,22,27,0.78)";
+  ctx.fillRect(labelX - tw / 2 - 5, plotT + 3, tw + 10, 15);
+  ctx.fillStyle = reached ? "#ffd23f" : "rgba(255,210,63,0.55)";
+  ctx.textAlign = "center"; ctx.textBaseline = "middle";
+  ctx.fillText(label, labelX, plotT + 10);
+  ctx.font = "11px 'Segoe UI','Microsoft YaHei',sans-serif";
+  ctx.textBaseline = "middle";
+}
+
+/* ---- 播放头（白色虚线，跨两通道，随 curT 走） ---- */
 function drawCursor(idx) {
-  if (curT <= 0) return;
   const x = X(sim.t[idx]);
-  ctx.strokeStyle = "rgba(255,255,255,0.30)";
-  ctx.lineWidth = 1;
-  ctx.setLineDash([3, 4]);
-  ctx.beginPath();
-  ctx.moveTo(x, plotT); ctx.lineTo(x, plotT + plotH);
-  ctx.stroke();
+  ctx.strokeStyle = "rgba(255,255,255,0.55)"; ctx.setLineDash([3, 3]); ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(x, plotT); ctx.lineTo(x, ch2B); ctx.stroke();
   ctx.setLineDash([]);
 }
 
-/* ---- 底部实时数值 ---- */
-function updateReadout(idx) {
-  el.ro.t.textContent    = (sim.t[idx] * 1000).toFixed(3) + " ms";
-  el.ro.e.textContent    = sim.e[idx].toFixed(3) + " A";
-  el.ro.p.textContent    = sim.p[idx].toFixed(3) + " V";
-  el.ro.i.textContent    = sim.i[idx].toFixed(3) + " V";
-  el.ro.d.textContent    = sim.d[idx].toFixed(3) + " V";
-  el.ro.u.textContent    = sim.u[idx].toFixed(3) + " V";
-  el.ro.iq.textContent   = sim.iq[idx].toFixed(3) + " A";
-  el.ro.area.textContent = sim.area[idx].toFixed(3) + " A";
+/* ---- 测量游标 X1/X2：竖线 + 手柄 + 交点 ---- */
+const tToIdx = t => Math.max(0, Math.min(N_SAMPLE, Math.round((t / tMax) * N_SAMPLE)));
+
+function drawOneCursor(key, c) {
+  const x = X(c.t), col = CUR_COLORS[key], idx = tToIdx(c.t);
+  // 竖线半透明（不压曲线）
+  ctx.save();
+  ctx.globalAlpha = 0.5;
+  ctx.strokeStyle = col; ctx.lineWidth = 1.2;
+  ctx.beginPath(); ctx.moveTo(x, plotT); ctx.lineTo(x, ch2B); ctx.stroke();
+  ctx.restore();
+  // 顶部三角手柄 + 时刻标注（半透明底色框，避免遮挡网格/刻度）
+  ctx.globalAlpha = 0.9;
+  ctx.fillStyle = col;
+  ctx.beginPath(); ctx.moveTo(x - 6, plotT); ctx.lineTo(x + 6, plotT); ctx.lineTo(x, plotT + 8);
+  ctx.closePath(); ctx.fill();
+  ctx.font = "bold 11px Consolas, monospace";
+  const label = key.toUpperCase() + " " + (c.t * 1000).toFixed(2) + "ms";
+  ctx.textAlign = "center";
+  const tw = ctx.measureText(label).width;
+  ctx.fillStyle = "rgba(20,22,27,0.72)";            // 底色框压暗背景，文字仍可读
+  ctx.fillRect(x - tw / 2 - 4, plotT - 17, tw + 8, 13);
+  ctx.fillStyle = col;
+  ctx.fillText(label, x, plotT - 9);
+  ctx.globalAlpha = 1;
+  // 与可见曲线的交点（按所属通道映射与裁剪）
+  for (const k of CURVE_KEYS) {
+    if (!curveCfg[k].show) continue;
+    const y = (curveCfg[k].axis === "L") ? Y1(sim[k][idx]) : Y2(sim[k][idx]);
+    const yLo = (curveCfg[k].axis === "L") ? plotT - 4 : ch2T - 4;
+    const yHi = (curveCfg[k].axis === "L") ? ch1B + 4 : ch2B + 4;
+    if (y < yLo || y > yHi) continue;
+    ctx.beginPath(); ctx.arc(x, y, 3, 0, Math.PI * 2);
+    ctx.fillStyle = curveCfg[k].color; ctx.fill();
+    ctx.strokeStyle = "#0b0d12"; ctx.lineWidth = 1; ctx.stroke();
+  }
+}
+
+function drawCursors() {
+  const x1 = X(cursor.a.t), x2 = X(cursor.b.t);
+  const left = Math.min(x1, x2), right = Math.max(x1, x2);
+  ctx.fillStyle = "rgba(255,210,63,0.04)";           // 两游标间高亮带（跨两通道，淡到不干扰曲线）
+  ctx.fillRect(left, plotT, right - left, ch2B - plotT);
+  // Δt 标签：半透明底色框 + 半透明文字
+  const cx = (left + right) / 2;
+  const label = "Δt = " + (Math.abs(cursor.b.t - cursor.a.t) * 1000).toFixed(2) + " ms";
+  ctx.font = "11px Consolas, monospace"; ctx.textAlign = "center";
+  const tw = ctx.measureText(label).width;
+  ctx.fillStyle = "rgba(20,22,27,0.60)";
+  ctx.fillRect(cx - tw / 2 - 4, plotT + 4, tw + 8, 14);
+  ctx.fillStyle = "rgba(255,210,63,0.9)";
+  ctx.fillText(label, cx, plotT + 13);
+  drawOneCursor("a", cursor.a);
+  drawOneCursor("b", cursor.b);
 }
 
 /* =====================================================================
- * 测量游标（示波器 X1 / X2）：绘制 + 数值面板 + 鼠标拖拽
- * 游标与播放头 curT 完全独立，可在 [0, tMax] 全程自由拖动读数。
+ * 数值面板：底部 readout + 游标面板
  * ===================================================================== */
-
-/* 时刻 → 采样索引（钳制到合法范围） */
-function tToIdx(t) {
-  return Math.max(0, Math.min(N_SAMPLE, Math.round(t / tMax * N_SAMPLE)));
+function updateReadout(idx) {
+  el.ro.t.textContent    = (sim.t[idx] * 1000).toFixed(3) + " ms";
+  el.ro.e.textContent    = sim.e[idx].toFixed(3);
+  el.ro.p.textContent    = sim.p[idx].toFixed(3);
+  el.ro.i.textContent    = sim.i[idx].toFixed(3);
+  el.ro.d.textContent    = sim.d[idx].toFixed(3);
+  el.ro.u.textContent    = sim.u[idx].toFixed(3);
+  el.ro.y.textContent    = sim.y[idx].toFixed(3);
+  el.ro.area.textContent = sim.area[idx].toFixed(3);
+  el.ro.ts.textContent   = (settleT === null)
+    ? "未稳定"
+    : (settleT * 1000).toFixed(2) + " ms";
 }
 
-/* 绘制两条游标 + 高亮带 + Δt 标注 */
-function drawCursors() {
-  clampCursor();
-  const iA = tToIdx(cursor.a.t), iB = tToIdx(cursor.b.t);
-  const xA = X(cursor.a.t), xB = X(cursor.b.t);
-  const top = plotT, bot = plotT + plotH;
-
-  // 两线之间淡色高亮带（标识测量区间）
-  const xL = Math.min(xA, xB), xR = Math.max(xA, xB);
-  if (xR - xL > 1) {
-    ctx.fillStyle = "rgba(255,210,63,0.07)";
-    ctx.fillRect(xL, top, xR - xL, bot - top);
-  }
-
-  drawOneCursor(cursor.a, iA, CUR_COLORS.a, "X1");
-  drawOneCursor(cursor.b, iB, CUR_COLORS.b, "X2");
-
-  // Δt 标注（带中央，半透明）
-  const dt = cursor.b.t - cursor.a.t;
-  ctx.fillStyle = "rgba(255,255,255,0.55)";
-  ctx.font = "bold 13px Consolas, monospace";
-  ctx.textAlign = "center";
-  ctx.textBaseline = "middle";
-  ctx.fillText("Δt = " + (dt * 1000).toFixed(3) + " ms", (xA + xB) / 2, top + plotH / 2);
-  ctx.font = "11px 'Segoe UI', 'Microsoft YaHei', sans-serif";
-  ctx.textBaseline = "alphabetic";
-}
-
-/* 单条游标：竖线 + 与各曲线交点 + 顶部手柄/标签 */
-function drawOneCursor(c, idx, color, label) {
-  const x = X(c.t);
-  const top = plotT, bot = plotT + plotH;
-
-  // 竖线（拖拽中加粗）
-  ctx.strokeStyle = color;
-  ctx.lineWidth = c.drag ? 2.2 : 1.4;
-  ctx.setLineDash([5, 3]);
-  ctx.beginPath();
-  ctx.moveTo(x, top); ctx.lineTo(x, bot);
-  ctx.stroke();
-  ctx.setLineDash([]);
-
-  // 与各可见曲线的交点（直观显示"读到的是哪个点"）
-  for (const k of CURVE_KEYS) {
-    if (!curveCfg[k].show) continue;
-    const yFn = curveCfg[k].axis === "L" ? Y1 : Y2;
-    const y = yFn(sim[k][idx]);
-    if (y < top - 4 || y > bot + 4) continue;
-    ctx.beginPath();
-    ctx.arc(x, y, 3.2, 0, Math.PI * 2);
-    ctx.fillStyle = curveCfg[k].color;
-    ctx.fill();
-    ctx.strokeStyle = "#0b0d12";
-    ctx.lineWidth = 1;
-    ctx.stroke();
-  }
-
-  // 顶部手柄（下指三角）
-  ctx.fillStyle = color;
-  ctx.beginPath();
-  ctx.moveTo(x - 6, top); ctx.lineTo(x + 6, top); ctx.lineTo(x, top + 9);
-  ctx.closePath(); ctx.fill();
-
-  // 标签：名称 + 时刻值（写在手柄上方，绘图区顶部留白内）
-  ctx.fillStyle = color;
-  ctx.font = "bold 10px Consolas, monospace";
-  ctx.textAlign = "center";
-  ctx.textBaseline = "bottom";
-  ctx.fillText(label + " " + (c.t * 1000).toFixed(3) + "ms", x, top - 2);
-  ctx.font = "11px 'Segoe UI', 'Microsoft YaHei', sans-serif";
-  ctx.textBaseline = "alphabetic";
-}
-
-/* 更新右上角数值面板：X1 / X2 / Δ(=X2−X1) */
 function updateCursorPanel() {
   const iA = tToIdx(cursor.a.t), iB = tToIdx(cursor.b.t);
   for (const k of CP_KEYS) {
-    let va = sim[k][iA], vb = sim[k][iB];
-    if (k === "t") { va *= 1000; vb *= 1000; }  // 时间以 ms 显示
-    const u = CP_UNITS[k];
-    $("cp-a-" + k).textContent = va.toFixed(3) + " " + u;
-    $("cp-b-" + k).textContent = vb.toFixed(3) + " " + u;
-    $("cp-d-" + k).textContent = (vb - va).toFixed(3) + " " + u;
+    const va = sim[k][iA], vb = sim[k][iB];
+    const f = (k === "t") ? v => (v * 1000).toFixed(3) : v => v.toFixed(3);
+    $("cp-a-" + k).textContent = f(va);
+    $("cp-b-" + k).textContent = f(vb);
+    $("cp-d-" + k).textContent = f(vb - va);
   }
 }
 
-/* ---- 鼠标坐标 → 数据时刻 ---- */
-function mouseToT(e) {
-  const r = canvas.getBoundingClientRect();
-  const mx = e.clientX - r.left;
-  return { mx, t: (mx - plotL) / plotW * tMax };
+/* =====================================================================
+ * 分析面板：传函 / 特征方程 / 极点 / 阻尼 / 指标
+ * ===================================================================== */
+function fmtPoly(c) {                       // 低次在前 → "3s² + 2s + 1"
+  const parts = [];
+  for (let i = c.length - 1; i >= 0; i--) {
+    const coef = c[i];
+    if (Math.abs(coef) < 1e-9) continue;
+    let term = fmtCoef(coef);
+    if (i > 0 && Math.abs(coef - 1) < 1e-9) term = "";
+    if (i > 0 && Math.abs(coef + 1) < 1e-9) term = "-";
+    term += (i === 0) ? "" : (i === 1 ? "s" : "s<sup>" + i + "</sup>");
+    parts.push(term);
+  }
+  if (!parts.length) return "0";
+  let s = parts[0];
+  for (let i = 1; i < parts.length; i++)
+    s += (parts[i].startsWith("-") ? " − " : " + ") + parts[i].replace(/^-/, "");
+  return s;
 }
-function clampT(t) { return Math.max(0, Math.min(tMax, t)); }
+const fmtTF = (num, den) => {
+  const n = fmtPoly(num), d = fmtPoly(den);
+  return (d === "1") ? n : n + " / (" + d + ")";
+};
+const fmtComplex = r => {
+  const re = Math.abs(r.re) < 1e-9 ? 0 : r.re;
+  const im = Math.abs(r.im) < 1e-9 ? 0 : r.im;
+  if (im === 0) return fmtNum(re);
+  return fmtNum(re) + (im > 0 ? " + " : " − ") + fmtNum(Math.abs(im)) + "j";
+};
 
-/* 命中检测：返回离鼠标最近的游标 key 或 null（带宽 ±8px） */
-function pickCursor(mx) {
-  const dA = Math.abs(mx - X(cursor.a.t));
-  const dB = Math.abs(mx - X(cursor.b.t));
-  const HIT = 8;
-  if (dA <= HIT && dA <= dB) return "a";
-  if (dB <= HIT) return "b";
-  return null;
+function updateAnalysisPanel() {
+  const A = computeAnalysis();
+  const { Gnum, Gden, Cnum, Cden } = buildClosedLoop();
+  el.an.g.innerHTML  = "G(s) = " + fmtTF(Gnum, Gden);
+  el.an.c.innerHTML  = "C(s) = " + fmtTF(Cnum, Cden);
+  el.an.l.innerHTML  = "L(s) = " + fmtTF(polyMul(Cnum, Gnum), polyMul(Cden, Gden));
+  el.an.phi.innerHTML = "Φ(s) = " + fmtTF(polyMul(Cnum, Gnum),
+                         polyAdd(polyMul(Cden, Gden), polyMul(Cnum, Gnum)));
+  el.an.ch.innerHTML = "1 + L(s) = 0 → " + fmtPoly(A.charPoly) + " = 0";
+  el.an.chHint.textContent = "等效连续域（Ki→Ki/T、Kd→Kd·T，两模式一致）"
+    + (mode === "discrete" ? "；ZOH 采样使离散实际响应略滞后" : "");
+  el.an.poles.innerHTML = A.roots.map(r => "s = " + fmtComplex(r)).join("<br>") || "—";
+  el.an.zeta.textContent = A.zeta === null ? "—" : A.zeta.toFixed(3);
+  el.an.wn.textContent = A.omegaN === null ? "—" : A.omegaN.toFixed(2) + " rad/s";
+  el.an.type.textContent = A.dampType || "—";
+  el.an.stable.textContent = A.stable ? "稳定" : "不稳定";
+  el.an.stable.style.color = A.stable ? "#3ddc84" : "#ff5252";
+
+  const m = A.metrics;
+  el.an.mp.textContent = m.Mp === undefined ? "—" : m.Mp.toFixed(1) + " %";
+  el.an.tr.textContent = m.tr === undefined ? "—" : (m.tr * 1000).toFixed(3) + " ms";
+  el.an.tp.textContent = m.tp === undefined ? "—" :
+    (m.tp === Infinity ? "无峰值（无振荡）" : (m.tp * 1000).toFixed(3) + " ms");
+  el.an.ts.textContent = m.ts === undefined ? "—" : (m.ts * 1000).toFixed(3) + " ms";
+
+  const notes = [];
+  if (A.n > 2) notes.push("高阶系统（" + A.n + " 阶）：ζ/ωₙ 定义失效，以极点与仿真为准");
+  if (mode === "discrete") notes.push("离散等效域：理论值仅供对照，实际响应见仿真");
+  if (!el.theoryOn.checked && A.n <= 2 && A.stable) notes.push("开「理论曲线叠加」可对比解析解");
+  el.an.note.textContent = notes.join("；") || "";
+
+  drawPoleMap();
 }
-
-/* 开关：启用 / 禁用测量模式 */
-el.cursorOn.addEventListener("change", () => {
-  cursor.on = el.cursorOn.checked;
-  el.cursorPanel.classList.toggle("cp-hidden", !cursor.on);
-  canvas.style.cursor = cursor.on ? "crosshair" : "default";
-});
-
-/* 鼠标按下：落在某条游标命中带内 → 开始拖拽 */
-canvas.addEventListener("mousedown", (e) => {
-  if (!cursor.on) return;
-  const { mx } = mouseToT(e);
-  const h = pickCursor(mx);
-  if (h) { cursor[h].drag = true; e.preventDefault(); }
-});
-
-/* 拖拽中（挂在 window，拖出 canvas 也能跟随） */
-window.addEventListener("mousemove", (e) => {
-  if (!cursor.on) return;
-  if (cursor.a.drag)      cursor.a.t = clampT(mouseToT(e).t);
-  else if (cursor.b.drag) cursor.b.t = clampT(mouseToT(e).t);
-});
-window.addEventListener("mouseup", () => { cursor.a.drag = cursor.b.drag = false; });
-
-/* hover 反馈：靠近游标时光标变 ew-resize */
-canvas.addEventListener("mousemove", (e) => {
-  if (!cursor.on || cursor.a.drag || cursor.b.drag) return;
-  const { mx } = mouseToT(e);
-  const h = pickCursor(mx);
-  cursor.hover = h;
-  canvas.style.cursor = h ? "ew-resize" : "crosshair";
-});
-canvas.addEventListener("mouseleave", () => {
-  if (!cursor.a.drag && !cursor.b.drag) { cursor.hover = null; canvas.style.cursor = "default"; }
-});
 
 /* =====================================================================
- * 曲线颜色 / 可见性 / 预设 事件
+ * 图例同步（颜色 + 显隐透明度）
  * ===================================================================== */
-
-/* 同步图例颜色与透明度 */
 function updateLegend() {
   for (const k of CURVE_KEYS) {
     const sw = $("legend-" + k);
     if (!sw) continue;
     sw.style.borderColor = curveCfg[k].color;
-    sw.parentElement.style.opacity = curveCfg[k].show ? "1" : "0.35";
+    sw.parentElement.style.opacity = curveCfg[k].show ? 1 : 0.35;
   }
 }
 
-/* 预设切换：一键替换全部 6 色 */
+/* =====================================================================
+ * 事件绑定：曲线颜色 / 显隐 / 预设 / 播放 / 重置 / 折叠 / 游标拖拽
+ * ===================================================================== */
+for (const k of CURVE_KEYS) {
+  const cb = $("show-" + k), ci = $("color-" + k);
+  if (!cb || !ci) continue;
+  cb.addEventListener("change", () => { curveCfg[k].show = cb.checked; updateLegend(); });
+  ci.addEventListener("input", () => { curveCfg[k].color = ci.value; updateLegend(); });
+}
 el.preset.addEventListener("change", () => {
-  const p = PRESETS[el.preset.value];
-  if (!p) return;
-  for (const k of CURVE_KEYS) {
-    curveCfg[k].color = p[k];
-    $("color-" + k).value = p[k];
-  }
+  const P = PRESETS[el.preset.value];
+  if (!P) return;
+  for (const k of CURVE_KEYS) { curveCfg[k].color = P[k]; $("color-" + k).value = P[k]; }
   updateLegend();
 });
-
-/* 每条曲线的 checkbox + color picker */
-CURVE_KEYS.forEach(k => {
-  $("show-" + k).addEventListener("change", e => {
-    curveCfg[k].show = e.target.checked;
-    updateLegend();
-  });
-  $("color-" + k).addEventListener("input", e => {
-    curveCfg[k].color = e.target.value;
-    updateLegend();
-  });
+el.cursorOn.addEventListener("change", () => {
+  cursor.on = el.cursorOn.checked;
+  el.cursorPanel.classList.toggle("cp-hidden", !cursor.on);
+  if (!cursor.on) el.canvas.style.cursor = "default";
+});
+el.analysisToggle.addEventListener("click", () => {
+  const collapsed = el.analysis.classList.toggle("collapsed");
+  /* 展开时同步加 pinned：中等屏默认 `:not(.pinned)` 自动折叠，
+   * 只移除 collapsed 会仍被自动折叠规则压回 34px，导致"展开无效" */
+  el.analysis.classList.toggle("pinned", !collapsed);
+  el.analysisToggle.textContent = collapsed ? "▶" : "◀";
+  resizeCanvas();
+});
+el.diagramToggle.addEventListener("click", () => {
+  const collapsed = el.diagramWrap.classList.toggle("collapsed");
+  el.diagramToggle.textContent = collapsed ? "▲" : "▼";
 });
 
-/* =====================================================================
- * 动画主循环（requestAnimationFrame）
- * ===================================================================== */
-function frame(now) {
-  if (playing) {
-    if (lastFrame === 0) lastFrame = now;
-    const PLAY_DURATION = 5;  // 播放总时长（真实秒），仿真时间按比例映射
-    curT += (now - lastFrame) / 1000 * (tMax / PLAY_DURATION);
-    lastFrame = now;
-    if (curT >= tMax) {                  // 播放到末尾自动暂停
-      curT = tMax;
-      playing = false;
-      updatePlayBtn();
-    }
+function updatePlayBtn() { el.playBtn.textContent = playing ? "⏸ 暂停" : "▶ 播放"; }
+el.playBtn.addEventListener("click", () => {
+  if (curT >= tMax) curT = 0;          // 播完后再点 → 重播
+  playing = !playing;
+  lastFrame = performance.now();
+  updatePlayBtn();
+});
+el.resetBtn.addEventListener("click", () => {
+  playing = false; curT = 0;
+  updatePlayBtn();
+  onParamChange();
+});
+
+/* 游标拖拽（命中带宽 ±8px；拖动在 window 上，防拖出 canvas 丢事件） */
+el.canvas.addEventListener("mousemove", e => {
+  if (!cursor.on) return;
+  const rect = el.canvas.getBoundingClientRect();
+  const x = e.clientX - rect.left;
+  if (cursor.a.drag || cursor.b.drag) {
+    const t = Math.max(0, Math.min(tMax, (x - plotL) / plotW * tMax));
+    if (cursor.a.drag) cursor.a.t = t; else cursor.b.t = t;
   } else {
-    lastFrame = 0;
+    const dA = Math.abs(x - X(cursor.a.t)), dB = Math.abs(x - X(cursor.b.t));
+    cursor.hover = (dA < 8) ? "a" : (dB < 8) ? "b" : null;
+    el.canvas.style.cursor = cursor.hover ? "ew-resize" : "crosshair";
+  }
+});
+el.canvas.addEventListener("mousedown", e => {
+  if (!cursor.on) return;
+  const rect = el.canvas.getBoundingClientRect();
+  const x = e.clientX - rect.left;
+  if (Math.abs(x - X(cursor.a.t)) < 8) cursor.a.drag = true;
+  else if (Math.abs(x - X(cursor.b.t)) < 8) cursor.b.drag = true;
+  e.preventDefault();
+});
+window.addEventListener("mouseup", () => { cursor.a.drag = false; cursor.b.drag = false; });
+
+/* =====================================================================
+ * 动画主循环 + 初始化
+ * ===================================================================== */
+function draw() {
+  const idx = tToIdx(curT);
+  ctx.clearRect(0, 0, cssW, cssH);
+  drawGrid();
+  drawArea(idx);
+  drawSeries(idx);
+  drawTangent(idx);
+  drawTargetLine();
+  drawSettle();
+  drawCursor(idx);
+  if (cursor.on) drawCursors();
+  updateReadout(idx);
+  if (cursor.on) updateCursorPanel();
+}
+
+function frame(ts) {
+  if (playing) {
+    const dtReal = Math.min(0.05, (ts - lastFrame) / 1000);
+    lastFrame = ts;
+    curT = Math.min(tMax, curT + dtReal * (tMax / 5));   // 5 秒播完整个时间范围
+    if (curT >= tMax) { playing = false; updatePlayBtn(); }
   }
   draw();
   requestAnimationFrame(frame);
 }
 
-/* =====================================================================
- * 初始化
- * ===================================================================== */
-window.addEventListener("resize", resizeCanvas);
+/* ---- 初始化 ---- */
 resizeCanvas();
 simulate();
-updateLegend();
+updatePlayBtn();
+window.addEventListener("resize", resizeCanvas);
 requestAnimationFrame(frame);
-  </script>
+
+</script>
+
+
+
+
 
 </body>
-
 </html>

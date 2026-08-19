@@ -244,7 +244,7 @@ NUCLEO-F401RE/                          # MC Workbench 生成的 STM32 工程
 | Six-Step Firmware Library Guide | UM2124 | 六步换相固件 API |
 | X-CUBE-MCSDK User Manual | UM1601 | MC Workbench 与 FOC 库 |
 
-### 5.5 MCSDK 电流校准死锁问题（2026-08-18 发现）
+### 5.5 MCSDK while(1) 执行缓慢现象（2026-08-18 发现，搁置）
 
 #### 现象链条（现象观察 → 代码分析 → 根因发现）
 
@@ -271,7 +271,7 @@ NUCLEO-F401RE/                          # MC Workbench 生成的 STM32 工程
 
 **问题文件**：`MCSDK_v6.4.2-Full\MotorControl\MCSDK\MCLib\F4xx\Src\r3_1_f4xx_pwm_curr_fdbk.c`（约第 203 行）
 
-**死锁代码段**：
+**疑似问题代码段**：
 ```c
 __disable_irq();  // ← 禁用所有中断，包括 ADC 转换完成中断
 // ... 配置 ADC 极性检测 ...
@@ -280,7 +280,7 @@ waitForPolarizationEnd();  // ← 内部 while 循环等待 PolarizationCounter
                            //     但中断已被禁用 → 永远等不到
 ```
 
-**死锁路径**：
+**调用路径**：
 ```
 main() 
   → MX_MotorControl_Init()     // 重配 SysTick 为 2kHz
@@ -289,15 +289,15 @@ main()
         → PWMC_CurrentReadingCalibr()
           → R3_1_CurrentReadingCalibration()
             → __disable_irq()  ← 禁用所有中断
-            → waitForPolarizationEnd()  ← 死锁在这里！
+            → waitForPolarizationEnd()  ← 疑似卡在这里
 ```
 
 **直接后果**：
-1. `while (*cnt < NB_CONVERSIONS)` 条件恒真，程序永久死锁。
-2. 死锁发生在 `SysTick` 中断上下文（电机控制任务在 SysTick 里调度），CPU 100% 被占用。
-3. 用户观察到的「打印间隔长」是因为偶尔退出中断（如超时或未使能 IRQ 的执行路径）才有机会进入 `while(1)`。
+1. `while (*cnt < NB_CONVERSIONS)` 条件可能恒真，导致 `while(1)` 执行缓慢。
+2. 问题发生在 `SysTick` 中断上下文（电机控制任务在 SysTick 里调度），CPU 大部分时间被占用。
+3. 观察到的「打印间隔长」是因为偶尔退出中断（如超时或未使能 IRQ 的执行路径）才有机会进入 `while(1)`。
 
-**根本原因**：MCSDK v6.4.2 的电流校准函数设计缺陷——在禁用全局中断后，依赖 ADC 中断来递增计数器。这在任何中断优先级配置下都会死锁。
+**疑似根因**：MCSDK v6.4.2 的电流校准函数在禁用全局中断后，依赖 ADC 中断来递增计数器。此分析未经最终确认，实际现象是 `while(1)` 执行缓慢而非完全死锁，可能存在其他执行路径。
 
 #### 解决方案（待实施）
 
@@ -346,4 +346,5 @@ main()
 | 2026-08-16 | 隐私审查前置到 commit 前（学习总计划 8.6 L1+L2）；新增决策记录.md 并回填 ADR-001~006 |
 | 2026-08-16 | 移除过时内容表述；Git 与 Python 路径改为相对描述，不写本机绝对路径 |
 | 2026-08-17~18 | 阶段1验收项 M1（MC Workbench 工具链实操闭环）达成；新增实验记录 20260817；6 组实验覆盖 PWM 频率级联、额定转速影响、过调制适用区域 |
-| 2026-08-18 | **MCSDK 电流校准死锁问题发现**：在调试 AS5600 串口打印时，发现 `MCboot()` 内部 `R3_1_CurrentReadingCalibration()` 函数存在致命逻辑错误——在 `__disable_irq()` 禁用全部中断后，调用 `waitForPolarizationEnd()` 等待 ADC 中断递增 `PolarizationCounter`，导致程序永久死锁。问题文件：`MCSDK_v6.4.2-Full\MotorControl\MCSDK\MCLib\F4xx\Src\r3_1_f4xx_pwm_curr_fdbk.c` 第 203 行。**此问题暂缓处理，待电机控制调试阶段再解决** |
+| 2026-08-18 | **MCSDK while(1) 执行缓慢现象发现**：调试 AS5600 串口打印时，发现 `MCboot()` 内部 `R3_1_CurrentReadingCalibration()` 函数在 `__disable_irq()` 禁用全部中断后调用 `waitForPolarizationEnd()` 等待 ADC 中断递增 `PolarizationCounter`，疑似导致 `while(1)` 执行缓慢（约 1 分钟才进入一次）。问题文件：`MCSDK_v6.4.2-Full\MotorControl\MCSDK\MCLib\F4xx\Src\r3_1_f4xx_pwm_curr_fdbk.c` 第 203 行。**根因未经最终确认，此问题搁置，待电机控制调试阶段再排查** |
+| 2026-08-19 | **阶段 1 收尾**：修正 ADR-008 定性（"死锁"改为"while(1) 执行缓慢"，根因未确认）；新增阶段 1 回顾总结文档；PID 可视化工具与电机原理笔记补充修改。阶段 1 验收标准全部达成 |
