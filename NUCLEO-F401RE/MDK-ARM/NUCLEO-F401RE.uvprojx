@@ -1192,6 +1192,11 @@
               <FileType>1</FileType>
               <FilePath>..\user\as5600.c</FilePath>
             </File>
+            <File>
+              <FileName>encoder.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\user\encoder.c</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>

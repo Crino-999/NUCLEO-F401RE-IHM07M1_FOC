@@ -27,7 +27,7 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-#include "as5600.h"
+#include "encoder.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -96,7 +96,7 @@ int main(void)
   MX_ADC1_Init();
   MX_TIM1_Init();
   MX_USART2_UART_Init();
-  MX_MotorControl_Init();
+  // MX_MotorControl_Init();
   MX_I2C1_Init();
 
   /* Initialize interrupts */
@@ -113,16 +113,16 @@ int main(void)
 
     /* USER CODE BEGIN 3 */
     static uint32_t lastTick = 0;
-    uint16_t rawAngle;
-    float angle;
+    float sin_val = 0, cos_val = 0;
 
     if (HAL_GetTick() - lastTick >= 50)  /* 每 50ms 读一次 */
     {
         lastTick = HAL_GetTick();
-        rawAngle = AS5600_ReadRawAngle();
-        AS5600_GetAngle(&angle);
+        Encoder_GetSinCos(&sin_val, &cos_val);
+        /*LED2 闪烁*/
+        HAL_GPIO_TogglePin(LED2_GPIO_Port, LED2_Pin);
         /* 串口打印验证 */
-        Printf("Raw: %4d  Angle: %6.1f\r\n", rawAngle, angle);
+        Printf("θm:%6.1f θe:%6.1f sin:%5.2f cos:%5.2f\r\n", Encoder_GetMechAngle(), Encoder_GetElecAngle(), sin_val, cos_val);
     }
   }
   /* USER CODE END 3 */
