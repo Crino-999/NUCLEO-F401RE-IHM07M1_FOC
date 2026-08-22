@@ -101,7 +101,7 @@
 | ~~MC Workbench 工具链实操~~ | ~~高~~ | ✅ 已完成（2026-08-17）：改参数→重新生成→部署→验证响应全流程闭环，阶段1验收项 M1 达成 |
 | **AS5600 编码器接入** | 高 | 新切 `feature/as5600-encoder-foc` 分支；I2C1 (PB6=SCL / PB7=SDA) 读取 12-bit 角度；串口验证 |
 | **编码器注入实验** | 高 | 阶段 2：将 AS5600 角度注入 MCSDK 速度环，替代开环强拖校准，改善低速闭环稳定性 |
-| **FOC 核心算法独立实现** | 高 | 阶段 2 核心任务（进行中）：①电角度获取✅ ②坐标变换⬜ ③SVPWM⬜ ④电流采样⬜ ⑤PID闭环⬜，核心代码不借助 AI 代写 |
+| **FOC 核心算法独立实现** | 高 | 阶段 2 核心任务（进行中）：①电角度获取✅ ②坐标变换✅ ③SVPWM⬜ ④电流采样⬜ ⑤PID闭环⬜，核心代码不借助 AI 代写 |
 | MATLAB/Simulink 仿真 | 中 | 阶段 3 任务 |
 | 知识体系梳理与进阶规划 | 中 | 阶段 4 任务 |
 
@@ -349,3 +349,4 @@ main()
 | 2026-08-18 | **MCSDK while(1) 执行缓慢现象发现**：调试 AS5600 串口打印时，发现 `MCboot()` 内部 `R3_1_CurrentReadingCalibration()` 函数在 `__disable_irq()` 禁用全部中断后调用 `waitForPolarizationEnd()` 等待 ADC 中断递增 `PolarizationCounter`，疑似导致 `while(1)` 执行缓慢（约 1 分钟才进入一次）。问题文件：`MCSDK_v6.4.2-Full\MotorControl\MCSDK\MCLib\F4xx\Src\r3_1_f4xx_pwm_curr_fdbk.c` 第 203 行。**根因未经最终确认，此问题搁置，待电机控制调试阶段再排查** |
 | 2026-08-19 | **阶段 1 收尾**：修正 ADR-008 定性（"死锁"改为"while(1) 执行缓慢"，根因未确认）；新增阶段 1 回顾总结文档；PID 可视化工具与电机原理笔记补充修改。阶段 1 验收标准全部达成 |
 | 2026-08-19 | **阶段 2 开始——第 1 步电角度获取**：新建 `user/encoder.c/h`，实现 AS5600→机械角度→电角度(×7)→弧度→sin/cos 完整链路。修复电角度公式（`mech×P−offset`→`(mech−offset)×P`，量纲匹配）。main.c 注释 `MX_MotorControl_Init()` 规避 ADR-008。串口验证通过：θm×7=θe(mod360)，sin/cos 一致。新增 ADR-009（FOC 核心算法在 user/ 目录独立实现，绕过 MCSDK FOC 库） |
+| 2026-08-22 | **阶段 2 第 2 步坐标变换**：新建 `user/transform.c/h`，实现 Clarke（3/2 形式）、Park、逆 Park、逆 Clarke 四个变换函数。用模拟三相电流（I=1A，与电角度同步余弦波）验证：id 恒定=1.50、iq≈0，iα/iβ 正弦变化且正交，公式全部正确 |

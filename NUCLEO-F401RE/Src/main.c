@@ -28,6 +28,7 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "encoder.h"
+#include "transform.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -113,16 +114,32 @@ int main(void)
 
     /* USER CODE BEGIN 3 */
     static uint32_t lastTick = 0;
-    float sin_val = 0, cos_val = 0;
+    // float sin_val = 0, cos_val = 0;
 
     if (HAL_GetTick() - lastTick >= 50)  /* 每 50ms 读一次 */
     {
         lastTick = HAL_GetTick();
-        Encoder_GetSinCos(&sin_val, &cos_val);
+        // Encoder_GetSinCos(&sin_val, &cos_val);
         /*LED2 闪烁*/
         HAL_GPIO_TogglePin(LED2_GPIO_Port, LED2_Pin);
         /* 串口打印验证 */
-        Printf("θm:%6.1f θe:%6.1f sin:%5.2f cos:%5.2f\r\n", Encoder_GetMechAngle(), Encoder_GetElecAngle(), sin_val, cos_val);
+        // Printf("θm:%6.1f θe:%6.1f sin:%5.2f cos:%5.2f\r\n", Encoder_GetMechAngle(), Encoder_GetElecAngle(), sin_val, cos_val);
+
+        float I = 1.0f;                              // 模拟电流幅值
+        float theta = Encoder_GetElecRad();           // 真实电角度
+
+        // 生成模拟三相电流正弦波
+        float ia = I * cosf(theta);
+        float ib = I * cosf(theta - 2.0f*M_PI/3.0f);  // -120°
+        float ic = I * cosf(theta + 2.0f*M_PI/3.0f);  // +120°
+        // 正向变换
+        float i_alpha, i_beta, id, iq;
+        Transform_Clarke(ia, ib, ic, &i_alpha, &i_beta);
+        float sin_val, cos_val;
+        Encoder_GetSinCos(&sin_val, &cos_val);
+        Transform_Park(i_alpha, i_beta, sin_val, cos_val, &id, &iq);
+        /* 串口打印验证 */
+        Printf("θe:%6.1f  iα:%5.2f iβ:%5.2f  id:%5.2f iq:%5.2f\r\n", theta * 180.0f / M_PI, i_alpha, i_beta, id, iq);
     }
   }
   /* USER CODE END 3 */
