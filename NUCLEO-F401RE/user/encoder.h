@@ -8,6 +8,8 @@
 #endif
 
 #define POLE_PAIRS  7 /*电机极对数*/
+#define ENCODER_DIR (-1.0f) /* 编码器计数方向：与 αβ 磁场方向一致取 +1，相反取 -1。
+                               2026-10-11 开环旋转实测本机为相反方向，故取 -1 */
 #define RAW_TO_DEG  (360.0f / 4096.0f)  /*角度原始值*/
 
 void  Encoder_SetOffset(float offset_deg);   // 设置零点偏移

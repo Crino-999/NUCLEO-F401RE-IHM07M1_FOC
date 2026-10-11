@@ -15,7 +15,9 @@ float Encoder_GetMechAngle(void)
 float Encoder_GetElecAngle(void)
 {
     float mech_angle = Encoder_GetMechAngle();
-    float elec_angle = fmodf(((mech_angle - offset) * POLE_PAIRS), 360.0f);
+    /* ENCODER_DIR 决定电角度的计数方向。取反后 Park/逆Park 用的角度才与
+       SVPWM 的 αβ 磁场方向同向；否则 d/q 两轴是镜像的，闭环会发散。 */
+    float elec_angle = fmodf((ENCODER_DIR * (mech_angle - offset) * POLE_PAIRS), 360.0f);
     if (elec_angle < 0.0f)
         elec_angle += 360.0f;
     return elec_angle;

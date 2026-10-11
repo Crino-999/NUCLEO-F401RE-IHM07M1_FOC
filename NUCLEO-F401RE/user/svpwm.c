@@ -4,8 +4,7 @@
 #define SQRT3 1.73205080757f
 
 void Svpwm_Calc(float v_alpha, float v_beta, float vdc,
-                float Ts, uint32_t ARR,
-                uint32_t *ccr_a, uint32_t *ccr_b, uint32_t *ccr_c)
+                float *da, float *db, float *dc)
 {
     /* 1. 计算 X, Y, Z */
     float X = v_beta;
@@ -29,8 +28,8 @@ void Svpwm_Calc(float v_alpha, float v_beta, float vdc,
         default: sector = 0; break;
     }
 
-    /* 3. 计算 TX, TY */
-    float K = SQRT3 * Ts / vdc;
+    /* 3. 计算 TX, TY（单位：一个 PWM 周期 = 1） */
+    float K = SQRT3 / vdc;
     float TX = 0.0f;
     float TY = 0.0f;
 
@@ -45,14 +44,14 @@ void Svpwm_Calc(float v_alpha, float v_beta, float vdc,
 
     /* 4. 过调制限幅 */
     float sum = TX + TY;
-    if (sum > Ts) {
-        float k = Ts / sum;
+    if (sum > 1.0f) {
+        float k = 1.0f / sum;
         TX *= k;
         TY *= k;
     }
-    float T0 = Ts - TX - TY;
+    float T0 = 1.0f - TX - TY;
 
-    /* 5. 三个比较点（归一化到 [0, Ts]） */
+    /* 5. 三个比较点（单位：一个 PWM 周期 = 1，范围 [0, 1]） */
     float Ta_prime = T0 * 0.25f;
     float Tb_prime = Ta_prime + TX * 0.5f;
     float Tc_prime = Tb_prime + TY * 0.5f;
@@ -66,20 +65,20 @@ void Svpwm_Calc(float v_alpha, float v_beta, float vdc,
         case 4: CmpA = Tc_prime; CmpB = Tb_prime; CmpC = Ta_prime; break;
         case 5: CmpA = Tb_prime; CmpB = Tc_prime; CmpC = Ta_prime; break;
         case 6: CmpA = Ta_prime; CmpB = Tc_prime; CmpC = Tb_prime; break;
-        default: CmpA = CmpB = CmpC = 0.5f; break;   /* 零矢量，三相全低 */
+        default: CmpA = CmpB = CmpC = 0.5f; break;   /* 零矢量：占空比 0，三相全低 */
     }
 
-    /* 6. 直接输出 CCR */
-    uint32_t CCR_A = (uint32_t)((Ts - 2*CmpA) * (float)ARR / Ts + 0.5f);
-    uint32_t CCR_B = (uint32_t)((Ts - 2*CmpB) * (float)ARR / Ts + 0.5f);
-    uint32_t CCR_C = (uint32_t)((Ts - 2*CmpC) * (float)ARR / Ts + 0.5f);
+    /* 6. 比较点 → 高侧导通占空比（0 ~ 1） */
+    float duty_a = 1.0f - 2.0f * CmpA;
+    float duty_b = 1.0f - 2.0f * CmpB;
+    float duty_c = 1.0f - 2.0f * CmpC;
 
     /* 防越界 */
-    if (CCR_A > ARR) CCR_A = ARR;
-    if (CCR_B > ARR) CCR_B = ARR;
-    if (CCR_C > ARR) CCR_C = ARR;
+    if (duty_a < 0.0f) { duty_a = 0.0f; } else if (duty_a > 1.0f) { duty_a = 1.0f; }
+    if (duty_b < 0.0f) { duty_b = 0.0f; } else if (duty_b > 1.0f) { duty_b = 1.0f; }
+    if (duty_c < 0.0f) { duty_c = 0.0f; } else if (duty_c > 1.0f) { duty_c = 1.0f; }
 
-    *ccr_a = CCR_A;
-    *ccr_b = CCR_B;
-    *ccr_c = CCR_C;
+    *da = duty_a;
+    *db = duty_b;
+    *dc = duty_c;
 }
