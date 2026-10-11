@@ -29,6 +29,7 @@
 /* USER CODE BEGIN Includes */
 #include "encoder.h"
 #include "transform.h"
+#include "svpwm.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -114,32 +115,64 @@ int main(void)
 
     /* USER CODE BEGIN 3 */
     static uint32_t lastTick = 0;
-    // float sin_val = 0, cos_val = 0;
+    static float theta_deg = 0.0f;   /* 合成矢量的电角度，0° → 345° 循环扫描 */
 
-    if (HAL_GetTick() - lastTick >= 50)  /* 每 50ms 读一次 */
+    if (HAL_GetTick() - lastTick >= 200)   /* 每 200ms 打一行，一行对应一个角度 */
     {
         lastTick = HAL_GetTick();
-        // Encoder_GetSinCos(&sin_val, &cos_val);
         /*LED2 闪烁*/
         HAL_GPIO_TogglePin(LED2_GPIO_Port, LED2_Pin);
-        /* 串口打印验证 */
-        // Printf("θm:%6.1f θe:%6.1f sin:%5.2f cos:%5.2f\r\n", Encoder_GetMechAngle(), Encoder_GetElecAngle(), sin_val, cos_val);
 
-        float I = 1.0f;                              // 模拟电流幅值
-        float theta = Encoder_GetElecRad();           // 真实电角度
+        /* ================= SVPWM 数值验证（阶段2 第3步） ================= */
+        const float VDC_NOM = 12.0f;   /* 标称母线电压：纯数值验证用，与实际是否上电无关 */
+        const float M       = 1.0f;    /* 调制比 m = √3·|Uref|/Udc，1.0 = 线性区上限 */
+        const float TS      = 1.0f;    /* 归一化周期，与 svpwm.c 内部单位一致 */
+        uint32_t    ARR     = htim1.Init.Period;   /* 取实际 ARR（2625 @16kHz/84MHz），不硬编码 */
 
-        // 生成模拟三相电流正弦波
+        float u  = M / sqrtf(3.0f);              /* 归一化幅值 |Uref|/Udc */
+        float th = theta_deg * (M_PI / 180.0f);
+        float v_alpha = u * cosf(th) * VDC_NOM;
+        float v_beta  = u * sinf(th) * VDC_NOM;
+
+        uint32_t ccr_a = 0, ccr_b = 0, ccr_c = 0;
+        Svpwm_Calc(v_alpha, v_beta, VDC_NOM, TS, ARR, &ccr_a, &ccr_b, &ccr_c);
+
+        /* 重构不变式：CCR → 占空比 → 平均相电压(标幺) → Clarke → 应等于 1.5×v_alpha/vdc
+           正确时 err ≈ 0，这是本步唯一的通过判据 */
+        float dA = (float)ccr_a / (float)ARR;
+        float dB = (float)ccr_b / (float)ARR;
+        float dC = (float)ccr_c / (float)ARR;
+        float un = (dA + dB + dC) / 3.0f;
+        float r_alpha = 0.0f, r_beta = 0.0f;
+        Transform_Clarke(dA - un, dB - un, dC - un, &r_alpha, &r_beta);
+        float e_alpha = 1.5f * v_alpha / VDC_NOM;
+        float e_beta  = 1.5f * v_beta  / VDC_NOM;
+        float err = sqrtf((r_alpha - e_alpha) * (r_alpha - e_alpha)
+                        + (r_beta  - e_beta ) * (r_beta  - e_beta ));
+
+        /* sec 是由扫描角度推算的参考扇区，仅便于与手算表对照，不代表算法内部结果 */
+        Printf("th:%3.0f sec:%d | ccr:%4u,%4u,%4u | err:%5.3f | rec:%6.3f,%6.3f exp:%6.3f,%6.3f\r\n",
+               theta_deg, (int)(theta_deg / 60.0f) + 1,
+               (unsigned)ccr_a, (unsigned)ccr_b, (unsigned)ccr_c,
+               err, r_alpha, r_beta, e_alpha, e_beta);
+
+        theta_deg += 15.0f;
+        if (theta_deg >= 360.0f) { theta_deg -= 360.0f; }
+        /* =============================================================== */
+
+        /* ---- 阶段2 第2步：坐标变换验证（已通过，保留备查） ----
+        float I = 1.0f;
+        float theta = Encoder_GetElecRad();
         float ia = I * cosf(theta);
-        float ib = I * cosf(theta - 2.0f*M_PI/3.0f);  // -120°
-        float ic = I * cosf(theta + 2.0f*M_PI/3.0f);  // +120°
-        // 正向变换
+        float ib = I * cosf(theta - 2.0f*M_PI/3.0f);
+        float ic = I * cosf(theta + 2.0f*M_PI/3.0f);
         float i_alpha, i_beta, id, iq;
         Transform_Clarke(ia, ib, ic, &i_alpha, &i_beta);
         float sin_val, cos_val;
         Encoder_GetSinCos(&sin_val, &cos_val);
         Transform_Park(i_alpha, i_beta, sin_val, cos_val, &id, &iq);
-        /* 串口打印验证 */
-        Printf("θe:%6.1f  iα:%5.2f iβ:%5.2f  id:%5.2f iq:%5.2f\r\n", theta * 180.0f / M_PI, i_alpha, i_beta, id, iq);
+        Printf("the:%6.1f  ia:%5.2f ib:%5.2f  id:%5.2f iq:%5.2f\r\n", theta * 180.0f / M_PI, i_alpha, i_beta, id, iq);
+        ---- 阶段2 第2步验证结束 ---- */
     }
   }
   /* USER CODE END 3 */

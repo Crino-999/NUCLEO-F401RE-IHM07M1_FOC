@@ -1197,6 +1197,16 @@
               <FileType>1</FileType>
               <FilePath>..\user\encoder.c</FilePath>
             </File>
+            <File>
+              <FileName>transform.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\user\transform.c</FilePath>
+            </File>
+            <File>
+              <FileName>svpwm.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\user\svpwm.c</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
