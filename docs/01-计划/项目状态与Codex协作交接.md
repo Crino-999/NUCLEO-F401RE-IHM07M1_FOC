@@ -244,7 +244,13 @@ NUCLEO-F401RE/                          # MC Workbench 生成的 STM32 工程
 | Six-Step Firmware Library Guide | UM2124 | 六步换相固件 API |
 | X-CUBE-MCSDK User Manual | UM1601 | MC Workbench 与 FOC 库 |
 
-### 5.5 MCSDK while(1) 执行缓慢现象（2026-08-18 发现，搁置）
+### 5.5 MCSDK while(1) 执行缓慢现象（2026-08-18 发现，2026-10-07 归档）
+
+> **归档状态（2026-10-07）**：本问题在当前工程配置下**已不复现**，从活跃问题清单移除（ADR-008 状态 ❌ 已推翻，被 ADR-009 替代）。
+>
+> - **原因**：ADR-009 生效后 `main.c` 不再调用 `MX_MotorControl_Init()`，`MCboot()` 不启动，电流校准所在的调用路径（SysTick → 中频任务 → 偏移校准）根本不执行。
+> - **性质说明**：这是「绕过」而非「修复」。根因始终未经确认，且 2026-10-07 的源码核对显示下文「疑似根因」的三处描述与代码实际不符（见「2026-10-07 源码核对备注」）。**若将来恢复 MCSDK 电机控制功能（重新调用 `MCboot()`），须重新评估本问题**。
+> - 下方「现象链条 / 根因分析 / 解决方案」保留为 2026-08-18 的原始记录，仅作历史背景，**不作为设计基线**。
 
 #### 现象链条（现象观察 → 代码分析 → 根因发现）
 
@@ -307,7 +313,28 @@ main()
 - **方案 B**：手动修复——将 `waitForPolarizationEnd()` 改为轮询硬件标志而非等待中断（无需中断使能）
 - **方案 C**：将 `__disable_irq()` 移到等待循环之后，或在等待循环之前先启动一次 ADC 转换
 
-**临时绕过**：调试 AS5600 等非电机功能时，可在 `motorcontrol.c` 的 `MX_MotorControl_Init()` 中用条件编译跳过 `MCboot()` 调用。
+**临时绕过**：调试 AS5600 等非电机功能时，可在 `motorcontrol.c` 的 `MX_MotorControl_Init()` 中用条件编译跳过 `MCboot()` 调用。（该方式后由 ADR-009 取代：`main.c` 中直接注释掉 `MX_MotorControl_Init()`，`MCboot()` 不再启动）
+
+#### 2026-10-07 源码核对备注（离线上读源码，未做上板验证）
+
+对 MCSDK v6.4.2 源码逐行核对后，上述「疑似根因」有三处描述与代码实际不符：
+
+| # | 原记录说法 | 源码实际 | 位置 |
+|---|---|---|---|
+| 1 | `__disable_irq()` 后一直在禁用中断的状态下等待 ADC 中断 | `__disable_irq()` 与 `__enable_irq()` 是**成对**的，`__enable_irq()` 在 `R3_1_SwitchOnPWM()` 与 `waitForPolarizationEnd()` **之前**执行，**等待期间中断是开着的** | `MCSDK_v6.4.2-Full/MotorControl/MCSDK/MCLib/F4xx/Src/r3_1_f4xx_pwm_curr_fdbk.c:203-211` |
+| 2 | 调用链 `MCboot → TSK_MediumFrequencyTaskM1` | `MCboot()` 只做 FOC_Init / PID 初始化 / RCM 注册 / `startTimers()`，**不调用**中频任务；中频任务由 SysTick 驱动，且 `MC_RunMotorControlTasks()` 在 `bMCBootCompleted == 0` 时**直接返回** | `Src/mc_tasks.c:78-142`、`Src/mc_tasks.c:159-165` |
+| 3 | 「永久死锁」 | `waitForPolarizationEnd()` **有超时机制**：`hMaxPeriodsNumber = 2 × NB_CONVERSIONS × ((REP_COUNTER+1)>>1) = 32` 个 PWM 周期（16 kHz → 约 2 ms），超时后置 `SWerror = 1` 返回，**有界** | `Src/pwm_common.c:96-141`、`Inc/parameters_conversion.h:58`、`Inc/drive_parameters.h:77` |
+
+另：中断优先级反转的说法也不成立。NVIC 分组为 `NVIC_PRIORITYGROUP_3`（`Src/stm32f4xx_hal_msp.c:72`），`ADC_IRQn` 抢占优先级 2（`Src/main.c:210`）高于 `SysTick` 的 4（`Inc/stm32f4xx_hal_conf.h:151`、`Src/motorcontrol.c:53`），ADC 中断可以抢占 SysTick。
+
+**结论**：根因仍未确认；已知偏移校准的等待循环**不是无界的**。上文「现象（打印间隔约 1 分钟一次、CPU 负载极高）」是可靠观测，但归因需要上板实验才能确定。
+
+#### 若恢复 MCSDK 电机控制，建议的排查起点
+
+1. **判别"有界阻塞反复触发"还是"真无限循环"**：在 `waitForPolarizationEnd()` 循环入口/出口各翻转一次空闲 GPIO，用示波器看是周期性窄脉冲还是电平翻不过去。前者说明是高频重复触发导致 SysTick 上下文饱和；后者说明超时计数所依赖的 `CC1` 事件本身没来。
+2. **断点法**：在 `r3_1_f4xx_pwm_curr_fdbk.c:211`（`__enable_irq()` 之后）与 `ADC_IRQHandler`（`Src/stm32f4xx_mc_it.c:64`）各设断点，确认 ADC 注入转换中断能否命中。
+3. **定点观察变量**：`SWerror`、`offsetCalibStatus`、`PolarizationCounter`、`Mci[M1].State`、`Mci[M1].DirectCommand`、`TIM1->CR1.CEN`、`TIM1->CCER`。
+4. **确认触发来源**：`main.c` 中没有任何自动启动调用；START 命令入口是 Start_Stop 按键（PC13）→ `EXTI15_10_IRQHandler` → `UI_HandleStartStopButton_cb` → `MC_StartMotor1()`（`Src/mc_tasks.c:442`、`Src/mc_api.c:95`）。排查时须先确认该命令是否被（重复）触发。
 
 ---
 
@@ -350,3 +377,4 @@ main()
 | 2026-08-19 | **阶段 1 收尾**：修正 ADR-008 定性（"死锁"改为"while(1) 执行缓慢"，根因未确认）；新增阶段 1 回顾总结文档；PID 可视化工具与电机原理笔记补充修改。阶段 1 验收标准全部达成 |
 | 2026-08-19 | **阶段 2 开始——第 1 步电角度获取**：新建 `user/encoder.c/h`，实现 AS5600→机械角度→电角度(×7)→弧度→sin/cos 完整链路。修复电角度公式（`mech×P−offset`→`(mech−offset)×P`，量纲匹配）。main.c 注释 `MX_MotorControl_Init()` 规避 ADR-008。串口验证通过：θm×7=θe(mod360)，sin/cos 一致。新增 ADR-009（FOC 核心算法在 user/ 目录独立实现，绕过 MCSDK FOC 库） |
 | 2026-08-22 | **阶段 2 第 2 步坐标变换**：新建 `user/transform.c/h`，实现 Clarke（3/2 形式）、Park、逆 Park、逆 Clarke 四个变换函数。用模拟三相电流（I=1A，与电角度同步余弦波）验证：id 恒定=1.50、iq≈0，iα/iβ 正弦变化且正交，公式全部正确 |
+| 2026-10-07 | **ADR-008 归档**：确认该问题在当前工程下已不复现（ADR-009 使 `MCboot()` 不被调用），从活跃问题清单移除，ADR-008 状态改为 ❌ 已推翻（被 ADR-009 替代）。§5.5 增加归档说明与「2026-10-07 源码核对备注」：原文「疑似根因」有三处与源码不符（中断实际未被禁用、调用链不成立、等待循环有约 2 ms 超时），根因仍未确认；附恢复 MCSDK 电机控制时的排查起点 |
